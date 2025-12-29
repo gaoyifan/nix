@@ -92,7 +92,6 @@
 
   # Extend session variables
   home.sessionVariables = {
-    EDITOR = "vim";
     NH_FLAKE = "${config.home.homeDirectory}/nix/";
 
     # Custom Settings

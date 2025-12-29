@@ -6,7 +6,7 @@
 }: {
   imports = [
     ./modules/shell
-    ./modules/vim
+    ./modules/editor
   ];
 
   # Home Manager needs a bit of information about you and the paths it should
