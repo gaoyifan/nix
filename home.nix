@@ -171,7 +171,7 @@ in
   # Extend session variables
   home.sessionVariables = {
     EDITOR = "vim";
-    FLAKE = "${config.home.homeDirectory}/nix/";
+    NH_FLAKE = "${config.home.homeDirectory}/nix/";
 
     # Custom Settings
     UPDATE_ZSH_DAYS = "7";
