@@ -29,19 +29,15 @@
   # The home.packages option allows you to install Nix packages into your
   # environment.
   home.packages = with pkgs; [
+    # Git
+    delta
+    diffutils
     # Core utilities
     tmux
     curl
     wget
-    delta # git pager
-    diffutils
-
-    # Custom tools mentioned in zsh plugins (dependencies)
-    # docker # Managed by system? Adding just in case or assume system docker
-    # python3 # for some plugins
-
-    # Custom tools
     tree
+    uv
   ];
 
   # Git Configuration
