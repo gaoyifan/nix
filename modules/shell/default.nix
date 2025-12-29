@@ -2,7 +2,14 @@
   config,
   pkgs,
   ...
-}: {
+}: let
+  iterm2-shell-integration = pkgs.fetchFromGitHub {
+    owner = "gnachman";
+    repo = "iTerm2-shell-integration";
+    rev = "16a37c5f59243a68cd662a8cb70497cbcfaa10b2";
+    hash = "sha256-vxGOr4jTAI0w4Y9Gz/1iEGT2YIq76DJiYIQ+vl4M7qA=";
+  };
+in {
   # The home.packages option allows you to install Nix packages into your
   # environment.
   home.packages = with pkgs; [
@@ -72,7 +79,6 @@
         "alias"
         "docker"
         "ip"
-        "iterm2-integration"
         "keybind"
         "number-keypad"
         "package-manager"
@@ -85,10 +91,17 @@
     '';
 
     initContent = pkgs.lib.mkBefore ''
+      # Enable zsh-completions
       fpath+=(${pkgs.zsh-completions}/share/zsh/site-functions)
 
       # Source Nix profile to ensure paths are correct (Autofix for non-NixOS)
       if [ -e ${config.home.homeDirectory}/.nix-profile/etc/profile.d/nix.sh ]; then . ${config.home.homeDirectory}/.nix-profile/etc/profile.d/nix.sh; fi
+
+      # iTerm2 Shell Integration
+      if [[ "$TERM_PROGRAM" == "iTerm.app" || ( -z "$TERM_PROGRAM" && ${iterm2-shell-integration}/utilities/it2check ) ]]; then
+          source ${iterm2-shell-integration}/shell_integration/zsh
+          path+=(${iterm2-shell-integration}/utilities)
+      fi
     '';
   };
 
