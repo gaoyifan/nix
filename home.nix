@@ -34,6 +34,7 @@
     curl
     wget
     delta # git pager
+    diffutils
 
     # Custom tools mentioned in zsh plugins (dependencies)
     # docker # Managed by system? Adding just in case or assume system docker
