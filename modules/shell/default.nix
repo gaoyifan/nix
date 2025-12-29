@@ -79,14 +79,16 @@
       ];
     };
 
+    envExtra = ''
+      # Enable Homebrew
+      if [ -e /opt/homebrew/bin/brew ]; then eval "$(/opt/homebrew/bin/brew shellenv)"; fi
+    '';
+
     initContent = pkgs.lib.mkBefore ''
       fpath+=(${pkgs.zsh-completions}/share/zsh/site-functions)
 
       # Source Nix profile to ensure paths are correct (Autofix for non-NixOS)
       if [ -e ${config.home.homeDirectory}/.nix-profile/etc/profile.d/nix.sh ]; then . ${config.home.homeDirectory}/.nix-profile/etc/profile.d/nix.sh; fi
-
-      # Enable Homebrew
-      if [ -e /opt/homebrew/bin/brew ]; then eval "$(/opt/homebrew/bin/brew shellenv)"; fi
     '';
   };
 
