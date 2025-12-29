@@ -59,21 +59,7 @@ in
     ".oh-my-zsh/custom/plugins".source = ./zsh-custom;
   };
 
-  # Home Manager can also manage your environment variables through
-  # 'home.sessionVariables'. If you don't want to manage your shell through Home
-  # Manager then you have to manually source 'hm-session-vars.sh' located at
-  # either
-  #
-  #  ~/.nix-profile/etc/profile.d/hm-session-vars.sh
-  #
-  # or
-  #
-  #  /etc/profiles/per-user/yifan/etc/profile.d/hm-session-vars.sh
-  #
-  home.sessionVariables = {
-    EDITOR = "vim";
-    FLAKE = "${config.home.homeDirectory}/nix/";
-  };
+
   
   # Git Configuration
   programs.git = {
@@ -158,22 +144,27 @@ in
     initContent = ''
       # Source Nix profile to ensure paths are correct (Autofix for non-NixOS)
       if [ -e ${config.home.homeDirectory}/.nix-profile/etc/profile.d/nix.sh ]; then . ${config.home.homeDirectory}/.nix-profile/etc/profile.d/nix.sh; fi
-
-      # Custom Settings from .zshrc
-      export UPDATE_ZSH_DAYS=7
-      COMPLETION_WAITING_DOTS="true"
-      DISABLE_UNTRACKED_FILES_DIRTY="true"
-      
-      # Autosuggestion tweaks
-      ZSH_AUTOSUGGEST_USE_ASYNC=true
-      ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
-      ZSH_AUTOSUGGEST_MANUAL_REBIND=true
-      
-      export KEYTIMEOUT=1
       
       # Fix bindings
       _zsh_autosuggest_bind_widgets
     '';
+  };
+
+  # Extend session variables
+  home.sessionVariables = {
+    EDITOR = "vim";
+    FLAKE = "${config.home.homeDirectory}/nix/";
+    
+    # Custom Settings
+    UPDATE_ZSH_DAYS = "7";
+    COMPLETION_WAITING_DOTS = "true";
+    DISABLE_UNTRACKED_FILES_DIRTY = "true";
+    
+    # Autosuggestion tweaks
+    ZSH_AUTOSUGGEST_USE_ASYNC = "true";
+    ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE = "20";
+    ZSH_AUTOSUGGEST_MANUAL_REBIND = "true";
+    KEYTIMEOUT = "1";
   };
 
   # Vim configuration
