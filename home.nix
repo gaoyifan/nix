@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, isDarwin, ... }:
 
 let
   # Define custom plugins that need to be sourced manually or added to fpath
@@ -18,7 +18,7 @@ in
   # Home Manager needs a bit of information about you and the paths it should
   # manage.
   home.username = "yifan";
-  home.homeDirectory = "/home/yifan";
+  home.homeDirectory = if isDarwin then "/Users/yifan" else "/home/yifan";
 
   # This value determines the Home Manager release that your configuration is
   # compatible with. This helps avoid breakage when a new Home Manager release
