@@ -109,10 +109,8 @@ in {
   home.sessionVariables = {
     NH_FLAKE = "${config.home.homeDirectory}/nix/";
 
-    # Custom Settings
-    UPDATE_ZSH_DAYS = "7";
+    # oh-my-zsh settings
     COMPLETION_WAITING_DOTS = "true";
-    DISABLE_UNTRACKED_FILES_DIRTY = "true";
 
     # Autosuggestion tweaks
     ZSH_AUTOSUGGEST_USE_ASYNC = "true";
