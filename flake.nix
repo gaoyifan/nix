@@ -10,20 +10,39 @@
     };
   };
 
-  outputs = { self, nixpkgs, home-manager, ... }:
+  outputs = { nixpkgs, home-manager, ... }: 
     let
-      system = "aarch64-linux";
+      # Detect architecture and kernel dynamically (Impure)
+      system = builtins.currentSystem;
       pkgs = nixpkgs.legacyPackages.${system};
+      
+      username = "yifan";
+      
+      # Helper flags
+      isLinux = pkgs.stdenv.isLinux;
+      isDarwin = pkgs.stdenv.isDarwin;
     in {
-      homeConfigurations."yifan" = home-manager.lib.homeManagerConfiguration {
+      homeConfigurations."${username}" = home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
+        modules = [ 
+          ./home.nix
+          # Conditionally include modules based on Kernel (create these files if you want to split config)
+          # (if isLinux then ./linux-specific.nix else {})
+          # (if isDarwin then ./macos-specific.nix else {})
+        ];
+        extraSpecialArgs = { inherit system isLinux isDarwin; };
+      };
 
-        # Specify your home configuration modules here, for example,
-        # the path to your home.nix.
-        modules = [ ./home.nix ];
-
-        # Optionally use extraSpecialArgs
-        # to pass through arguments to home.nix
+      # Devshell for the current system
+      devShells.${system}.default = pkgs.mkShell {
+        packages = with pkgs; [
+           nh
+           nix-output-monitor
+           pkgs.home-manager
+           git
+           nixfmt-rfc-style
+        ];
       };
     };
 }
+

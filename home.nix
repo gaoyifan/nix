@@ -72,6 +72,7 @@ in
   #
   home.sessionVariables = {
     EDITOR = "vim";
+    FLAKE = "${config.home.homeDirectory}/nix/";
   };
   
   # Git Configuration
@@ -104,6 +105,11 @@ in
   programs.atuin = {
     enable = true;
     enableZshIntegration = true;
+  };
+
+  programs.direnv = {
+    enable = true;
+    nix-direnv.enable = true;
   };
 
   # Zsh Configuration
@@ -150,6 +156,9 @@ in
 
     # Init Extra for things not covered by module options
     initContent = ''
+      # Source Nix profile to ensure paths are correct (Autofix for non-NixOS)
+      if [ -e ${config.home.homeDirectory}/.nix-profile/etc/profile.d/nix.sh ]; then . ${config.home.homeDirectory}/.nix-profile/etc/profile.d/nix.sh; fi
+
       # Custom Settings from .zshrc
       export UPDATE_ZSH_DAYS=7
       COMPLETION_WAITING_DOTS="true"
