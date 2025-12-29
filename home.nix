@@ -3,14 +3,11 @@
   pkgs,
   isDarwin,
   ...
-}:
-
-let
+}: let
   # Define custom plugins that need to be sourced manually or added to fpath
   # Since we copied them to ./zsh-custom, we can iterate over them or just refer to them
   # However, oh-my-zsh module in home-manager usually takes plugins from nixpkgs or specific paths
   # A simpler way for custom plugins in a local directory is to source them in extraConfig or initExtra
-
   # Vim configuration
   vimConfig = pkgs.fetchFromGitHub {
     owner = "amix";
@@ -18,12 +15,14 @@ let
     rev = "46294d589d15d2e7308cf76c58f2df49bbec31e8";
     sha256 = "sha256-g1appWgZlE27Rm8gorGp9B1c6UvGhg1bESgHk8umJ8g=";
   };
-in
-{
+in {
   # Home Manager needs a bit of information about you and the paths it should
   # manage.
   home.username = "yifan";
-  home.homeDirectory = if isDarwin then "/Users/yifan" else "/home/yifan";
+  home.homeDirectory =
+    if isDarwin
+    then "/Users/yifan"
+    else "/home/yifan";
 
   # This value determines the Home Manager release that your configuration is
   # compatible with. This helps avoid breakage when a new Home Manager release
@@ -32,7 +31,7 @@ in
   # You should not change this value, even if you update Home Manager. If you do
   # want to update the value, then make sure to first check the Home Manager
   # release notes.
-  home.stateVersion = "24.11"; # Please read the comment before changing.
+  home.stateVersion = "25.11"; # Please read the comment before changing.
 
   # The home.packages option allows you to install Nix packages into your
   # environment.
@@ -72,36 +71,16 @@ in
         name = "Yifan Gao";
         email = "git@yfgao.com";
       };
-      push = {
-        autoSetupRemote = true;
-      };
-      core = {
-        pager = "delta";
-      };
-      interactive = {
-        diffFilter = "delta --color-only";
-      };
-      delta = {
-        navigate = true;
-      };
-      merge = {
-        conflictstyle = "diff3";
-      };
-      diff = {
-        colorMoved = "default";
-      };
-      "filter \"lfs\"" = {
-        clean = "git-lfs clean -- %f";
-        smudge = "git-lfs smudge -- %f";
-        process = "git-lfs filter-process";
-        required = true;
-      };
+      push.autoSetupRemote = true;
+      core.pager = "delta";
+      interactive.diffFilter = "delta --color-only";
+      delta.navigate = true;
+      merge.conflictstyle = "diff3";
+      diff.colorMoved = "default";
     };
   };
 
-  programs.powerline-go = {
-    enable = true;
-  };
+  programs.powerline-go.enable = true;
 
   programs.atuin = {
     enable = true;
