@@ -15,7 +15,7 @@ let
   vimConfig = pkgs.fetchFromGitHub {
     owner = "amix";
     repo = "vimrc";
-    rev = "master";
+    rev = "46294d589d15d2e7308cf76c58f2df49bbec31e8";
     sha256 = "sha256-g1appWgZlE27Rm8gorGp9B1c6UvGhg1bESgHk8umJ8g=";
   };
 in

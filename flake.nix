@@ -42,7 +42,7 @@
           nix-output-monitor
           pkgs.home-manager
           git
-          nixfmt
+          alejandra
           nixd
         ];
       };
