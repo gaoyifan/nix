@@ -163,8 +163,7 @@ in
       ];
     };
 
-    # Init Extra for things not covered by module options
-    initContent = ''
+    initContent = pkgs.lib.mkBefore ''
       # Source Nix profile to ensure paths are correct (Autofix for non-NixOS)
       if [ -e ${config.home.homeDirectory}/.nix-profile/etc/profile.d/nix.sh ]; then . ${config.home.homeDirectory}/.nix-profile/etc/profile.d/nix.sh; fi
 

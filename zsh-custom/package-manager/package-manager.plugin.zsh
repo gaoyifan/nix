@@ -51,6 +51,12 @@ elif `type yum >/dev/null 2>&1` ; then
         pm_shell="sudo $pm_shell"
     fi
     alias pmu='pm makecache'
+elif `type brew >/dev/null 2>&1` ; then
+    pm_shell='brew'
+    alias pmug='pm upgrade'
+    alias pml='pm list'
+    alias pmd='pm desc'
+    alias pmds='pm desc -s'
 elif `type nix-env >/dev/null 2>&1` ; then
     pm_shell='nix-env'
     alias pmi='pm -iA'
@@ -61,12 +67,6 @@ elif `type nix-env >/dev/null 2>&1` ; then
     alias pms='nix-env -qaP'
     alias pmif='nix-env -qa --description'
     alias pml='pm -q'
-elif `type brew >/dev/null 2>&1` ; then
-    pm_shell='brew'
-    alias pmug='pm upgrade'
-    alias pml='pm list'
-    alias pmd='pm desc'
-    alias pmds='pm desc -s'
 fi
 
 alias pm="$pm_shell"
