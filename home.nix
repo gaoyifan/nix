@@ -37,14 +37,14 @@ in
     curl
     wget
     delta # git pager
-    
+
     # Custom tools mentioned in zsh plugins (dependencies)
     # docker # Managed by system? Adding just in case or assume system docker
     # python3 # for some plugins
-    
+
     # Custom tools
     tree
-    
+
     # Zsh completions
     zsh-completions
   ];
@@ -54,13 +54,11 @@ in
   home.file = {
     # Link the ultimate vimrc
     ".vim_runtime".source = vimConfig;
-    
+
     # Copy/Link custom zsh plugins and theme
     ".oh-my-zsh/custom/plugins".source = ./zsh-custom;
   };
 
-
-  
   # Git Configuration
   programs.git = {
     enable = true;
@@ -69,12 +67,24 @@ in
         name = "Yifan Gao";
         email = "git@yfgao.com";
       };
-      push = { autoSetupRemote = true; };
-      core = { pager = "delta"; };
-      interactive = { diffFilter = "delta --color-only"; };
-      delta = { navigate = true; };
-      merge = { conflictstyle = "diff3"; };
-      diff = { colorMoved = "default"; };
+      push = {
+        autoSetupRemote = true;
+      };
+      core = {
+        pager = "delta";
+      };
+      interactive = {
+        diffFilter = "delta --color-only";
+      };
+      delta = {
+        navigate = true;
+      };
+      merge = {
+        conflictstyle = "diff3";
+      };
+      diff = {
+        colorMoved = "default";
+      };
       "filter \"lfs\"" = {
         clean = "git-lfs clean -- %f";
         smudge = "git-lfs smudge -- %f";
@@ -101,12 +111,15 @@ in
   # Zsh Configuration
   programs.zsh = {
     enable = true;
-    enableCompletion = true; 
+    enableCompletion = true;
     autosuggestion = {
       enable = true;
-      strategy = [ "history" "completion" ];
+      strategy = [
+        "history"
+        "completion"
+      ];
     };
-    
+
     # History configuration
     history = {
       size = 120000;
@@ -115,14 +128,14 @@ in
       ignoreDups = true;
       share = true; # This implies INC_APPEND_HISTORY usually
     };
-    
+
     syntaxHighlighting.enable = true;
-    
+
     oh-my-zsh = {
       enable = true;
       custom = "${config.home.homeDirectory}/.oh-my-zsh/custom";
-      # theme = "robbyrussell"; 
-      
+      # theme = "robbyrussell";
+
       plugins = [
         "git"
         "sudo"
@@ -135,8 +148,13 @@ in
         "docker-compose"
         "iterm2"
         # Custom plugins
-        "alias" "docker" "ip" "iterm2-integration" "keybind" 
-        "number-keypad" "package-manager" 
+        "alias"
+        "docker"
+        "ip"
+        "iterm2-integration"
+        "keybind"
+        "number-keypad"
+        "package-manager"
       ];
     };
 
@@ -144,7 +162,7 @@ in
     initContent = ''
       # Source Nix profile to ensure paths are correct (Autofix for non-NixOS)
       if [ -e ${config.home.homeDirectory}/.nix-profile/etc/profile.d/nix.sh ]; then . ${config.home.homeDirectory}/.nix-profile/etc/profile.d/nix.sh; fi
-      
+
       # Fix bindings
       _zsh_autosuggest_bind_widgets
     '';
@@ -154,12 +172,12 @@ in
   home.sessionVariables = {
     EDITOR = "vim";
     FLAKE = "${config.home.homeDirectory}/nix/";
-    
+
     # Custom Settings
     UPDATE_ZSH_DAYS = "7";
     COMPLETION_WAITING_DOTS = "true";
     DISABLE_UNTRACKED_FILES_DIRTY = "true";
-    
+
     # Autosuggestion tweaks
     ZSH_AUTOSUGGEST_USE_ASYNC = "true";
     ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE = "20";
