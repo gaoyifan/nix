@@ -1,4 +1,9 @@
-{ config, pkgs, isDarwin, ... }:
+{
+  config,
+  pkgs,
+  isDarwin,
+  ...
+}:
 
 let
   # Define custom plugins that need to be sourced manually or added to fpath
@@ -162,6 +167,9 @@ in
     initContent = ''
       # Source Nix profile to ensure paths are correct (Autofix for non-NixOS)
       if [ -e ${config.home.homeDirectory}/.nix-profile/etc/profile.d/nix.sh ]; then . ${config.home.homeDirectory}/.nix-profile/etc/profile.d/nix.sh; fi
+
+      # Enable Homebrew
+      if [ -e /opt/homebrew/bin/brew ]; then eval "$(/opt/homebrew/bin/brew shellenv)"; fi
 
       # Fix bindings
       _zsh_autosuggest_bind_widgets
