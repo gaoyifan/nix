@@ -2,10 +2,11 @@
   config,
   pkgs,
   lib,
-  isDarwin,
   customPkgs,
   ...
-}: {
+}: let
+  isDarwin = pkgs.stdenv.isDarwin;
+in {
   imports = [
     ./modules/shell
     ./modules/neovim.nix
@@ -13,11 +14,12 @@
 
   # Home Manager needs a bit of information about you and the paths it should
   # manage.
-  home.username = "yifan";
-  home.homeDirectory =
+  home.username = lib.mkDefault "yifan";
+  home.homeDirectory = lib.mkDefault (
     if isDarwin
     then "/Users/yifan"
-    else "/home/yifan";
+    else "/home/yifan"
+  );
 
   # This value determines the Home Manager release that your configuration is
   # compatible with. This helps avoid breakage when a new Home Manager release
@@ -70,6 +72,6 @@
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
 
-  # Auto clean nix store
-  nix.gc.automatic = true;
+  # Auto clean nix store (only on non-darwin, as nix-darwin manages gc at system level)
+  nix.gc.automatic = !isDarwin;
 }
