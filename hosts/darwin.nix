@@ -39,6 +39,9 @@
     # Used for backwards compatibility
     stateVersion = 6;
 
+    # Primary user for nix-darwin (required for homebrew, etc.)
+    primaryUser = username;
+
     # Disable startup chime
     startup.chime = false;
   };
