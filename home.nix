@@ -39,7 +39,13 @@
     wget
     tree
     uv
+    (lib.lowPrio pkgs.nh)
   ];
+
+  # NH Configuration
+  home.sessionVariables = {
+    NH_FLAKE = "${config.home.homeDirectory}/nix";
+  };
 
   # Git Configuration
   programs.git = {
@@ -58,16 +64,9 @@
     };
   };
 
-  # NH (Nix Helper) Configuration
-  programs.nh = {
-    enable = true;
-    flake = "${config.home.homeDirectory}/nix";
-    homeFlake = "${config.home.homeDirectory}/nix";
-
-    # Ignore nh from NixOS
-    package = lib.mkForce (pkgs.runCommand "empty-nh" {} "mkdir -p $out");
-  };
-
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
+
+  # Auto clean nix store
+  nix.gc.automatic = true;
 }
