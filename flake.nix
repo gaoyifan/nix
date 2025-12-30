@@ -80,7 +80,7 @@
       customPkgs = mkCustomPkgs pkgs;
     in {
       # Expose custom packages for CI/CD binary cache builds
-      legacyPackages.customPkgs = customPkgs;
+      packages = customPkgs;
 
       # Standalone home-manager configuration (per-system)
       # Usage: home-manager switch --flake .#yifan

@@ -42,16 +42,15 @@ jobs:
         uses: DeterminateSystems/magic-nix-cache-action@main
 
       - name: Build all custom packages
-        run: nix build ".#legacyPackages.${{ matrix.system }}.customPkgs.all"
+        run: nix build --accept-flake-config
 
       - name: Sign package with secret key
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           echo "$BINARY_CACHE_SECRET_KEY" > ./secret.key
-          nix store sign --recursive --key-file ./secret.key ./result
-          rm ./secret.key
+          nix store sign --recursive --key-file ./secret.key
 
       - name: Copy package to R2
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          nix copy --to "s3://nix-cache?endpoint=$S3_ENDPOINT&compression=zstd" ./result
+          nix copy --to "s3://nix-cache?endpoint=$S3_ENDPOINT&compression=zstd"
