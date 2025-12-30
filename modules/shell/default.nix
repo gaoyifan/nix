@@ -63,7 +63,6 @@ in {
     oh-my-zsh = {
       enable = true;
       custom = "${config.home.homeDirectory}/.oh-my-zsh/custom";
-      # theme = "robbyrussell";
 
       plugins = [
         "git"
@@ -92,12 +91,6 @@ in {
     '';
 
     initContent = pkgs.lib.mkBefore ''
-      # Enable zsh-completions
-      fpath+=(${pkgs.zsh-completions}/share/zsh/site-functions)
-
-      # Source Nix profile to ensure paths are correct (Autofix for non-NixOS)
-      if [ -e ${config.home.homeDirectory}/.nix-profile/etc/profile.d/nix.sh ]; then . ${config.home.homeDirectory}/.nix-profile/etc/profile.d/nix.sh; fi
-
       # iTerm2 Shell Integration
       if [[ "$TERM_PROGRAM" == "iTerm.app" || ( -z "$TERM_PROGRAM" && ${iterm2-shell-integration}/utilities/it2check ) ]]; then
           source ${iterm2-shell-integration}/shell_integration/zsh
