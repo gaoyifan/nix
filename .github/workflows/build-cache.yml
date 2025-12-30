@@ -41,8 +41,8 @@ jobs:
       - name: Setup Magic Nix Cache
         uses: DeterminateSystems/magic-nix-cache-action@main
 
-      - name: Build custom packages
-        run: nix build ".#legacyPackages.${{ matrix.system }}.customPkgs.lazyssh"
+      - name: Build all custom packages
+        run: nix build ".#legacyPackages.${{ matrix.system }}.customPkgs.all"
 
       - name: Sign package with secret key
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'

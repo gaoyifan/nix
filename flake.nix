@@ -37,10 +37,8 @@
   }: let
     username = "yifan";
 
-    # Helper function to create custom packages for a system
-    mkCustomPkgs = pkgs: {
-      lazyssh = import ./packages/lazyssh.nix {inherit pkgs;};
-    };
+    # Custom packages for a system
+    mkCustomPkgs = pkgs: import ./packages {inherit pkgs;};
 
     # Darwin hosts (all aarch64-darwin)
     darwinHosts = [
