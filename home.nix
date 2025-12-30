@@ -1,6 +1,7 @@
 {
   config,
   pkgs,
+  lib,
   isDarwin,
   ...
 }: {
@@ -61,6 +62,10 @@
   programs.nh = {
     enable = true;
     flake = "${config.home.homeDirectory}/nix";
+    homeFlake = "${config.home.homeDirectory}/nix";
+
+    # Ignore nh from NixOS
+    package = lib.mkForce (pkgs.runCommand "empty-nh" {} "mkdir -p $out");
   };
 
   # Let Home Manager install and manage itself.
