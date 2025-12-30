@@ -48,4 +48,9 @@
     reattach = true;
     touchIdAuth = true;
   };
+
+  homebrew = {
+    enable = true;
+    onActivation.autoUpdate = true;
+  };
 }
