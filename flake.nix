@@ -28,13 +28,18 @@
       # Helper flags
       isLinux = pkgs.stdenv.isLinux;
       isDarwin = pkgs.stdenv.isDarwin;
+
+      # Custom packages
+      customPkgs = {
+        lazyssh = import ./packages/lazyssh.nix {inherit pkgs;};
+      };
     in {
       legacyPackages.homeConfigurations."${username}" = home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
         modules = [
           ./home.nix
         ];
-        extraSpecialArgs = {inherit system isLinux isDarwin;};
+        extraSpecialArgs = {inherit system isLinux isDarwin customPkgs;};
       };
 
       # Devshell for the current system

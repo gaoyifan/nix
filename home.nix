@@ -3,6 +3,7 @@
   pkgs,
   lib,
   isDarwin,
+  customPkgs,
   ...
 }: {
   imports = [
@@ -40,6 +41,8 @@
     tree
     uv
     (lib.lowPrio pkgs.nh)
+    # Custom packages
+    customPkgs.lazyssh
   ];
 
   # NH Configuration
