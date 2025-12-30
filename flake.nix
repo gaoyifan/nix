@@ -45,7 +45,7 @@
           pkgs.home-manager
           git
           alejandra
-          nixd
+          nil
         ];
       };
     });
