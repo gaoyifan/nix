@@ -15,8 +15,11 @@ in {
   };
 
   # Vim configuration
-  programs.vim = {
+  programs.neovim = {
     enable = true;
+    defaultEditor = true;
+    viAlias = true;
+    vimAlias = true;
     extraConfig = ''
       set runtimepath+=~/.vim_runtime
 
@@ -29,5 +32,9 @@ in {
       catch
       endtry
     '';
+  };
+
+  home.sessionVariables = {
+    EDITOR = "nvim";
   };
 }
