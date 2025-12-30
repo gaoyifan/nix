@@ -42,6 +42,7 @@ in {
     wget
     tree
     uv
+    ripgrep
     (lib.lowPrio pkgs.nh)
     # Custom packages
     customPkgs.lazyssh
