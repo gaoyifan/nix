@@ -107,8 +107,6 @@ in {
 
   # Extend session variables
   home.sessionVariables = {
-    NH_FLAKE = "${config.home.homeDirectory}/nix/";
-
     # oh-my-zsh settings
     COMPLETION_WAITING_DOTS = "true";
 

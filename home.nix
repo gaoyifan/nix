@@ -57,6 +57,12 @@
     };
   };
 
+  # NH (Nix Helper) Configuration
+  programs.nh = {
+    enable = true;
+    flake = "${config.home.homeDirectory}/nix";
+  };
+
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
 }
