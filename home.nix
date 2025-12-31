@@ -4,9 +4,11 @@
   lib,
   customPkgs,
   ...
-}: let
+}:
+let
   isDarwin = pkgs.stdenv.isDarwin;
-in {
+in
+{
   imports = [
     ./modules/shell
     ./modules/neovim.nix
@@ -15,11 +17,7 @@ in {
   # Home Manager needs a bit of information about you and the paths it should
   # manage.
   home.username = lib.mkDefault "yifan";
-  home.homeDirectory = lib.mkDefault (
-    if isDarwin
-    then "/Users/yifan"
-    else "/home/yifan"
-  );
+  home.homeDirectory = lib.mkDefault (if isDarwin then "/Users/yifan" else "/home/yifan");
 
   # This value determines the Home Manager release that your configuration is
   # compatible with. This helps avoid breakage when a new Home Manager release
@@ -43,6 +41,7 @@ in {
     tree
     uv
     ripgrep
+    just
     (lib.lowPrio pkgs.nh)
     # Custom packages
     customPkgs.lazyssh
