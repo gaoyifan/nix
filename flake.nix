@@ -19,8 +19,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    flake-utils.url = "github:numtide/flake-utils";
-
     flake-compat = {
       url = "github:NixOS/flake-compat";
       flake = false;
@@ -32,10 +30,15 @@
     nixpkgs,
     home-manager,
     nix-darwin,
-    flake-utils,
     ...
   }: let
+    # Supported systems
+    systems = ["x86_64-linux" "aarch64-linux" "aarch64-darwin"];
+
     username = "yifan";
+
+    # Helper to generate per-system attributes
+    forAllSystems = f: nixpkgs.lib.genAttrs systems (system: f nixpkgs.legacyPackages.${system});
 
     # Custom packages for a system
     mkCustomPkgs = pkgs: import ./packages {inherit pkgs;};
@@ -73,25 +76,23 @@
           }
         ];
       };
-  in
-    # Per-system outputs (devShells, legacyPackages for CI, homeConfigurations)
-    flake-utils.lib.eachDefaultSystem (system: let
-      pkgs = nixpkgs.legacyPackages.${system};
-      customPkgs = mkCustomPkgs pkgs;
-    in {
-      # Expose custom packages for CI/CD binary cache builds
-      packages = customPkgs;
+  in {
+    # Expose custom packages for CI/CD binary cache builds
+    packages = forAllSystems (pkgs: mkCustomPkgs pkgs);
 
-      # Standalone home-manager configuration (per-system)
-      # Usage: home-manager switch --flake .#yifan
-      legacyPackages.homeConfigurations.${username} = home-manager.lib.homeManagerConfiguration {
+    # Standalone home-manager configuration (per-system)
+    # Usage: home-manager switch --flake .#yifan
+    legacyPackages = forAllSystems (pkgs: {
+      homeConfigurations.${username} = home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
         modules = [./home.nix];
-        extraSpecialArgs = {inherit customPkgs;};
+        extraSpecialArgs = {customPkgs = mkCustomPkgs pkgs;};
       };
+    });
 
-      # Devshell for the current system
-      devShells.default = pkgs.mkShell {
+    # Devshell for each system
+    devShells = forAllSystems (pkgs: {
+      default = pkgs.mkShell {
         packages = [
           pkgs.nh
           pkgs.nix-output-monitor
@@ -99,12 +100,12 @@
           pkgs.alejandra
           pkgs.nil
           # Use home-manager from flake input for cross-platform compatibility
-          home-manager.packages.${system}.default
+          home-manager.packages.${pkgs.stdenv.hostPlatform.system}.default
         ];
       };
-    })
+    });
+
     # Darwin configurations (generated from darwinHosts)
-    // {
-      darwinConfigurations = nixpkgs.lib.genAttrs darwinHosts mkDarwinConfiguration;
-    };
+    darwinConfigurations = nixpkgs.lib.genAttrs darwinHosts mkDarwinConfiguration;
+  };
 }
