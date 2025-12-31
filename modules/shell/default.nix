@@ -2,14 +2,16 @@
   config,
   pkgs,
   ...
-}: let
+}:
+let
   iterm2-shell-integration = pkgs.fetchFromGitHub {
     owner = "gnachman";
     repo = "iTerm2-shell-integration";
     rev = "16a37c5f59243a68cd662a8cb70497cbcfaa10b2";
     hash = "sha256-vxGOr4jTAI0w4Y9Gz/1iEGT2YIq76DJiYIQ+vl4M7qA=";
   };
-in {
+in
+{
   # The home.packages option allows you to install Nix packages into your
   # environment.
   home.packages = with pkgs; [
@@ -59,6 +61,14 @@ in {
     };
 
     syntaxHighlighting.enable = true;
+
+    plugins = [
+      {
+        name = "vi-mode";
+        src = pkgs.zsh-vi-mode;
+        file = "share/zsh-vi-mode/zsh-vi-mode.plugin.zsh";
+      }
+    ];
 
     oh-my-zsh = {
       enable = true;
