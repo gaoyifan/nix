@@ -33,6 +33,7 @@ in
   home.packages = with pkgs; [
     # Git
     delta
+    difftastic
     diffutils
     # Core utilities
     tmux
