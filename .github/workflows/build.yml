@@ -1,4 +1,4 @@
-name: Build and Push Binary Cache
+name: Build and Cache
 
 on:
   push:
@@ -15,19 +15,22 @@ env:
 
 jobs:
   build:
+    name: Build (${{ matrix.system }})
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
             system: x86_64-linux
+            target: homeConfigurations.yifan.config.home.activationPackage
           - os: ubuntu-24.04-arm
             system: aarch64-linux
+            target: homeConfigurations.yifan.config.home.activationPackage
           - os: macos-latest
             system: aarch64-darwin
+            target: darwinConfigurations.default.system
 
     runs-on: ${{ matrix.os }}
-    name: Build (${{ matrix.system }})
 
     steps:
       - name: Checkout repository
@@ -41,16 +44,16 @@ jobs:
       - name: Setup Magic Nix Cache
         uses: DeterminateSystems/magic-nix-cache-action@main
 
-      - name: Build all custom packages
-        run: nix build --accept-flake-config
+      - name: Build configuration
+        run: nix build --accept-flake-config .#${{ matrix.target }}
 
-      - name: Sign package with secret key
+      - name: Sign closure with secret key
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           echo "$BINARY_CACHE_SECRET_KEY" > ./secret.key
-          nix store sign --recursive --key-file ./secret.key
+          nix store sign --recursive --key-file ./secret.key ./result
 
-      - name: Copy package to R2
+      - name: Push closure to R2
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          nix copy --to "s3://nix-cache?endpoint=$S3_ENDPOINT&compression=zstd"
+          nix copy --to "s3://nix-cache?endpoint=$S3_ENDPOINT&compression=zstd" ./result
