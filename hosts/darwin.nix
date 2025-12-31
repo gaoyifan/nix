@@ -4,7 +4,8 @@
   lib,
   username,
   ...
-}: {
+}:
+{
   # User configuration - required for home-manager
   users.users.${username}.home = "/Users/${username}";
 
@@ -12,10 +13,16 @@
   nix = {
     settings = {
       # Trusted users for the nix daemon
-      trusted-users = ["root" username];
+      trusted-users = [
+        "root"
+        username
+      ];
 
       # Enable experimental features
-      experimental-features = ["nix-command" "flakes"];
+      experimental-features = [
+        "nix-command"
+        "flakes"
+      ];
 
       # Automatically accept flake config (extra-substituters, etc.)
       accept-flake-config = true;
@@ -48,5 +55,6 @@
   homebrew = {
     enable = true;
     onActivation.autoUpdate = true;
+    brews = [ "neovim" ];
   };
 }
