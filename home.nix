@@ -3,6 +3,7 @@
   pkgs,
   lib,
   customPkgs,
+  witr,
   ...
 }:
 let
@@ -46,6 +47,8 @@ in
     (lib.lowPrio pkgs.nh)
     # Custom packages
     customPkgs.lazyssh
+    # Upstream flake packages
+    witr.packages.${pkgs.system}.default
   ];
 
   # NH Configuration

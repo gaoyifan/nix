@@ -62,7 +62,28 @@
       "inputs": {
         "home-manager": "home-manager",
         "nix-darwin": "nix-darwin",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "witr": "witr"
+      }
+    },
+    "witr": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1767155410,
+        "narHash": "sha256-yP7ZlYp73QBrpgOniHt4kZ8dyuEHO4ELmaqt03bWLSM=",
+        "owner": "pranshuparmar",
+        "repo": "witr",
+        "rev": "8d85a78dd4895ae916836721ffb7c760dfc53625",
+        "type": "github"
+      },
+      "original": {
+        "owner": "pranshuparmar",
+        "repo": "witr",
+        "type": "github"
       }
     }
   },

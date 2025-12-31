@@ -24,6 +24,11 @@
       url = "github:LnL7/nix-darwin/nix-darwin-25.11";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    witr = {
+      url = "github:pranshuparmar/witr";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -31,6 +36,7 @@
       nixpkgs,
       home-manager,
       nix-darwin,
+      witr,
       ...
     }:
     let
@@ -78,7 +84,7 @@
               home-manager = {
                 useGlobalPkgs = true;
                 useUserPackages = true;
-                extraSpecialArgs = { inherit customPkgs; };
+                extraSpecialArgs = { inherit customPkgs witr; };
                 users.${username} = import ./home.nix;
               };
             }
@@ -97,6 +103,7 @@
           modules = [ ./home.nix ];
           extraSpecialArgs = {
             customPkgs = mkCustomPkgs pkgs;
+            inherit witr;
           };
         };
       });
