@@ -11,13 +11,6 @@
   # Nix settings - system-wide configuration
   nix = {
     settings = {
-      # Binary cache configuration
-      substituters = ["https://cache.nixos.org" "https://nix-cache.yfgao.net"];
-      trusted-public-keys = [
-        "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-        "nix-cache.yfgao.net-1:mSv/FykKK4oFZbX9JgD38D/me1+xJeAKsQ+STHiHVp4="
-      ];
-
       # Trusted users for the nix daemon
       trusted-users = ["root" username];
 
