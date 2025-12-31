@@ -91,6 +91,11 @@ in {
     '';
 
     initContent = pkgs.lib.mkBefore ''
+      # Nix single-user mode on Linux
+      if [ -e ~/.nix-profile/etc/profile.d/nix-daemon.sh ]; then
+        source ~/.nix-profile/etc/profile.d/nix-daemon.sh
+      fi
+
       # iTerm2 Shell Integration
       if [[ "$TERM_PROGRAM" == "iTerm.app" || ( -z "$TERM_PROGRAM" && ${iterm2-shell-integration}/utilities/it2check ) ]]; then
           source ${iterm2-shell-integration}/shell_integration/zsh
