@@ -1,33 +1,21 @@
-# Description
-# ------------
-#
-# exit plugin will bind a key meta-E to type exit in the current shell
-#
-# ------------------------------------------------------------
-# Authors
-# ---------
-#
-# Yifan Gao <ylgaoyifan@gmail.com>
-#
-# ------------------------------------------------------------
-#
+# zsh-vi-mode defers initialization to precmd hook and runs `bindkey -v`
+# which resets the keymap. We must use zvm_after_init hook to ensure
+# our custom keybindings survive the initialization.
+function zvm_after_init() {
+  # Esc+S to toggle sudo prefix (oh-my-zsh sudo plugin)
+  bindkey "^[s" sudo-command-line
 
-bindkey "^[s" sudo-command-line
+  # Esc+. to insert last word of last command (standard behaviour)
+  bindkey -M viins '^[.' insert-last-word
 
-# helps with zsh-autosuggestions
-bindkey '^ ' end-of-line
+  # Esc+B and Esc+F to move to prev/next word (standard behaviour)
+  bindkey '^[b' backward-word
+  bindkey '^[f' forward-word
 
-# allow esc+. to insert last word of last command (standard behaviour)
-bindkey -M viins '^[.' insert-last-word
+  # Esc+D to kill word (standard behaviour)
+  bindkey '^[d' kill-word
 
-# allow esc+b and esc-f to move to last/next word (standard behaviour)
-bindkey '^[b' backward-word
-bindkey '^[f' forward-word
-
-# allow esc+d to kill word (standard behaviour)
-bindkey '^[d' kill-word
-
-bindkey '^d' delete-char
-bindkey '^f' forward-char
-bindkey '^y' yank
-
+  # Emacs-style keybindings
+  bindkey '^d' delete-char
+  bindkey '^y' yank
+}

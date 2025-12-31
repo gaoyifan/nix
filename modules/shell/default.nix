@@ -79,18 +79,15 @@ in
         "sudo"
         "tmux"
         "z"
-        "history"
-        "history-substring-search"
         "copyfile"
         "copypath"
-        "docker-compose"
         "iterm2"
+        "dotenv"
         # Custom plugins
         "alias"
         "docker"
         "ip"
         "keybind"
-        "number-keypad"
         "package-manager"
       ];
     };
