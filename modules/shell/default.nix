@@ -38,6 +38,11 @@ in
     nix-direnv.enable = true;
   };
 
+  programs.zoxide = {
+    enable = true;
+    enableZshIntegration = true;
+  };
+
   # Zsh Configuration
   programs.zsh = {
     enable = true;
@@ -78,7 +83,6 @@ in
         "git"
         "sudo"
         "tmux"
-        "z"
         "copyfile"
         "copypath"
         "iterm2"
