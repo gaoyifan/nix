@@ -1,3 +1,3 @@
 pkgs: {
-  lazyssh = pkgs.callPackage ./lazyssh.nix {};
+  lazyssh = import ./lazyssh.nix {inherit pkgs;};
 }
