@@ -1,6 +1,7 @@
 {
   description = "Nix configuration for yifan";
 
+  # Binary cache configuration - prioritize personal cache for faster builds
   nixConfig = {
     substituters = [
       "https://nix-cache.yfgao.net"
@@ -31,116 +32,85 @@
     };
   };
 
-  outputs =
-    {
-      self,
-      nixpkgs,
-      home-manager,
-      nix-darwin,
-      ...
-    }@inputs:
-    let
-      # Supported systems
-      systems = [
-        "x86_64-linux"
-        "aarch64-linux"
-        "aarch64-darwin"
-      ];
+  outputs = {
+    self,
+    nixpkgs,
+    home-manager,
+    nix-darwin,
+    ...
+  } @ inputs: let
+    systems = [
+      "x86_64-linux"
+      "aarch64-linux"
+      "aarch64-darwin"
+    ];
+    forAllSystems = nixpkgs.lib.genAttrs systems;
+    username = "yifan";
+    darwinHosts = [
+      "Yifans-MacBook-Air-2022"
+      "Yifans-Mac-Studio"
+      "default"
+    ];
+    overlay = import ./overlays;
+  in {
+    # Custom packages: nix build .#lazyssh
+    packages = forAllSystems (system: import ./pkgs nixpkgs.legacyPackages.${system});
 
-      # Helper to generate per-system attributes
-      forAllSystems = nixpkgs.lib.genAttrs systems;
+    # nix fmt
+    formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.alejandra);
 
-      # Default username
-      username = "yifan";
+    # Overlay to make custom packages available as pkgs.lazyssh
+    overlays.default = overlay;
 
-      # Darwin hosts (all aarch64-darwin)
-      darwinHosts = [
-        "Yifans-MacBook-Air-2022"
-        "Yifans-Mac-Studio"
-        "default"
-      ];
-    in
-    {
-      # Custom packages
-      # Accessible through 'nix build .#lazyssh'
-      packages = forAllSystems (system: import ./pkgs nixpkgs.legacyPackages.${system});
+    # nix develop
+    devShells = forAllSystems (system: {
+      default = import ./shell.nix {
+        pkgs = nixpkgs.legacyPackages.${system};
+        inherit home-manager nix-darwin;
+      };
+    });
 
-      # Formatter for nix files, available through 'nix fmt'
-      formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.nixfmt-rfc-style);
-
-      # Overlays for custom packages
-      overlays = import ./overlays { inherit inputs; };
-
-      # Devshell for each system
-      devShells = forAllSystems (
-        system:
-        let
-          pkgs = nixpkgs.legacyPackages.${system};
-        in
-        {
-          default = import ./shell.nix {
-            inherit pkgs home-manager nix-darwin;
-          };
-        }
-      );
-
-      # Standalone home-manager configuration
-      # Usage: home-manager switch --flake .#yifan
-      legacyPackages = forAllSystems (
-        system:
-        let
-          pkgs = import nixpkgs {
-            inherit system;
-            overlays = [
-              self.overlays.additions
-              self.overlays.modifications
-            ];
-            config.allowUnfree = true;
-          };
-        in
-        {
-          homeConfigurations.${username} = home-manager.lib.homeManagerConfiguration {
-            inherit pkgs;
-            extraSpecialArgs = { inherit inputs; };
-            modules = [ ./home-manager/home.nix ];
-          };
-        }
-      );
-
-      # Darwin configurations
-      # Usage: darwin-rebuild switch --flake .#hostname
-      darwinConfigurations = nixpkgs.lib.genAttrs darwinHosts (
-        hostname:
-        let
-          system = "aarch64-darwin";
-        in
-        nix-darwin.lib.darwinSystem {
+    # Standalone home-manager for non-darwin systems
+    # Usage: home-manager switch --flake .#yifan
+    legacyPackages = forAllSystems (system: {
+      homeConfigurations.${username} = home-manager.lib.homeManagerConfiguration {
+        pkgs = import nixpkgs {
           inherit system;
-          specialArgs = { inherit inputs; };
+          overlays = [overlay];
+          config.allowUnfree = true;
+        };
+        extraSpecialArgs = {inherit inputs;};
+        modules = [./home-manager/home.nix];
+      };
+    });
+
+    # macOS system configuration with integrated home-manager
+    # Usage: darwin-rebuild switch --flake .
+    darwinConfigurations = nixpkgs.lib.genAttrs darwinHosts (
+      _hostname:
+        nix-darwin.lib.darwinSystem {
+          system = "aarch64-darwin";
+          specialArgs = {inherit inputs;};
           modules = [
-            # Apply overlays at the nixpkgs level
+            # Apply overlay and allow unfree packages
             {
-              nixpkgs.overlays = [
-                self.overlays.additions
-                self.overlays.modifications
-              ];
+              nixpkgs.overlays = [overlay];
               nixpkgs.config.allowUnfree = true;
             }
-
             ./darwin/configuration.nix
 
-            # Home Manager module
+            # Integrate home-manager as a darwin module
             home-manager.darwinModules.home-manager
             {
               home-manager = {
-                useGlobalPkgs = true;
-                useUserPackages = true;
-                extraSpecialArgs = { inherit inputs; };
+                useGlobalPkgs = true; # Use system nixpkgs instead of standalone
+                useUserPackages = true; # Install to /etc/profiles instead of ~/.nix-profile
+                extraSpecialArgs = {inherit inputs;};
                 users.${username} = import ./home-manager/home.nix;
               };
             }
           ];
         }
-      );
-    };
+    );
+  };
 }

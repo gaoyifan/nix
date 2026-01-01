@@ -1,5 +1,8 @@
-{ pkgs, lib, ... }:
-let
+{
+  pkgs,
+  lib,
+  ...
+}: let
   isDarwin = pkgs.stdenv.isDarwin;
 
   # Vim configuration (shared across platforms)
@@ -23,8 +26,7 @@ let
     catch
     endtry
   '';
-in
-{
+in {
   # Link the ultimate vimrc (shared across platforms)
   home.file.".vim_runtime".source = vimConfig;
 

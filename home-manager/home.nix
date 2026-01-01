@@ -1,36 +1,29 @@
-# Home-manager configuration
+# Home Manager configuration
+# Shared between standalone home-manager and darwin-integrated home-manager
 {
   inputs,
   config,
   pkgs,
   lib,
   ...
-}:
-let
+}: let
   isDarwin = pkgs.stdenv.isDarwin;
-in
-{
+in {
   imports = [
     ../modules/shell
     ../modules/neovim.nix
   ];
 
-  # Home Manager needs a bit of information about you and the paths it should manage
   home.username = lib.mkDefault "yifan";
-  home.homeDirectory = lib.mkDefault (if isDarwin then "/Users/yifan" else "/home/yifan");
+  home.homeDirectory = lib.mkDefault (
+    if isDarwin
+    then "/Users/yifan"
+    else "/home/yifan"
+  );
+  home.stateVersion = "25.11"; # Do not change - see home-manager release notes
 
-  # This value determines the Home Manager release that your configuration is
-  # compatible with. This helps avoid breakage when a new Home Manager release
-  # introduces backwards incompatible changes.
-  #
-  # You should not change this value, even if you update Home Manager. If you do
-  # want to update the value, then make sure to first check the Home Manager
-  # release notes.
-  home.stateVersion = "25.11"; # Please read the comment before changing.
-
-  # The home.packages option allows you to install Nix packages into your environment.
   home.packages = with pkgs; [
-    # Git
+    # Git tools
     delta
     difftastic
     diffutils
@@ -43,24 +36,23 @@ in
     uv
     ripgrep
     just
-    (lib.lowPrio pkgs.nh)
 
-    # Custom packages (from pkgs/ via overlay)
+    # lowPrio to avoid conflict with nix-darwin's nh
+    (lib.lowPrio nh)
+
+    # Custom package from ./pkgs (via overlay)
     lazyssh
 
-    # Upstream flake packages
-    inputs.witr.packages.${pkgs.stdenv.hostPlatform.system}.default
+    # External flake package
+    inputs.witr.packages.${stdenv.hostPlatform.system}.default
   ];
 
-  # Add cargo bin to PATH for Rust binaries installed via cargo install
-  home.sessionPath = [ "${config.home.homeDirectory}/.cargo/bin" ];
+  # Cargo binaries (rust tools installed via cargo install)
+  home.sessionPath = ["${config.home.homeDirectory}/.cargo/bin"];
 
-  # NH Configuration
-  home.sessionVariables = {
-    NH_FLAKE = "${config.home.homeDirectory}/nix";
-  };
+  # nh (nix helper) configuration
+  home.sessionVariables.NH_FLAKE = "${config.home.homeDirectory}/nix";
 
-  # Git Configuration
   programs.git = {
     enable = true;
     settings = {
@@ -69,6 +61,7 @@ in
         email = "git@yfgao.com";
       };
       push.autoSetupRemote = true;
+      # Delta for better diffs
       core.pager = "delta";
       interactive.diffFilter = "delta --color-only";
       delta.navigate = true;
@@ -77,9 +70,8 @@ in
     };
   };
 
-  # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
 
-  # Auto clean nix store (only on non-darwin, as nix-darwin manages gc at system level)
+  # Auto gc on Linux only - darwin handles this at system level
   nix.gc.automatic = !isDarwin;
 }

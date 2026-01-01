@@ -66,7 +66,7 @@ fmt:
     #!/usr/bin/env bash
     set -euo pipefail
     if [ -f "{{ nix_profile }}" ]; then . "{{ nix_profile }}"; fi
-    nix fmt
+    nix fmt .
 
 # Check flake
 [group('dev')]
@@ -74,4 +74,4 @@ check:
     #!/usr/bin/env bash
     set -euo pipefail
     if [ -f "{{ nix_profile }}" ]; then . "{{ nix_profile }}"; fi
-    nix flake check --accept-flake-config
+    nix flake check --accept-flake-config --all-systems

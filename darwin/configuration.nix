@@ -1,9 +1,7 @@
 # Darwin system configuration
-{ ... }:
-let
+{...}: let
   username = "yifan";
-in
-{
+in {
   # User configuration - required for home-manager
   users.users.${username}.home = "/Users/${username}";
 
@@ -34,7 +32,7 @@ in
   };
 
   # Add rustup bin to PATH for Rust toolchain
-  environment.systemPath = [ "/opt/homebrew/opt/rustup/bin" ];
+  environment.systemPath = ["/opt/homebrew/opt/rustup/bin"];
 
   system = {
     # Used for backwards compatibility
