@@ -51,6 +51,9 @@ in
     witr.packages.${pkgs.system}.default
   ];
 
+  # Add cargo bin to PATH for Rust binaries installed via cargo install
+  home.sessionPath = [ "${config.home.homeDirectory}/.cargo/bin" ];
+
   # NH Configuration
   home.sessionVariables = {
     NH_FLAKE = "${config.home.homeDirectory}/nix";
