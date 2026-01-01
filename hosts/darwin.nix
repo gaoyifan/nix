@@ -35,6 +35,9 @@
     optimise.automatic = true;
   };
 
+  # Add rustup bin to PATH for Rust toolchain
+  environment.systemPath = [ "/opt/homebrew/opt/rustup/bin" ];
+
   system = {
     # Used for backwards compatibility
     stateVersion = 6;
