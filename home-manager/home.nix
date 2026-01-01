@@ -1,9 +1,9 @@
+# Home-manager configuration
 {
+  inputs,
   config,
   pkgs,
   lib,
-  customPkgs,
-  witr,
   ...
 }:
 let
@@ -11,12 +11,11 @@ let
 in
 {
   imports = [
-    ./modules/shell
-    ./modules/neovim.nix
+    ../modules/shell
+    ../modules/neovim.nix
   ];
 
-  # Home Manager needs a bit of information about you and the paths it should
-  # manage.
+  # Home Manager needs a bit of information about you and the paths it should manage
   home.username = lib.mkDefault "yifan";
   home.homeDirectory = lib.mkDefault (if isDarwin then "/Users/yifan" else "/home/yifan");
 
@@ -29,13 +28,13 @@ in
   # release notes.
   home.stateVersion = "25.11"; # Please read the comment before changing.
 
-  # The home.packages option allows you to install Nix packages into your
-  # environment.
+  # The home.packages option allows you to install Nix packages into your environment.
   home.packages = with pkgs; [
     # Git
     delta
     difftastic
     diffutils
+
     # Core utilities
     tmux
     curl
@@ -45,10 +44,12 @@ in
     ripgrep
     just
     (lib.lowPrio pkgs.nh)
-    # Custom packages
-    customPkgs.lazyssh
+
+    # Custom packages (from pkgs/ via overlay)
+    lazyssh
+
     # Upstream flake packages
-    witr.packages.${pkgs.system}.default
+    inputs.witr.packages.${pkgs.stdenv.hostPlatform.system}.default
   ];
 
   # Add cargo bin to PATH for Rust binaries installed via cargo install

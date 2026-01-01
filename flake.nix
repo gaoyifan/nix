@@ -33,12 +33,12 @@
 
   outputs =
     {
+      self,
       nixpkgs,
       home-manager,
       nix-darwin,
-      witr,
       ...
-    }:
+    }@inputs:
     let
       # Supported systems
       systems = [
@@ -47,13 +47,11 @@
         "aarch64-darwin"
       ];
 
-      username = "yifan";
-
       # Helper to generate per-system attributes
-      forAllSystems = f: nixpkgs.lib.genAttrs systems (system: f nixpkgs.legacyPackages.${system});
+      forAllSystems = nixpkgs.lib.genAttrs systems;
 
-      # Custom packages for a system
-      mkCustomPkgs = pkgs: import ./packages { inherit pkgs; };
+      # Default username
+      username = "yifan";
 
       # Darwin hosts (all aarch64-darwin)
       darwinHosts = [
@@ -61,22 +59,75 @@
         "Yifans-Mac-Studio"
         "default"
       ];
+    in
+    {
+      # Custom packages
+      # Accessible through 'nix build .#lazyssh'
+      packages = forAllSystems (system: import ./pkgs nixpkgs.legacyPackages.${system});
 
-      # Helper function to create darwin configurations
-      mkDarwinConfiguration =
+      # Formatter for nix files, available through 'nix fmt'
+      formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.nixfmt-rfc-style);
+
+      # Overlays for custom packages
+      overlays = import ./overlays { inherit inputs; };
+
+      # Devshell for each system
+      devShells = forAllSystems (
+        system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+        in
+        {
+          default = import ./shell.nix {
+            inherit pkgs home-manager nix-darwin;
+          };
+        }
+      );
+
+      # Standalone home-manager configuration
+      # Usage: home-manager switch --flake .#yifan
+      legacyPackages = forAllSystems (
+        system:
+        let
+          pkgs = import nixpkgs {
+            inherit system;
+            overlays = [
+              self.overlays.additions
+              self.overlays.modifications
+            ];
+            config.allowUnfree = true;
+          };
+        in
+        {
+          homeConfigurations.${username} = home-manager.lib.homeManagerConfiguration {
+            inherit pkgs;
+            extraSpecialArgs = { inherit inputs; };
+            modules = [ ./home-manager/home.nix ];
+          };
+        }
+      );
+
+      # Darwin configurations
+      # Usage: darwin-rebuild switch --flake .#hostname
+      darwinConfigurations = nixpkgs.lib.genAttrs darwinHosts (
         hostname:
         let
           system = "aarch64-darwin";
-          pkgs = nixpkgs.legacyPackages.${system};
-          customPkgs = mkCustomPkgs pkgs;
         in
         nix-darwin.lib.darwinSystem {
           inherit system;
-          specialArgs = {
-            inherit username customPkgs;
-          };
+          specialArgs = { inherit inputs; };
           modules = [
-            ./hosts/darwin.nix
+            # Apply overlays at the nixpkgs level
+            {
+              nixpkgs.overlays = [
+                self.overlays.additions
+                self.overlays.modifications
+              ];
+              nixpkgs.config.allowUnfree = true;
+            }
+
+            ./darwin/configuration.nix
 
             # Home Manager module
             home-manager.darwinModules.home-manager
@@ -84,44 +135,12 @@
               home-manager = {
                 useGlobalPkgs = true;
                 useUserPackages = true;
-                extraSpecialArgs = { inherit customPkgs witr; };
-                users.${username} = import ./home.nix;
+                extraSpecialArgs = { inherit inputs; };
+                users.${username} = import ./home-manager/home.nix;
               };
             }
           ];
-        };
-    in
-    {
-      # Expose custom packages for CI/CD binary cache builds
-      packages = forAllSystems (pkgs: mkCustomPkgs pkgs);
-
-      # Standalone home-manager configuration (per-system)
-      # Usage: home-manager switch --flake .#yifan
-      legacyPackages = forAllSystems (pkgs: {
-        homeConfigurations.${username} = home-manager.lib.homeManagerConfiguration {
-          inherit pkgs;
-          modules = [ ./home.nix ];
-          extraSpecialArgs = {
-            customPkgs = mkCustomPkgs pkgs;
-            inherit witr;
-          };
-        };
-      });
-
-      # Devshell for each system
-      devShells = forAllSystems (pkgs: {
-        default = pkgs.mkShell {
-          packages = [
-            pkgs.nh
-            pkgs.nil
-            pkgs.just
-            home-manager.packages.${pkgs.system}.default
-            nix-darwin.packages.${pkgs.system}.default
-          ];
-        };
-      });
-
-      # Darwin configurations (generated from darwinHosts)
-      darwinConfigurations = nixpkgs.lib.genAttrs darwinHosts mkDarwinConfiguration;
+        }
+      );
     };
 }

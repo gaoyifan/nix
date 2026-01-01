@@ -1,10 +1,8 @@
 # Darwin system configuration
-{
-  pkgs,
-  lib,
-  username,
-  ...
-}:
+{ ... }:
+let
+  username = "yifan";
+in
 {
   # User configuration - required for home-manager
   users.users.${username}.home = "/Users/${username}";
@@ -205,6 +203,5 @@
       # Games
       "playcover-community" # Run iOS apps on Apple Silicon
     ];
-
   };
 }
