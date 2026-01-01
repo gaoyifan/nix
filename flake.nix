@@ -113,12 +113,10 @@
         default = pkgs.mkShell {
           packages = [
             pkgs.nh
-            pkgs.nix-output-monitor
-            pkgs.git
-            pkgs.alejandra
             pkgs.nil
-            # Use home-manager from flake input for cross-platform compatibility
-            home-manager.packages.${pkgs.stdenv.hostPlatform.system}.default
+            pkgs.just
+            home-manager.packages.${pkgs.system}.default
+            nix-darwin.packages.${pkgs.system}.default
           ];
         };
       });
