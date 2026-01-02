@@ -28,7 +28,10 @@ in {
 
   programs.atuin = {
     enable = true;
-    enableZshIntegration = true;
+    # zsh-vi-mode initializes vi keymaps lazily and runs `bindkey -v`, which can
+    # clobber bindings set by atuin's default zsh integration. We initialize atuin
+    # via zsh-vi-mode's `after_init` hook instead (see `programs.zsh.initContent`).
+    enableZshIntegration = false;
   };
 
   programs.direnv = {
@@ -102,9 +105,14 @@ in {
     initContent = pkgs.lib.mkMerge [
       (pkgs.lib.mkBefore ''
         # Nix single-user mode on Linux
-        if [ -e ~/.nix-profile/etc/profile.d/nix-daemon.sh ]; then
-          source ~/.nix-profile/etc/profile.d/nix-daemon.sh
+        if [ -e ~/.nix-profile/etc/profile.d/nix.sh ]; then
+          source ~/.nix-profile/etc/profile.d/nix.sh
         fi
+      '')
+      (pkgs.lib.mkAfter ''
+        # Atuin: disable Up Arrow binding, and init after zsh-vi-mode sets keymaps.
+        typeset -ga zvm_after_init_commands
+        zvm_after_init_commands+=('eval "$(atuin init zsh --disable-up-arrow)"')
       '')
       (pkgs.lib.mkAfter ''
         # iTerm2 Shell Integration
