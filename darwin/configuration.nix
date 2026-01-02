@@ -97,6 +97,7 @@ in {
       "git-lfs" # Git large file storage
       "go"
       "rustup" # Rust toolchain manager
+      "step" # Smallstep CLI for certificates/PKI
       "yarn" # JavaScript package manager
       "tokuhirom/tap/dcv" # Docker Compose TUI viewer
 
