@@ -21,6 +21,15 @@
     source ~/.vim_runtime/vimrcs/filetypes.vim
     source ~/.vim_runtime/vimrcs/plugins_config.vim
     source ~/.vim_runtime/vimrcs/extended.vim
+
+    " amix/vimrc sets undodir to a path inside the read-only Nix store.
+    " We override it here to a writable location.
+    if !isdirectory(expand('~/.local/state/nvim/undo'))
+        call mkdir(expand('~/.local/state/nvim/undo'), "p")
+    endif
+    set undodir=~/.local/state/nvim/undo//
+    set undofile
+
     try
       source ~/.vim_runtime/my_configs.vim
     catch
@@ -29,6 +38,12 @@
 in {
   # Link the ultimate vimrc (shared across platforms)
   home.file.".vim_runtime".source = vimConfig;
+
+  # On Darwin: also manage .vimrc to ensure system vim (or tools using it)
+  # uses the same fix as neovim and doesn't pick up old legacy configs.
+  home.file.".vimrc" = lib.mkIf isDarwin {
+    text = neovimExtraConfig;
+  };
 
   # On non-Darwin: use programs.neovim (closure is small, ~40MB with gcc-lib)
   programs.neovim = lib.mkIf (!isDarwin) {
@@ -51,5 +66,11 @@ in {
   home.sessionVariables = lib.mkIf isDarwin {
     EDITOR = "nvim";
     VISUAL = "nvim";
+  };
+
+  # Add aliases for Darwin
+  home.shellAliases = lib.mkIf isDarwin {
+    vi = "nvim";
+    vim = "nvim";
   };
 }
