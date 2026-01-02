@@ -1,5 +1,5 @@
 # Darwin system configuration
-{...}: let
+{pkgs, ...}: let
   username = "yifan";
 in {
   # User configuration - required for home-manager
@@ -33,6 +33,9 @@ in {
 
   # Add rustup bin to PATH for Rust toolchain
   environment.systemPath = ["/opt/homebrew/opt/rustup/bin"];
+  environment.systemPackages = with pkgs; [
+    nil # Nix language server
+  ];
 
   system = {
     # Used for backwards compatibility
@@ -151,6 +154,7 @@ in {
       # Development
       "cursor"
       "iterm2"
+      "zed"
       "orbstack" # Docker/Linux VM alternative
       "vmware-fusion"
       "xquartz" # X11 server
