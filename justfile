@@ -50,7 +50,11 @@ home:
     #!/usr/bin/env bash
     set -euo pipefail
     if [ -f "{{ nix_profile }}" ]; then . "{{ nix_profile }}"; fi
-    nix run nixpkgs#nh home switch --accept-flake-config . -- -b backup
+    if command -v nh >/dev/null 2>&1; then
+        nh home switch --accept-flake-config . -- -b backup
+    else
+        nix run nixpkgs#nh -- home switch --accept-flake-config . -- -b backup
+    fi
 
 # Switch nix-darwin configuration
 [group('config')]
@@ -58,7 +62,11 @@ darwin:
     #!/usr/bin/env bash
     set -euo pipefail
     if [ -f "{{ nix_profile }}" ]; then . "{{ nix_profile }}"; fi
-    nix run nixpkgs#nh darwin switch --accept-flake-config . --
+    if command -v nh >/dev/null 2>&1; then
+        nh darwin switch --accept-flake-config . --
+    else
+        nix run nixpkgs#nh -- darwin switch --accept-flake-config . --
+    fi
 
 # Format all nix files
 [group('dev')]
