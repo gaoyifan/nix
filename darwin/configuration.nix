@@ -63,6 +63,7 @@ in {
 
     taps = [
       "devnullvoid/pvetui"
+      "just-every/tap"
     ];
 
     brews = [
@@ -100,6 +101,7 @@ in {
       "step" # Smallstep CLI for certificates/PKI
       "yarn" # JavaScript package manager
       "tokuhirom/tap/dcv" # Docker Compose TUI viewer
+      "just-every/tap/code" # A Codex fork
 
       # Shell & terminal
       "asciinema" # Record and share terminal sessions
