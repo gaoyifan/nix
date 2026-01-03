@@ -51,9 +51,9 @@ home:
     set -euo pipefail
     if [ -f "{{ nix_profile }}" ]; then . "{{ nix_profile }}"; fi
     if command -v nh >/dev/null 2>&1; then
-        nh home switch --accept-flake-config . -- -b backup
+        nh home switch --accept-flake-config .
     else
-        nix run nixpkgs#nh -- home switch --accept-flake-config . -- -b backup
+        nix run nixpkgs#nh -- home switch --accept-flake-config .
     fi
 
 # Switch nix-darwin configuration
