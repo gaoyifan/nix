@@ -42,6 +42,7 @@ in {
 
     # Custom package from ./pkgs (via overlay)
     lazyssh
+    dcv
 
     # External flake package
     inputs.witr.packages.${stdenv.hostPlatform.system}.default
