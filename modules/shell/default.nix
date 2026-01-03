@@ -88,6 +88,7 @@ in {
         "copypath"
         "iterm2"
         "dotenv"
+        "history-substring-search"
         # Custom plugins
         "alias"
         "docker"
