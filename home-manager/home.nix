@@ -8,6 +8,7 @@
   ...
 }: let
   isDarwin = pkgs.stdenv.isDarwin;
+  unstablePkgs = inputs.nixpkgs-unstable.legacyPackages.${pkgs.system};
 in {
   imports = [
     ../modules/shell
@@ -35,7 +36,7 @@ in {
     tree
     uv
     ripgrep
-    just
+    unstablePkgs.just
 
     # lowPrio to avoid conflict with nix-darwin's nh
     (lib.lowPrio nh)
