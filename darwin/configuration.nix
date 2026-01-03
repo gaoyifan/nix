@@ -171,6 +171,7 @@ in {
       "calibre" # E-book manager
 
       # Media
+      "handbrake-app" # Video transcoder
       "iina" # Modern video player
       "vlc"
       "neteasemusic"
