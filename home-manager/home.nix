@@ -8,7 +8,7 @@
   ...
 }: let
   isDarwin = pkgs.stdenv.isDarwin;
-  unstablePkgs = inputs.nixpkgs-unstable.legacyPackages.${pkgs.system};
+  unstablePkgs = inputs.nixpkgs-unstable.legacyPackages.${pkgs.stdenv.hostPlatform.system};
 
   # Select secrets module based on whether submodule is initialized
   # CI builds don't have submodule access, so they use secrets-example

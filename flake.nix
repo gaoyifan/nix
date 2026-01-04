@@ -91,11 +91,11 @@
     darwinConfigurations = nixpkgs.lib.genAttrs darwinHosts (
       hostname:
         nix-darwin.lib.darwinSystem {
-          system = "aarch64-darwin";
           specialArgs = {inherit inputs;};
           modules = [
             # Apply overlay and allow unfree packages
             {
+              nixpkgs.hostPlatform = "aarch64-darwin";
               nixpkgs.overlays = [overlay];
               nixpkgs.config.allowUnfree = true;
             }
