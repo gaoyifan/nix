@@ -1,47 +1,40 @@
 # Secrets Management
 
-This project uses a **git submodule-based approach** for managing secrets. This provides a simple, low-complexity solution that prevents secrets from leaking to the binary cache while maintaining full Nix compatibility.
+This project uses a **git submodule-based approach** for managing secrets, with an intelligent auto-detection mechanism. This prevents secrets from leaking to the binary cache while maintaining full Nix compatibility.
 
 ## Architecture
 
 ```
 nix/
-├── secrets/              # Private git submodule (real secrets)
-│   ├── default.nix       # Nix module interface
-│   └── atuin/key         # Atuin encryption key
-│
-├── secrets-example/      # Public placeholder (tracked in main repo)
-│   ├── default.nix       # Identical Nix module interface
-│   └── atuin/key         # Dummy placeholder key
-│
-└── home-manager/home.nix # Imports secrets module based on hostname
+├── secrets/
+│   ├── default.nix       # Entry point (Auto-detects real vs example)
+│   ├── home.nix          # Unified Nix module logic
+│   ├── files/            # Private git submodule (Real secrets)
+│   │   ├── .gitkeep      # Marker file for detection
+│   │   └── home/
+│   │       └── atuin-key # Real key
+│   └── files-example/    # Public placeholders (Tracked in main repo)
+│       └── home/
+│           └── atuin-key # Dummy key
 ```
 
 ## How It Works
 
 | Component | Purpose | Git Tracking |
 |-----------|---------|--------------|
-| `secrets/` | Private submodule with real secrets | Separate private repo |
-| `secrets-example/` | Placeholder for CI/binary cache | Main repo |
+| `secrets/default.nix` | Auto-detects if `secrets/files` is available | Main repo |
+| `secrets/files/` | Private submodule with real secrets | Separate private repo |
+| `secrets/files-example/` | Placeholder for CI/binary cache | Main repo |
 
-### Submodule Detection
+### Auto-Detection Logic
 
-The configuration automatically detects if the private `secrets/` submodule is available:
-
-```nix
-# In home-manager/home.nix
-secretsModule =
-  if builtins.pathExists ../secrets/default.nix
-  then ../secrets          # Production (submodule checked out)
-  else ../secrets-example; # CI / Public builds
-```
-
-- **CI/Public builds** do not have access to the private repo/submodule → loads `secrets-example/`
-- **Production builds** have the submodule checked out → loads `secrets/` submodule
+The `secrets/default.nix` module checks for the presence of `secrets/files/.gitkeep`.
+- **Found**: Sets `config.services.secrets.filesDir = ./files` (Production/Personal machine).
+- **Not Found**: Sets `config.services.secrets.filesDir = ./files-example` (CI/Public builds).
 
 ### Binary Cache Safety
 
-Since CI only has access to `secrets-example/`, the binary cache will only ever contain derivations built with placeholder secrets. Real secrets never touch the cache.
+Since CI only has access to `files-example/`, the binary cache will only ever contain derivations built with placeholder secrets. Real secrets never touch the cache.
 
 ## Usage
 
@@ -52,41 +45,49 @@ Since CI only has access to `secrets-example/`, the binary cache will only ever 
 git clone --recurse-submodules git@github.com:gaoyifan/nix.git
 
 # Or initialize after cloning
-git submodule update --init
+git submodule update --init --recursive
+```
+
+### Migration / Troubleshooting
+
+#### Error: "refusing to create/use ... in another submodule's git dir"
+
+If you are pulling these changes an existing machine that used the old `secrets` submodule structure, you might see this error because the old submodule's git metadata conflicts with the new nested structure.
+
+**Fix:**
+Run this command from the repo root to remove the stale git module data and re-initialize:
+
+```bash
+rm -rf .git/modules/secrets && git submodule update --init --force
 ```
 
 ### Apply Configuration
 
 ```bash
-# macOS (uses ?submodules=1 automatically)
+# macOS
 just darwin
 
-# Or manually
-sudo darwin-rebuild switch --flake '.?submodules=1'
+# Linux
+just home
 ```
-
-### CI / GitHub Actions
-
-No special setup needed. CI uses `secrets-example/` automatically because:
-1. Submodule is not checked out (no access to private repo)
 
 ## Adding New Secrets
 
 ### Step 1: Add to Both Directories
 
-Create identical file structure in both `secrets/` and `secrets-example/`:
+Create identical file structure in both `secrets/files/` and `secrets/files-example/`:
 
 ```bash
 # Real secret
-echo "actual-secret-value" > secrets/myapp/token
+echo "actual-secret-value" > secrets/files/home/myapp-token
 
 # Placeholder
-echo "PLACEHOLDER_FOR_CI" > secrets-example/myapp/token
+echo "PLACEHOLDER_FOR_CI" > secrets/files-example/home/myapp-token
 ```
 
 ### Step 2: Update Module Interface
 
-Add matching options to both `default.nix` files:
+Update `secrets/home.nix`:
 
 ```nix
 # In options.services.secrets
@@ -94,7 +95,7 @@ myapp = {
   enable = mkEnableOption "MyApp secret deployment";
   tokenFile = mkOption {
     type = types.path;
-    default = "${secretsDir}/myapp/token";
+    default = "${cfg.filesDir}/home/myapp-token";
   };
 };
 
@@ -104,44 +105,17 @@ myapp = {
 })
 ```
 
-### Step 3: Enable in home.nix
-
-```nix
-services.secrets.myapp.enable = true;
-```
-
-### Step 4: Commit Changes
+### Step 3: Commit Changes
 
 ```bash
 # Commit submodule
-cd secrets
+cd secrets/files
 git add -A && git commit -m "Add myapp token" && git push
 
 # Update main repo
-cd ..
-git add secrets secrets-example
+cd ../..
+git add secrets/files secrets/files-example secrets/home.nix
 git commit -m "feat: add myapp secret"
 git push
 ```
 
-## Currently Managed Secrets
-
-| Secret | Target Path | Option |
-|--------|-------------|--------|
-| Atuin sync key | `~/.local/share/atuin/key` | `services.secrets.atuin.enable` |
-
-## Security Considerations
-
-> **Note:** This approach stores secrets in **cleartext** in a private git repository. While simpler than sops/age/KMS solutions, ensure your private repository has appropriate access controls.
-
-### What This Protects Against
-- ✅ Secrets leaking to public binary cache
-- ✅ Secrets appearing in public git history
-- ✅ CI builds requiring secret access
-
-### What This Does NOT Protect Against
-- ❌ Secrets at rest on target machine (stored as regular files)
-- ❌ Compromise of the private secrets repository
-- ❌ Users with read access to `~/.local/share/` or similar paths
-
-For higher security requirements, consider [sops-nix](https://github.com/Mic92/sops-nix) or [agenix](https://github.com/ryantm/agenix).
