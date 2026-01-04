@@ -4,3 +4,6 @@ result-*
 
 # Ignore automatically generated direnv output
 .direnv
+
+# Private secrets submodule (use secrets-example for CI)
+secrets/

@@ -89,7 +89,7 @@
     # macOS system configuration with integrated home-manager
     # Usage: darwin-rebuild switch --flake .
     darwinConfigurations = nixpkgs.lib.genAttrs darwinHosts (
-      _hostname:
+      hostname:
         nix-darwin.lib.darwinSystem {
           system = "aarch64-darwin";
           specialArgs = {inherit inputs;};

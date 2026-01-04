@@ -50,10 +50,11 @@ home:
     #!/usr/bin/env bash
     set -euo pipefail
     if [ -f "{{ nix_profile }}" ]; then . "{{ nix_profile }}"; fi
+    git submodule update --init
     if command -v nh >/dev/null 2>&1; then
-        nh home switch --accept-flake-config .
+        nh home switch --accept-flake-config '.?submodules=1'
     else
-        nix run nixpkgs#nh -- home switch --accept-flake-config .
+        nix run nixpkgs#nh -- home switch --accept-flake-config '.?submodules=1'
     fi
 
 # Switch nix-darwin configuration
@@ -62,10 +63,11 @@ darwin:
     #!/usr/bin/env bash
     set -euo pipefail
     if [ -f "{{ nix_profile }}" ]; then . "{{ nix_profile }}"; fi
+    git submodule update --init
     if command -v nh >/dev/null 2>&1; then
-        nh darwin switch --accept-flake-config . --
+        nh darwin switch --accept-flake-config '.?submodules=1' --
     else
-        nix run nixpkgs#nh -- darwin switch --accept-flake-config . --
+        nix run nixpkgs#nh -- darwin switch --accept-flake-config '.?submodules=1' --
     fi
 
 # Format all nix files

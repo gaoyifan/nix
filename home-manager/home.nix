@@ -9,10 +9,19 @@
 }: let
   isDarwin = pkgs.stdenv.isDarwin;
   unstablePkgs = inputs.nixpkgs-unstable.legacyPackages.${pkgs.system};
+
+  # Select secrets module based on whether submodule is initialized
+  # CI builds don't have submodule access, so they use secrets-example
+  secretsSubmoduleExists = builtins.pathExists ../secrets/default.nix;
+  secretsModule =
+    if secretsSubmoduleExists
+    then ../secrets
+    else ../secrets-example;
 in {
   imports = [
     ../modules/shell
     ../modules/neovim.nix
+    secretsModule
   ];
 
   home.username = lib.mkDefault "yifan";
@@ -73,6 +82,9 @@ in {
   };
 
   programs.home-manager.enable = true;
+
+  # Enable atuin sync key deployment from secrets module
+  services.secrets.atuin.enable = true;
 
   # Auto gc on Linux only - darwin handles this at system level
   nix.gc.automatic = !isDarwin;

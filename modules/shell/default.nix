@@ -28,8 +28,15 @@ in {
 
   programs.atuin = {
     enable = true;
+    forceOverwriteSettings = true;
     settings = {
       workspaces = true;
+      sync_address = "http://atuin-server.ts.gaof.net";
+      auto_sync = true;
+      sync_frequency = "5m";
+      sync = {
+        records = true;
+      };
     };
     # zsh-vi-mode initializes vi keymaps lazily and runs `bindkey -v`, which can
     # clobber bindings set by atuin's default zsh integration. We initialize atuin
