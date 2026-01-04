@@ -28,6 +28,9 @@ in {
 
   programs.atuin = {
     enable = true;
+    settings = {
+      workspaces = true;
+    };
     # zsh-vi-mode initializes vi keymaps lazily and runs `bindkey -v`, which can
     # clobber bindings set by atuin's default zsh integration. We initialize atuin
     # via zsh-vi-mode's `after_init` hook instead (see `programs.zsh.initContent`).
