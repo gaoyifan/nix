@@ -31,6 +31,11 @@
       url = "github:pranshuparmar/witr";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    deploy-rs = {
+      url = "github:serokell/deploy-rs";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = {
@@ -38,6 +43,7 @@
     nixpkgs,
     home-manager,
     nix-darwin,
+    deploy-rs,
     ...
   } @ inputs: let
     systems = [
@@ -68,7 +74,7 @@
       default = import ./shell.nix {
         pkgs = nixpkgs.legacyPackages.${system};
         pkgsUnstable = inputs.nixpkgs-unstable.legacyPackages.${system};
-        inherit home-manager nix-darwin;
+        inherit home-manager nix-darwin deploy-rs;
       };
     });
 
@@ -114,5 +120,27 @@
           ];
         }
     );
+
+    # NixOS configurations
+    nixosConfigurations = {
+      exp0 = nixpkgs.lib.nixosSystem {
+        system = "aarch64-linux";
+        modules = [
+          ./nixos/exp0
+        ];
+      };
+    };
+
+    # deploy-rs configuration
+    deploy.nodes.exp0 = {
+      hostname = "nixos-exp0";
+      profiles.system = {
+        sshUser = "root";
+        user = "root";
+        path = deploy-rs.lib.aarch64-linux.activate.nixos self.nixosConfigurations.exp0;
+        remoteBuild = true;
+      };
+    };
+    checks = builtins.mapAttrs (system: deployLib: deployLib.deployChecks self.deploy) deploy-rs.lib;
   };
 }

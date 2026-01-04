@@ -5,6 +5,7 @@
   pkgsUnstable,
   home-manager,
   nix-darwin,
+  deploy-rs,
 }:
 pkgs.mkShell {
   packages =
@@ -13,6 +14,7 @@ pkgs.mkShell {
       pkgs.nil
       pkgs.alejandra
       pkgsUnstable.just
+      deploy-rs.packages.${pkgs.stdenv.hostPlatform.system}.deploy-rs
       home-manager.packages.${pkgs.stdenv.hostPlatform.system}.default
     ]
     ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
