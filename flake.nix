@@ -52,7 +52,7 @@
       "Yifans-Mac-Studio"
       "default"
     ];
-    overlay = import ./overlays;
+    overlay = final: prev: import ./pkgs prev;
   in {
     # Custom packages: nix build .#lazyssh
     packages = forAllSystems (system: import ./pkgs nixpkgs.legacyPackages.${system});
