@@ -19,8 +19,8 @@
     else ../secrets-example;
 in {
   imports = [
-    ../modules/shell
-    ../modules/neovim.nix
+    ./shell.nix
+    ./neovim.nix
     secretsModule
   ];
 

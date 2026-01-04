@@ -82,7 +82,7 @@
           config.allowUnfree = true;
         };
         extraSpecialArgs = {inherit inputs;};
-        modules = [./home-manager/home.nix];
+        modules = [./home-manager];
       };
     });
 
@@ -108,7 +108,7 @@
                 useGlobalPkgs = true; # Use system nixpkgs instead of standalone
                 useUserPackages = true; # Install to /etc/profiles instead of ~/.nix-profile
                 extraSpecialArgs = {inherit inputs;};
-                users.${username} = import ./home-manager/home.nix;
+                users.${username} = import ./home-manager;
               };
             }
           ];
