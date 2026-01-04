@@ -1,6 +1,3 @@
-# Secrets Module - Example/Placeholder
-# This module provides placeholder secrets for CI builds.
-# For production, use the private `secrets/` submodule with the same interface.
 {
   config,
   lib,
@@ -8,7 +5,6 @@
 }:
 with lib; let
   cfg = config.services.secrets;
-  secretsDir = ./.;
 in {
   options.services.secrets = {
     atuin = {
@@ -16,7 +12,8 @@ in {
 
       keyFile = mkOption {
         type = types.path;
-        default = "${secretsDir}/atuin/key";
+        # Use the detected secrets directory
+        default = "${cfg.filesDir}/home/atuin-key";
         description = "Path to the Atuin encryption key file";
       };
     };

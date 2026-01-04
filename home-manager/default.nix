@@ -9,19 +9,11 @@
 }: let
   isDarwin = pkgs.stdenv.isDarwin;
   unstablePkgs = inputs.nixpkgs-unstable.legacyPackages.${pkgs.stdenv.hostPlatform.system};
-
-  # Select secrets module based on whether submodule is initialized
-  # CI builds don't have submodule access, so they use secrets-example
-  secretsSubmoduleExists = builtins.pathExists ../secrets/default.nix;
-  secretsModule =
-    if secretsSubmoduleExists
-    then ../secrets
-    else ../secrets-example;
 in {
   imports = [
     ./shell.nix
     ./neovim.nix
-    secretsModule
+    ../secrets
   ];
 
   home.username = lib.mkDefault "yifan";

@@ -6,4 +6,5 @@ result-*
 .direnv
 
 # Private secrets submodule (use secrets-example for CI)
-secrets/
+# Private secrets submodule (use secrets-example for CI)
+secrets/files/
