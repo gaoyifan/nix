@@ -67,7 +67,7 @@ darwin:
     if command -v nh >/dev/null 2>&1; then
         nh darwin switch --accept-flake-config . --
     else
-        nix run nixpkgs#nh -- darwin switch --accept-flake-config . --
+        nix run --accept-flake-config nixpkgs#nh -- darwin switch --accept-flake-config
     fi
 
 # Format all nix files

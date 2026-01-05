@@ -7,6 +7,7 @@ in {
 
   # Nix settings - system-wide configuration
   nix = {
+    enable = false;
     settings = {
       # Trusted users for the nix daemon
       trusted-users = [
@@ -23,12 +24,6 @@ in {
       # Automatically accept flake config (extra-substituters, etc.)
       accept-flake-config = true;
     };
-
-    # Garbage collection
-    gc.automatic = true;
-
-    # Optimize store
-    optimise.automatic = true;
   };
 
   # Add rustup bin to PATH for Rust toolchain
