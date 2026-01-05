@@ -52,9 +52,9 @@ home:
     if [ -f "{{ nix_profile }}" ]; then . "{{ nix_profile }}"; fi
     git submodule update --init
     if command -v nh >/dev/null 2>&1; then
-        nh home switch --accept-flake-config '.?submodules=1'
+        nh home switch --accept-flake-config .
     else
-        nix run nixpkgs#nh -- home switch --accept-flake-config '.?submodules=1'
+        nix run nixpkgs#nh -- home switch --accept-flake-config .
     fi
 
 # Switch nix-darwin configuration
@@ -65,9 +65,9 @@ darwin:
     if [ -f "{{ nix_profile }}" ]; then . "{{ nix_profile }}"; fi
     git submodule update --init
     if command -v nh >/dev/null 2>&1; then
-        nh darwin switch --accept-flake-config '.?submodules=1' --
+        nh darwin switch --accept-flake-config . --
     else
-        nix run nixpkgs#nh -- darwin switch --accept-flake-config '.?submodules=1' --
+        nix run nixpkgs#nh -- darwin switch --accept-flake-config . --
     fi
 
 # Format all nix files
@@ -85,3 +85,12 @@ check:
     set -euo pipefail
     if [ -f "{{ nix_profile }}" ]; then . "{{ nix_profile }}"; fi
     nix flake check --accept-flake-config --all-systems
+
+# Deploy NixOS configuration to remote host
+[group('config')]
+deploy target:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -f "{{ nix_profile }}" ]; then . "{{ nix_profile }}"; fi
+    git submodule update --init
+    nix develop --accept-flake-config -c deploy .#{{ target }} --skip-checks

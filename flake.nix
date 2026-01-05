@@ -14,6 +14,7 @@
   };
 
   inputs = {
+    self.submodules = true;
     nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
 
@@ -32,8 +33,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # Use fork with fix for Nix 2.33+ show-derivation JSON format
+    # See: https://github.com/serokell/deploy-rs/pull/359
     deploy-rs = {
-      url = "github:serokell/deploy-rs";
+      url = "github:serokell/deploy-rs/pull/359/head";
+      # url = "github:szlend/deploy-rs/fix-show-derivation-parsing";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -134,8 +138,8 @@
     # deploy-rs configuration
     deploy.nodes.exp0 = {
       hostname = "nixos-exp0";
+      sshUser = "root";
       profiles.system = {
-        sshUser = "root";
         user = "root";
         path = deploy-rs.lib.aarch64-linux.activate.nixos self.nixosConfigurations.exp0;
         remoteBuild = true;

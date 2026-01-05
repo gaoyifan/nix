@@ -13,7 +13,7 @@ in {
   imports = [
     ./shell.nix
     ./neovim.nix
-    ../secrets
+    ../secrets/home.nix
   ];
 
   home.username = lib.mkDefault "yifan";

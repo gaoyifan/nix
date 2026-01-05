@@ -1,29 +1,38 @@
+# Home-manager secrets configuration
 {
   config,
   lib,
   ...
-}:
-with lib; let
+}: let
+  hasRealSecrets = builtins.pathExists ./files/.gitkeep;
+  secretsDir =
+    if hasRealSecrets
+    then ./files
+    else ./files-example;
   cfg = config.services.secrets;
 in {
   options.services.secrets = {
-    atuin = {
-      enable = mkEnableOption "Atuin sync key deployment";
+    filesDir = lib.mkOption {
+      type = lib.types.path;
+      default = secretsDir;
+      description = "Path to the directory containing secret files";
+      internal = true;
+    };
 
-      keyFile = mkOption {
-        type = types.path;
-        # Use the detected secrets directory
+    atuin = {
+      enable = lib.mkEnableOption "Atuin sync key deployment";
+      keyFile = lib.mkOption {
+        type = lib.types.path;
         default = "${cfg.filesDir}/home/atuin-key";
         description = "Path to the Atuin encryption key file";
       };
     };
   };
 
-  config = mkIf cfg.atuin.enable {
-    # Deploy atuin key to user's data directory
+  config = lib.mkIf cfg.atuin.enable {
     home.file.".local/share/atuin/key" = {
       source = cfg.atuin.keyFile;
-      force = true; # Overwrite existing key file
+      force = true;
     };
   };
 }

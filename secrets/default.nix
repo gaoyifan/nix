@@ -1,18 +1,20 @@
+# Secrets configuration - base module for NixOS
+# This module only defines the filesDir option and imports NixOS secrets.
+# home-manager imports secrets/home.nix directly for home-manager-specific secrets.
 {
   config,
   lib,
   ...
 }: let
-  # Select secrets module based on whether submodule is initialized
-  # CI builds don't have submodule access, so they use secrets-example
-  # Note: Check for a marker file inside the submodule. checking .git fails because Nix filters it out.
   hasRealSecrets = builtins.pathExists ./files/.gitkeep;
   secretsDir =
     if hasRealSecrets
     then ./files
     else ./files-example;
 in {
-  imports = [./home.nix];
+  imports = [
+    ./nixos.nix
+  ];
 
   options.services.secrets.filesDir = lib.mkOption {
     type = lib.types.path;
