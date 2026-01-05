@@ -51,10 +51,12 @@ jobs:
           purge-prefixes: nix-${{ runner.os }}-
 
       - name: Build configuration
-        run: nix build --accept-flake-config .#${{ matrix.target }}
+        # Avoid Nix fetching git submodules (some are private).
+        run: nix build --accept-flake-config ".?submodules=0#${{ matrix.target }}"
 
       - name: Build devshell
-        run: nix build --accept-flake-config .#devShells.${{ matrix.system }}.default -o result-devshell
+        # Avoid Nix fetching git submodules (some are private).
+        run: nix build --accept-flake-config ".?submodules=0#devShells.${{ matrix.system }}.default" -o result-devshell
 
       - name: Sign closure with secret key
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
