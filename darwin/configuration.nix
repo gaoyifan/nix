@@ -29,6 +29,7 @@ in {
   # Add rustup bin to PATH for Rust toolchain
   environment.systemPath = ["/opt/homebrew/opt/rustup/bin"];
   environment.systemPackages = with pkgs; [
+    just # Command runner
     nil # Nix language server
   ];
 
