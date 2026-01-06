@@ -134,6 +134,7 @@ in {
       "gemini-cli" # Google Gemini AI CLI
       "parallel" # Shell command parallelization
       "tokei" # Fast code statistics
+      "ffmpeg" # Audio/video processing toolkit
       "yt-dlp" # Video downloader (YouTube, etc.)
     ];
 
