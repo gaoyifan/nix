@@ -36,6 +36,7 @@ in {
       sync_address = "http://atuin-server.ts.gaof.net";
       auto_sync = true;
       sync_frequency = "5m";
+      enter_accept = true;
       sync = {
         records = true;
       };
