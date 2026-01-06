@@ -31,6 +31,8 @@ in {
     forceOverwriteSettings = true;
     settings = {
       workspaces = true;
+      filter_mode_shell_up_key_binding = "workspace";
+      inline_height = 6;
       sync_address = "http://atuin-server.ts.gaof.net";
       auto_sync = true;
       sync_frequency = "5m";
@@ -96,9 +98,7 @@ in {
         "tmux"
         "copyfile"
         "copypath"
-        "iterm2"
         "dotenv"
-        "history-substring-search"
         # Custom plugins
         "alias"
         "docker"
@@ -127,7 +127,7 @@ in {
       (pkgs.lib.mkAfter ''
         # Atuin: disable Up Arrow binding, and init after zsh-vi-mode sets keymaps.
         typeset -ga zvm_after_init_commands
-        zvm_after_init_commands+=('eval "$(atuin init zsh --disable-up-arrow)"')
+        zvm_after_init_commands+=('eval "$(atuin init zsh)"')
       '')
       (pkgs.lib.mkAfter ''
         # iTerm2 Shell Integration
