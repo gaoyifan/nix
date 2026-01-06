@@ -129,6 +129,12 @@ in {
         # Atuin: disable Up Arrow binding, and init after zsh-vi-mode sets keymaps.
         typeset -ga zvm_after_init_commands
         zvm_after_init_commands+=('eval "$(atuin init zsh)"')
+        # Override atuin's up arrow binding with smart binding after atuin initializes
+        # The _atuin_smart_up function is defined in keybind plugin's zvm_after_init
+        zvm_after_init_commands+=('bindkey "^[[A" _atuin_smart_up')
+        zvm_after_init_commands+=('bindkey -M vicmd "^[[A" _atuin_smart_up')
+        zvm_after_init_commands+=('bindkey -M viins "^[[A" _atuin_smart_up')
+        zvm_after_init_commands+=('bindkey -M emacs "^[[A" _atuin_smart_up')
       '')
       (pkgs.lib.mkAfter ''
         # iTerm2 Shell Integration
