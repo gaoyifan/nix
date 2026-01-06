@@ -38,6 +38,7 @@ in {
     uv
     ripgrep
     unstablePkgs.just
+    fzf
 
     # lowPrio to avoid conflict with nix-darwin's nh
     (lib.lowPrio nh)
