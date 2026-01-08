@@ -30,6 +30,7 @@ in {
   environment.systemPath = [
     "/opt/homebrew/opt/rustup/bin"
     "/opt/homebrew/opt/node/bin"
+    "/Users/${username}/.lmstudio/bin"
   ];
   environment.systemPackages = with pkgs; [
     just # Command runner
