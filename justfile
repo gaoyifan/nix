@@ -84,7 +84,17 @@ check:
     #!/usr/bin/env bash
     set -euo pipefail
     if [ -f "{{ nix_profile }}" ]; then . "{{ nix_profile }}"; fi
-    nix flake check --accept-flake-config --all-systems
+    if [ "$(uname)" = "Darwin" ]; then
+        arch="$(uname -m)"
+        case "$arch" in
+            arm64) system="aarch64-darwin" ;;
+            x86_64) system="x86_64-darwin" ;;
+            *) echo "Unsupported macOS arch: $arch" >&2; exit 1 ;;
+        esac
+        nix flake check --accept-flake-config --system "$system" --no-build
+    else
+        nix flake check --accept-flake-config --all-systems
+    fi
 
 # Deploy NixOS configuration to remote host
 [group('config')]
