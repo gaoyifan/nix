@@ -36,7 +36,7 @@ install-nix:
     echo "Configuring trusted-users for flake substituters..."
     echo "extra-trusted-users = $(whoami)" | sudo tee -a /etc/nix/nix.custom.conf >/dev/null
     if [ "$(uname)" = "Darwin" ]; then
-        sudo launchctl kickstart -k system/org.nixos.nix-daemon 2>/dev/null || true
+        sudo launchctl kickstart -k system/systems.determinate.nix-daemon || true
     else
         sudo systemctl restart nix-daemon 2>/dev/null || true
     fi
