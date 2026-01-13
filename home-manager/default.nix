@@ -52,7 +52,10 @@ in {
   ];
 
   # Cargo binaries (rust tools installed via cargo install)
-  home.sessionPath = ["${config.home.homeDirectory}/.cargo/bin"];
+  home.sessionPath = [
+    "${config.home.homeDirectory}/.cargo/bin"
+    "${config.home.homeDirectory}/.local/bin"
+  ];
 
   # nh (nix helper) configuration
   home.sessionVariables.NH_FLAKE = "${config.home.homeDirectory}/nix";
