@@ -125,6 +125,7 @@ in {
       "grep" # GNU grep
       "jq" # JSON processor
       "pandoc" # Document format converter
+      "restic" # Backup program with deduplication and encryption
 
       # System monitoring
       "htop" # Interactive process viewer
