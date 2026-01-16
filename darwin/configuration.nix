@@ -137,6 +137,7 @@ in {
 
       # Other tools
       "gemini-cli" # Google Gemini AI CLI
+      "huggingface-cli" # Hugging Face CLI
       "parallel" # Shell command parallelization
       "tokei" # Fast code statistics
       "ffmpeg" # Audio/video processing toolkit
