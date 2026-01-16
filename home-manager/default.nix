@@ -52,10 +52,14 @@ in {
   ];
 
   # Cargo binaries (rust tools installed via cargo install)
-  home.sessionPath = [
-    "${config.home.homeDirectory}/.cargo/bin"
-    "${config.home.homeDirectory}/.local/bin"
-  ];
+  home.sessionPath =
+    [
+      "${config.home.homeDirectory}/.cargo/bin"
+      "${config.home.homeDirectory}/.local/bin"
+    ]
+    ++ lib.optionals (!isDarwin) [
+      "/home/linuxbrew/.linuxbrew/opt/rustup/bin"
+    ];
 
   # nh (nix helper) configuration
   home.sessionVariables.NH_FLAKE = "${config.home.homeDirectory}/nix";
