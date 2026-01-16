@@ -9,6 +9,12 @@
 }: let
   isDarwin = pkgs.stdenv.isDarwin;
   unstablePkgs = inputs.nixpkgs-unstable.legacyPackages.${pkgs.stdenv.hostPlatform.system};
+  rimeIce = pkgs.fetchFromGitHub {
+    owner = "iDvel";
+    repo = "rime-ice";
+    rev = "51003473600d90ff4b46004a5122ee1b98210606";
+    hash = "sha256-4BJrs+PkC4flA7a6ZrATNT+CtUdUuoWKb62Mw5t91q4=";
+  };
 in {
   imports = [
     ./shell.nix
@@ -82,6 +88,26 @@ in {
   };
 
   programs.home-manager.enable = true;
+
+  home.activation.rimeIce = lib.mkIf isDarwin (lib.hm.dag.entryAfter ["writeBoundary"] ''
+    set -euo pipefail
+    target="${config.home.homeDirectory}/Library/Rime"
+    src="${rimeIce}"
+
+    if [ -e "$target" ] && [ ! -d "$target" ]; then
+      echo "home-manager: $target exists and is not a directory; skipping rime-ice sync."
+      exit 0
+    fi
+
+    mkdir -p "$target"
+    ${pkgs.rsync}/bin/rsync -a --delete \
+      --exclude "build/" \
+      --exclude "installation.yaml" \
+      --exclude "rime_ice.userdb/" \
+      --exclude "user.yaml" \
+      --chmod=Du+w,Fu+w \
+      "$src/" "$target/"
+  '');
 
   # Enable atuin sync key deployment from secrets module
   services.secrets.atuin.enable = true;
