@@ -72,6 +72,7 @@ in {
 
   programs.git = {
     enable = true;
+    package = pkgs.gitMinimal;
     settings = {
       user = {
         name = "Yifan Gao";
