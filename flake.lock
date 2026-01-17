@@ -163,11 +163,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1767155410,
-        "narHash": "sha256-yP7ZlYp73QBrpgOniHt4kZ8dyuEHO4ELmaqt03bWLSM=",
+        "lastModified": 1768501347,
+        "narHash": "sha256-qpM0O2jPViP1LZ8VcLWKNosHGXt39SxgVuf12QFyjSw=",
         "owner": "pranshuparmar",
         "repo": "witr",
-        "rev": "8d85a78dd4895ae916836721ffb7c760dfc53625",
+        "rev": "a3d02f28949a1a7703babc54361a09a5ae41bad6",
         "type": "github"
       },
       "original": {
