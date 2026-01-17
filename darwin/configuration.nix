@@ -63,6 +63,7 @@ in {
 
     taps = [
       "devnullvoid/pvetui"
+      "anomalyco/tap"
     ];
 
     brews = [
@@ -132,6 +133,9 @@ in {
 
       # Editors (neovim via Homebrew to avoid large nix closure on macOS)
       "neovim"
+
+      # AI Tools
+      "anomalyco/tap/opencode"
 
       # Other tools
       "gemini-cli" # Google Gemini AI CLI
