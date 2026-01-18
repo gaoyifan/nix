@@ -35,6 +35,7 @@ in {
   environment.systemPackages = with pkgs; [
     just # Command runner
     nil # Nix language server
+    bun # Fast JavaScript package manager
   ];
 
   system = {
