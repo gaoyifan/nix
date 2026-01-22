@@ -162,6 +162,7 @@ in {
 
       # Development
       "cursor"
+      "cursor-cli"
       "iterm2"
       "zed"
       "orbstack" # Docker/Linux VM alternative
