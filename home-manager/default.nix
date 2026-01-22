@@ -90,31 +90,16 @@ in {
 
   programs.home-manager.enable = true;
 
-  home.activation.rimeIce = lib.mkIf isDarwin (lib.hm.dag.entryAfter ["writeBoundary"] ''
-    set -euo pipefail
-    target="${config.home.homeDirectory}/Library/Rime"
-    src="${rimeIce}"
-
-    if [ -e "$target" ] && [ ! -d "$target" ]; then
-      echo "home-manager: $target exists and is not a directory; skipping rime-ice sync."
-      exit 0
-    fi
-
-    mkdir -p "$target"
-    ${pkgs.rsync}/bin/rsync -a --delete \
-      --exclude "build/" \
-      --exclude "installation.yaml" \
-      --exclude "rime_ice.userdb/" \
-      --exclude "rime_ice.custom.yaml" \
-      --exclude "user.yaml" \
-      --chmod=Du+w,Fu+w \
-      "$src/" "$target/"
-  '');
-
-  home.file."Library/Rime/rime_ice.custom.yaml".text = ''
-    patch:
-      "switches/@0/reset": 1
-  '';
+  home.file = lib.mkIf isDarwin {
+    "Library/Rime" = {
+      source = rimeIce;
+      recursive = true;
+    };
+    "Library/Rime/rime_ice.custom.yaml".text = ''
+      patch:
+        "switches/@0/reset": 1
+    '';
+  };
 
   # Enable atuin sync key deployment from secrets module
   services.secrets.atuin.enable = true;

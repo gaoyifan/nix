@@ -116,6 +116,7 @@
               home-manager = {
                 useGlobalPkgs = true; # Use system nixpkgs instead of standalone
                 useUserPackages = true; # Install to /etc/profiles instead of ~/.nix-profile
+                backupFileExtension = "backup";
                 extraSpecialArgs = {inherit inputs;};
                 users.${username} = import ./home-manager;
               };
