@@ -105,10 +105,16 @@ in {
       --exclude "build/" \
       --exclude "installation.yaml" \
       --exclude "rime_ice.userdb/" \
+      --exclude "rime_ice.custom.yaml" \
       --exclude "user.yaml" \
       --chmod=Du+w,Fu+w \
       "$src/" "$target/"
   '');
+
+  home.file."Library/Rime/rime_ice.custom.yaml".text = ''
+    patch:
+      "switches/@0/reset": 1
+  '';
 
   # Enable atuin sync key deployment from secrets module
   services.secrets.atuin.enable = true;
