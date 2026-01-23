@@ -17,13 +17,6 @@ in {
     zsh-completions
   ];
 
-  # Home Manager is pretty good at managing dotfiles. The primary way to manage
-  # plain files is through 'home.file'.
-  home.file = {
-    # Copy/Link custom zsh plugins and theme
-    ".oh-my-zsh/custom/plugins".source = ./zsh-custom;
-  };
-
   programs.powerline-go.enable = true;
 
   programs.atuin = {
@@ -112,9 +105,10 @@ in {
 
     oh-my-zsh = {
       enable = true;
-      custom = "${config.home.homeDirectory}/.oh-my-zsh/custom";
+      custom = toString ./zsh-custom;
 
       plugins = [
+        # Official plugins
         "git"
         "sudo"
         "tmux"
@@ -123,7 +117,7 @@ in {
         "dotenv"
         # Custom plugins
         "alias"
-        "docker"
+        "docker-extras"
         "ip"
         "keybind"
         "package-manager"
