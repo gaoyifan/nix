@@ -62,13 +62,17 @@ in {
     [
       "${config.home.homeDirectory}/.cargo/bin"
       "${config.home.homeDirectory}/.local/bin"
+      "${config.home.homeDirectory}/.bun/bin"
     ]
     ++ lib.optionals (!isDarwin) [
       "/home/linuxbrew/.linuxbrew/opt/rustup/bin"
     ];
 
   # nh (nix helper) configuration
-  home.sessionVariables.NH_FLAKE = "${config.home.homeDirectory}/nix";
+  home.sessionVariables = {
+    NH_FLAKE = "${config.home.homeDirectory}/nix";
+    BUN_INSTALL = "${config.home.homeDirectory}/.bun";
+  };
 
   programs.git = {
     enable = true;
