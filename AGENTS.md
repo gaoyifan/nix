@@ -2,10 +2,12 @@
 
 ## Project Structure & Module Organization
 - `flake.nix` / `flake.lock`: flake entrypoint and pinned inputs.
-- `home-manager/home.nix`: primary Home Manager config (shared across platforms).
+- `home-manager/default.nix`: primary Home Manager config (shared across platforms).
 - `darwin/configuration.nix`: nix-darwin system config (macOS).
-- `modules/`: reusable Home Manager modules (e.g., `modules/shell/`, `modules/neovim.nix`).
+- `nixos/`: NixOS configurations (e.g., `exp0`) and custom modules.
+- `home-manager/`: Home Manager config and modules (e.g., `home-manager/neovim.nix`).
 - `pkgs/`: custom packages exported via `pkgs/default.nix` and `overlays/default.nix`.
+- `secrets/`: Secret files and configurations.
 - `.github/workflows/build.yml`: CI builds the main configurations on Linux/macOS.
 
 ## Build, Test, and Development Commands
@@ -19,14 +21,14 @@
 
 ## Coding Style & Naming Conventions
 - Format with `nix fmt` (uses `alejandra`); prefer formatter-driven changes over manual reflow.
-- Keep modules small and composable; put cross-cutting config in `modules/` and import from `home-manager/home.nix`.
+- Keep modules small and composable; put cross-cutting config in `nixos/modules` or `home-manager/` and import where needed.
 - Custom packages: add `pkgs/<name>.nix`, export it from `pkgs/default.nix` as `<name>`, then consume as `pkgs.<name>`.
 
 ## Testing Guidelines
 - This repo primarily validates via evaluation/build checks: run `just check` before opening a PR.
 - To validate a specific output locally:
   - `nix build .#lazyssh`
-  - `nix build .#homeConfigurations.yifan.config.home.activationPackage`
+  - `nix build .#legacyPackages.aarch64-darwin.homeConfigurations.yifan.activationPackage` (adjust architecture as needed)
   - `nix build .#darwinConfigurations.default.system`
 
 ## Security & Configuration Tips
