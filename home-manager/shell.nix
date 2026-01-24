@@ -26,7 +26,7 @@ in {
     settings = {
       workspaces = true;
       filter_mode_shell_up_key_binding = "workspace";
-      inline_height = 6;
+      inline_height = 9;
       sync_address = "http://atuin-server.ts.gaof.net";
       auto_sync = true;
       sync_frequency = "5m";
