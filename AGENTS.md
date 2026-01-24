@@ -1,41 +1,31 @@
 # Repository Guidelines
 
-## Project Structure & Module Organization
-- `flake.nix` / `flake.lock`: flake entrypoint and pinned inputs.
-- `home-manager/default.nix`: primary Home Manager config (shared across platforms).
-- `darwin/configuration.nix`: nix-darwin system config (macOS).
-- `nixos/`: NixOS configurations (e.g., `exp0`) and custom modules.
-- `home-manager/`: Home Manager config and modules (e.g., `home-manager/neovim.nix`).
-- `pkgs/`: custom packages exported via `pkgs/default.nix`; overlay defined inline in `flake.nix`.
-- `secrets/`: Secret files and configurations.
-- `.github/workflows/build.yml`: CI builds the main configurations on Linux/macOS.
+## Project Structure
 
-## Build, Test, and Development Commands
-- `direnv allow`: load the flake devshell automatically via `.envrc` (optional).
-- `nix develop`: enter the dev shell (includes `nh`, `just`, `nil`, `alejandra`).
-- `just`: ensure Nix is installed and apply the appropriate configuration for the current OS.
-- `just home`: apply Home Manager via `nh home switch` (Linux/standalone use).
-- `just darwin`: apply nix-darwin via `nh darwin switch` (macOS use).
-- `just fmt`: format Nix files (`nix fmt .`).
-- `just check`: run `nix flake check` (the main validation step; uses `--all-systems` on Linux, `--system <arch>-darwin --no-build` on macOS).
+- `flake.nix`: Flake entrypoint with packages, devShells, homeConfigurations, darwinConfigurations, nixosConfigurations
+- `darwin/configuration.nix`: nix-darwin system config (macOS) - Homebrew packages/casks, system settings
+- `home-manager/`: Home Manager config (shared across platforms) - shell, neovim, packages
+- `nixos/`: NixOS configurations and modules (e.g., `exp0/` router, `modules/router/`)
+- `pkgs/`: Custom packages exported via `pkgs/default.nix`; overlay defined inline in `flake.nix`
+- `secrets/`: Secret modules with `files/` (gitignored submodule) and `files-example/` (CI fallback). See [docs/secrets.md](docs/secrets.md)
 
-## Coding Style & Naming Conventions
-- Format with `nix fmt` (uses `alejandra`); prefer formatter-driven changes over manual reflow.
-- Keep modules small and composable; put cross-cutting config in `nixos/modules` or `home-manager/` and import where needed.
-- Custom packages: add `pkgs/<name>.nix`, export it from `pkgs/default.nix` as `<name>`, then consume as `pkgs.<name>`.
+## Commands
 
-## Testing Guidelines
-- This repo primarily validates via evaluation/build checks: run `just check` before opening a PR.
-- To validate a specific output locally:
-  - `nix build .#lazyssh`
-  - `nix build .#legacyPackages.aarch64-darwin.homeConfigurations.yifan.activationPackage` (adjust architecture as needed)
-  - `nix build .#darwinConfigurations.default.system`
+- `just` / `just darwin` / `just home`: Apply configuration (auto-detects OS)
+- `just deploy <target>`: Deploy NixOS via deploy-rs
+- `just fmt`: Format with `alejandra`
+- `just check`: Validate flake (`--all-systems` on Linux, `--no-build` on Darwin)
 
-## Security & Configuration Tips
-- CI signs and uploads closures using repository secrets; never commit keys or tokens.
-- When updating inputs, prefer targeted lock updates (e.g., `nix flake lock --update-input nixpkgs`) and keep `flake.lock` changes intentional.
+## Coding Style
 
-## Commit & Pull Request Guidelines
-- Use the existing conventional-style subjects: `feat(scope): ...`, `fix: ...`, `refactor: ...`, `ci: ...`, `chore: ...`, `style: ...`.
-- Keep PRs focused and include what you tested (OS + command, e.g., `just check` / `just darwin`).
-- Don’t commit `result` / `result-*` build outputs (they are gitignored).
+- Format with `nix fmt`; run `just fmt` before committing
+- Check `pkgs.stdenv.isDarwin` for platform-specific logic
+- Custom packages: add `pkgs/<name>.nix`, export from `pkgs/default.nix`, consume as `pkgs.<name>`
+
+## Commits
+
+Use conventional subjects: `feat(scope):`, `fix:`, `refactor:`, `chore:`, `docs:`, `ci:`, `style:`
+
+## Testing
+
+Run `just fmt` and `just check` before opening a PR. Don't commit `result/` outputs.
