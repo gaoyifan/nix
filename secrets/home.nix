@@ -26,12 +26,21 @@ in {
         default = "${cfg.filesDir}/home/atuin-key";
         description = "Path to the Atuin encryption key file";
       };
+      passwordFile = lib.mkOption {
+        type = lib.types.path;
+        default = "${cfg.filesDir}/home/atuin-password";
+        description = "Path to the Atuin password file";
+      };
     };
   };
 
   config = lib.mkIf cfg.atuin.enable {
     home.file.".local/share/atuin/key" = {
       source = cfg.atuin.keyFile;
+      force = true;
+    };
+    home.file.".local/share/atuin/password" = {
+      source = cfg.atuin.passwordFile;
       force = true;
     };
   };

@@ -1,6 +1,7 @@
 {
   config,
   pkgs,
+  lib,
   ...
 }: let
   iterm2-shell-integration = pkgs.fetchFromGitHub {
@@ -39,6 +40,20 @@ in {
     # via zsh-vi-mode's `after_init` hook instead (see `programs.zsh.initContent`).
     enableZshIntegration = false;
   };
+
+  # Atuin Login Automation
+  home.activation.atuinLogin = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    if [ -f "$HOME/.local/share/atuin/password" ] && [ -f "$HOME/.local/share/atuin/key" ]; then
+      if ! ${pkgs.atuin}/bin/atuin status | grep -q "Username: yifan"; then
+        echo "Atuin not logged in. Attempting automated login..."
+        ATUIN_PASSWORD=$(cat "$HOME/.local/share/atuin/password")
+        ATUIN_KEY=$(cat "$HOME/.local/share/atuin/key")
+        ${pkgs.atuin}/bin/atuin login -u yifan -p "$ATUIN_PASSWORD" -k "$ATUIN_KEY"
+      else
+        echo "Atuin is already logged in."
+      fi
+    fi
+  '';
 
   programs.direnv = {
     enable = true;
