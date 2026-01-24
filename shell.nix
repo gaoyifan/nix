@@ -12,6 +12,7 @@ pkgs.mkShell {
     [
       pkgs.nh
       pkgs.nil
+      pkgs.nixd
       pkgs.alejandra
       pkgsUnstable.just
       deploy-rs.packages.${pkgs.stdenv.hostPlatform.system}.deploy-rs
