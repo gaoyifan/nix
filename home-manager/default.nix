@@ -94,16 +94,22 @@ in {
 
   programs.home-manager.enable = true;
 
-  home.file = lib.mkIf isDarwin {
-    "Library/Rime" = {
-      source = rimeIce;
-      recursive = true;
-    };
-    "Library/Rime/rime_ice.custom.yaml".text = ''
-      patch:
-        "switches/@0/reset": 1
-    '';
-  };
+  home.file = lib.mkMerge [
+    {
+      ".config/opencode".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/Sync/dotfile/.config/opencode";
+      ".local/share/opencode/auth.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/Sync/dotfile/.local/share/opencode/auth.json";
+    }
+    (lib.mkIf isDarwin {
+      "Library/Rime" = {
+        source = rimeIce;
+        recursive = true;
+      };
+      "Library/Rime/rime_ice.custom.yaml".text = ''
+        patch:
+          "switches/@0/reset": 1
+      '';
+    })
+  ];
 
   # Enable atuin sync key deployment from secrets module
   services.secrets.atuin.enable = true;
