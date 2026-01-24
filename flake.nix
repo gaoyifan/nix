@@ -100,7 +100,7 @@
     darwinConfigurations = nixpkgs.lib.genAttrs darwinHosts (
       hostname:
         nix-darwin.lib.darwinSystem {
-          specialArgs = {inherit inputs;};
+          specialArgs = {inherit inputs username;};
           modules = [
             # Apply overlay and allow unfree packages
             {
@@ -129,6 +129,7 @@
     nixosConfigurations = {
       exp0 = nixpkgs.lib.nixosSystem {
         system = "aarch64-linux";
+        specialArgs = {inherit username;};
         modules = [
           ./nixos/exp0
         ];

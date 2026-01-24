@@ -25,8 +25,8 @@ in {
   home.username = lib.mkDefault "yifan";
   home.homeDirectory = lib.mkDefault (
     if isDarwin
-    then "/Users/yifan"
-    else "/home/yifan"
+    then "/Users/${config.home.username}"
+    else "/home/${config.home.username}"
   );
   home.stateVersion = "25.11"; # Do not change - see home-manager release notes
 

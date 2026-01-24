@@ -1,7 +1,9 @@
 # Darwin system configuration
-{pkgs, ...}: let
-  username = "yifan";
-in {
+{
+  pkgs,
+  username,
+  ...
+}: {
   # User configuration - required for home-manager
   users.users.${username}.home = "/Users/${username}";
 

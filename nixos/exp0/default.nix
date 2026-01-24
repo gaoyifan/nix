@@ -2,6 +2,7 @@
 {
   config,
   pkgs,
+  username,
   ...
 }: {
   imports = [
@@ -79,9 +80,9 @@
 
   time.timeZone = "Asia/Shanghai";
 
-  users.users.yifan = {
+  users.users.${username} = {
     isNormalUser = true;
-    description = "Yifan";
+    description = username;
     extraGroups = ["networkmanager" "wheel"];
   };
 
