@@ -52,9 +52,9 @@ home:
     if [ -f "{{ nix_profile }}" ]; then . "{{ nix_profile }}"; fi
     git submodule update --init
     if command -v nh >/dev/null 2>&1; then
-        nh home switch --accept-flake-config '.?submodules=1'
+        nh home switch --accept-flake-config '.?submodules=1' --backup-extension backup
     else
-        nix run nixpkgs#nh -- home switch --accept-flake-config '.?submodules=1'
+        nix run nixpkgs#nh -- home switch --accept-flake-config '.?submodules=1' --backup-extension backup
     fi
 
 # Switch nix-darwin configuration
