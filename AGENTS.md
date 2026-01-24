@@ -6,7 +6,7 @@
 - `darwin/configuration.nix`: nix-darwin system config (macOS).
 - `nixos/`: NixOS configurations (e.g., `exp0`) and custom modules.
 - `home-manager/`: Home Manager config and modules (e.g., `home-manager/neovim.nix`).
-- `pkgs/`: custom packages exported via `pkgs/default.nix` and `overlays/default.nix`.
+- `pkgs/`: custom packages exported via `pkgs/default.nix`; overlay defined inline in `flake.nix`.
 - `secrets/`: Secret files and configurations.
 - `.github/workflows/build.yml`: CI builds the main configurations on Linux/macOS.
 
@@ -17,7 +17,7 @@
 - `just home`: apply Home Manager via `nh home switch` (Linux/standalone use).
 - `just darwin`: apply nix-darwin via `nh darwin switch` (macOS use).
 - `just fmt`: format Nix files (`nix fmt .`).
-- `just check`: run `nix flake check --all-systems` (the main validation step).
+- `just check`: run `nix flake check` (the main validation step; uses `--all-systems` on Linux, `--system <arch>-darwin --no-build` on macOS).
 
 ## Coding Style & Naming Conventions
 - Format with `nix fmt` (uses `alejandra`); prefer formatter-driven changes over manual reflow.
