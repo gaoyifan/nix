@@ -43,12 +43,12 @@ in {
 
   # Atuin Login Automation
   home.activation.atuinLogin = lib.hm.dag.entryAfter ["writeBoundary"] ''
-    if [ -f "$HOME/.local/share/atuin/password" ] && [ -f "$HOME/.local/share/atuin/key" ]; then
+    if [ -f "${config.services.secrets.atuin.passwordFile}" ] && [ -f "${config.services.secrets.atuin.keyFile}" ]; then
       if ! ${pkgs.atuin}/bin/atuin status | grep -q "Username: ${config.home.username}"; then
         echo "Atuin not logged in. Attempting automated login..."
-        ATUIN_PASSWORD=$(cat "$HOME/.local/share/atuin/password")
-        ATUIN_KEY=$(cat "$HOME/.local/share/atuin/key")
-        ${pkgs.atuin}/bin/atuin login -u ${config.home.username} -p "$ATUIN_PASSWORD" -k "$ATUIN_KEY"
+        ${pkgs.atuin}/bin/atuin login -u ${config.home.username} \
+          -p "$(<"${config.services.secrets.atuin.passwordFile}")" \
+          -k "$(<"${config.services.secrets.atuin.keyFile}")"
       else
         echo "Atuin is already logged in."
       fi
