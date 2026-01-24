@@ -105,7 +105,7 @@ in {
 
     oh-my-zsh = {
       enable = true;
-      custom = toString ./zsh-custom;
+      custom = "${./zsh-custom}";
 
       plugins = [
         # Official plugins
