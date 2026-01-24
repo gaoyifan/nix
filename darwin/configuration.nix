@@ -65,6 +65,7 @@ in {
     taps = [
       "devnullvoid/pvetui"
       "anomalyco/tap"
+      "ramonvermeulen/whosthere"
     ];
 
     brews = [
@@ -151,6 +152,7 @@ in {
       # Password & Security
       "1password"
       "electrum" # Bitcoin wallet
+      "ramonvermeulen/whosthere/whosthere" # See who's on your network
 
       # AI Tools
       "antigravity"
