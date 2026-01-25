@@ -42,7 +42,7 @@ in {
   };
 
   # Atuin Login Automation (failures are non-blocking to avoid breaking deployment)
-  home.activation.atuinLogin = lib.hm.dag.entryAfter ["writeBoundary"] ''
+  home.activation.atuinLogin = lib.hm.dag.entryAfter ["linkGeneration"] ''
     if [ -f "${config.services.secrets.atuin.passwordFile}" ] && [ -f "${config.services.secrets.atuin.keyFile}" ]; then
       if ! ${pkgs.atuin}/bin/atuin status 2>/dev/null | grep -q "Username: ${config.home.username}"; then
         echo "Atuin not logged in. Attempting automated login..."
