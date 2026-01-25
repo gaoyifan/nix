@@ -41,14 +41,14 @@ in {
     enableZshIntegration = false;
   };
 
-  # Atuin Login Automation
+  # Atuin Login Automation (failures are non-blocking to avoid breaking deployment)
   home.activation.atuinLogin = lib.hm.dag.entryAfter ["writeBoundary"] ''
     if [ -f "${config.services.secrets.atuin.passwordFile}" ] && [ -f "${config.services.secrets.atuin.keyFile}" ]; then
-      if ! ${pkgs.atuin}/bin/atuin status | grep -q "Username: ${config.home.username}"; then
+      if ! ${pkgs.atuin}/bin/atuin status 2>/dev/null | grep -q "Username: ${config.home.username}"; then
         echo "Atuin not logged in. Attempting automated login..."
         ${pkgs.atuin}/bin/atuin login -u ${config.home.username} \
           -p "$(<"${config.services.secrets.atuin.passwordFile}")" \
-          -k "$(<"${config.services.secrets.atuin.keyFile}")"
+          -k "$(<"${config.services.secrets.atuin.keyFile}")" || echo "Atuin login failed (non-blocking)"
       else
         echo "Atuin is already logged in."
       fi
