@@ -140,10 +140,10 @@ in {
     };
 
     envExtra = ''
-      # Enable Homebrew
-      if [ -e /opt/homebrew/bin/brew ]; then
+      # Enable Homebrew (only if not already in PATH to preserve direnv precedence in subshells)
+      if [ -e /opt/homebrew/bin/brew ] && [[ ":$PATH:" != *":/opt/homebrew/bin:"* ]]; then
         eval "$(/opt/homebrew/bin/brew shellenv)"
-      elif [ -e /home/linuxbrew/.linuxbrew/bin/brew ]; then
+      elif [ -e /home/linuxbrew/.linuxbrew/bin/brew ] && [[ ":$PATH:" != *":/home/linuxbrew/.linuxbrew/bin:"* ]]; then
         eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
       fi
     '';
