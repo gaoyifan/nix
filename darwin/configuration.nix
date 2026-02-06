@@ -162,7 +162,10 @@
       "chatgpt-atlas"
       "cherry-studio"
       "codex"
+      "codex-app"
       "lm-studio" # Local LLM runner
+      "openclaw"
+      "opencode-desktop"
 
       # Development
       "cursor"
