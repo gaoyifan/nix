@@ -72,6 +72,7 @@
       "devnullvoid/pvetui"
       "anomalyco/tap"
       "ramonvermeulen/whosthere"
+      "tokuhirom/tap"
     ];
 
     brews = [
@@ -164,7 +165,6 @@
       "antigravity"
       "chatgpt"
       "chatgpt-atlas"
-      "cherry-studio"
       "codex"
       "codex-app"
       "lm-studio" # Local LLM runner
@@ -177,7 +177,6 @@
       "iterm2"
       "zed"
       "orbstack" # Docker/Linux VM alternative
-      "vmware-fusion"
       "xquartz" # X11 server
       "macfuse" # User-space filesystem
 
