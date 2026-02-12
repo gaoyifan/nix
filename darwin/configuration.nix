@@ -28,6 +28,10 @@
     };
   };
 
+  # Keep shell setup in Home Manager to avoid taking over /etc/zshenv on new hosts.
+  # Determinate Nix installer ships customized /etc/zshenv that nix-darwin refuses to clobber.
+  programs.zsh.enable = false;
+
   # Add homebrew bins to PATH for global tools
   environment.systemPath = [
     "/opt/homebrew/opt/rustup/bin"
