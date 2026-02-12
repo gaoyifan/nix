@@ -51,6 +51,7 @@ home:
     set -euo pipefail
     if [ -f "{{ nix_profile }}" ]; then . "{{ nix_profile }}"; fi
     git submodule update --init
+    printf '"%s"\n' "$(whoami)" > username.nix
     if command -v nh >/dev/null 2>&1; then
         nh home switch --accept-flake-config '.?submodules=1' --backup-extension backup
     else
@@ -64,6 +65,7 @@ darwin:
     set -euo pipefail
     if [ -f "{{ nix_profile }}" ]; then . "{{ nix_profile }}"; fi
     git submodule update --init
+    printf '"%s"\n' "$(whoami)" > username.nix
     if command -v nh >/dev/null 2>&1; then
         nh darwin switch --accept-flake-config '.?submodules=1' --
     else

@@ -55,7 +55,7 @@
       "aarch64-darwin"
     ];
     forAllSystems = nixpkgs.lib.genAttrs systems;
-    username = "yifan";
+    username = import ./username.nix;
     darwinHosts = [
       "Yifans-MacBook-Air-2022"
       "Yifans-Mac-Studio"
@@ -91,7 +91,10 @@
           config.allowUnfree = true;
         };
         extraSpecialArgs = {inherit inputs;};
-        modules = [./home-manager];
+        modules = [
+          ./home-manager
+          {home.username = username;}
+        ];
       };
     });
 
