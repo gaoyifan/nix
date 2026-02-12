@@ -185,7 +185,6 @@
       "google-chrome"
 
       # Notes & Documents
-      "notion"
       "typora" # Markdown editor
       "calibre" # E-book manager
 
