@@ -59,6 +59,7 @@
     darwinHosts = [
       "Yifans-MacBook-Air-2022"
       "Yifans-Mac-Studio"
+      "yans-mac-mini"
       "default"
     ];
     overlay = final: prev: import ./pkgs prev;
