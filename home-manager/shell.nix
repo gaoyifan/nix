@@ -94,7 +94,6 @@ in {
       enable = true;
       strategy = [
         "match_prev_cmd"
-        "history"
         "completion"
       ];
     };
