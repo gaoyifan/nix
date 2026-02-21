@@ -19,6 +19,7 @@ in {
   imports = [
     ./shell.nix
     ./neovim.nix
+    ./restic-systemd-installer.nix
     ../secrets/home.nix
   ];
 
@@ -52,6 +53,7 @@ in {
     # Custom package from ./pkgs (via overlay)
     lazyssh
     dcv
+    restic
 
     # External flake package
     inputs.witr.packages.${stdenv.hostPlatform.system}.default

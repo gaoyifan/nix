@@ -106,3 +106,9 @@ deploy target:
     if [ -f "{{ nix_profile }}" ]; then . "{{ nix_profile }}"; fi
     git submodule update --init
     nix develop --accept-flake-config -c deploy .#{{ target }} --skip-checks
+
+# Apply home-manager, then install restic systemd timer
+[group('config')]
+restic-setup:
+    restic-install-systemd-timer
+    systemctl status restic-backup.timer

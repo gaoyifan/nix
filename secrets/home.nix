@@ -32,6 +32,14 @@ in {
         description = "Path to the Atuin password file";
       };
     };
+
+    restic = {
+      envFile = lib.mkOption {
+        type = lib.types.str;
+        default = "${cfg.filesDir}/home/restic-env";
+        description = "Path to the Restic environment file for systemd EnvironmentFile";
+      };
+    };
   };
 
   config = lib.mkIf cfg.atuin.enable {
