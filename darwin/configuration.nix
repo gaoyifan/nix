@@ -1,9 +1,12 @@
 # Darwin system configuration
 {
+  inputs,
   pkgs,
   username,
   ...
-}: {
+}: let
+  unstablePkgs = inputs.nixpkgs-unstable.legacyPackages.${pkgs.stdenv.hostPlatform.system};
+in {
   # User configuration - required for home-manager
   users.users.${username}.home = "/Users/${username}";
 
@@ -37,7 +40,7 @@
   environment.systemPackages = with pkgs; [
     just # Command runner
     nil # Nix language server
-    bun # Fast JavaScript package manager
+    unstablePkgs.bun # Fast JavaScript package manager
   ];
 
   system = {
