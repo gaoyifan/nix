@@ -137,6 +137,7 @@ in {
       # System monitoring
       "htop" # Interactive process viewer
       "macmon" # Apple Silicon performance monitor (sudoless)
+      "mactop" # Apple Silicon Monitor Top written in Go Lang
       "nvtop" # GPU process monitor
 
       # Editors (neovim via Homebrew to avoid large nix closure on macOS)
