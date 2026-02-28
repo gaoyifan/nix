@@ -38,7 +38,6 @@ in {
     diffutils
 
     # Core utilities
-    tmux
     curl
     wget
     tree

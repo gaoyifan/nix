@@ -86,6 +86,23 @@ in {
     enableZshIntegration = true;
   };
 
+  programs.tmux = {
+    enable = true;
+    mouse = true;
+    historyLimit = 10000;
+    terminal = "xterm-256color";
+    extraConfig = ''
+      set -as terminal-features ",xterm-256color:RGB"
+      set -g window-status-current-style ""
+      set -g status-right "#{?window_bigger,[#{window_offset_x},#{window_offset_y}],}"
+      set -g set-titles on
+      set -g set-titles-string "(T) #{pane_title}"
+      set -g window-status-format "#[fg=white,bold]#I.#[default]#{=16:pane_title}#F"
+      set -g window-status-current-format "#[fg=white,bold]#I.#[default,bg=white]#{=16:pane_title}#[default]#F"
+      bind -n C-x setw synchronize-panes
+    '';
+  };
+
   # Zsh Configuration
   programs.zsh = {
     enable = true;
