@@ -84,20 +84,23 @@
 
     # Standalone home-manager for non-darwin systems
     # Usage: home-manager switch --flake .#yifan
-    legacyPackages = forAllSystems (system: {
-      homeConfigurations.${username} = home-manager.lib.homeManagerConfiguration {
-        pkgs = import nixpkgs {
-          inherit system;
-          overlays = [overlay];
-          config.allowUnfree = true;
+    legacyPackages = forAllSystems (system:
+      if nixpkgs.lib.hasSuffix "darwin" system
+      then {}
+      else {
+        homeConfigurations.${username} = home-manager.lib.homeManagerConfiguration {
+          pkgs = import nixpkgs {
+            inherit system;
+            overlays = [overlay];
+            config.allowUnfree = true;
+          };
+          extraSpecialArgs = {inherit inputs;};
+          modules = [
+            ./home-manager
+            {home.username = username;}
+          ];
         };
-        extraSpecialArgs = {inherit inputs;};
-        modules = [
-          ./home-manager
-          {home.username = username;}
-        ];
-      };
-    });
+      });
 
     # macOS system configuration with integrated home-manager
     # Usage: darwin-rebuild switch --flake .

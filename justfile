@@ -49,6 +49,10 @@ install-nix:
 home:
     #!/usr/bin/env bash
     set -euo pipefail
+    if [ "$(uname)" = "Darwin" ]; then
+        echo "Refusing to run standalone Home Manager on macOS. Use 'just darwin' instead." >&2
+        exit 1
+    fi
     if [ -f "{{ nix_profile }}" ]; then . "{{ nix_profile }}"; fi
     git submodule update --init
     printf '"%s"\n' "$(whoami)" > username.nix
