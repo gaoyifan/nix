@@ -113,6 +113,7 @@ in {
       # Shell & terminal
       "asciinema" # Record and share terminal sessions
       "mcat" # Terminal image/video/markdown viewer
+      "mutagen-io/mutagen/mutagen" # File sync and forwarding tool
       "tmate" # Instant terminal sharing
       "tuios" # Terminal multiplexer (alternative to tmux)
       "watch" # Execute command periodically
