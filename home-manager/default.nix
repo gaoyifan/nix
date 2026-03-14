@@ -19,6 +19,7 @@ in {
   imports = [
     ./shell.nix
     ./neovim.nix
+    ./mutagen-dotfiles-sync.nix
     ./restic-systemd-installer.nix
     ../secrets/home.nix
   ];
@@ -97,8 +98,8 @@ in {
 
   home.file = lib.mkMerge [
     {
-      ".config/opencode".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/Sync/dotfile/.config/opencode";
-      ".local/share/opencode/auth.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/Sync/dotfile/.local/share/opencode/auth.json";
+      ".config/opencode".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/Sync/dotfiles/.config/opencode";
+      ".local/share/opencode/auth.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/Sync/dotfiles/.local/share/opencode/auth.json";
     }
     (lib.mkIf isDarwin {
       "Library/Rime" = {
@@ -114,6 +115,14 @@ in {
 
   # Enable atuin sync key deployment from secrets module
   services.secrets.atuin.enable = true;
+
+  services.mutagen.dotfileSync = {
+    enable = true;
+    host = "mutagen.yfgao.com";
+    user = "syncd";
+    port = 2221;
+    remotePath = "/data/syncd-dotfiles";
+  };
 
   # Auto gc on Linux only - darwin handles this at system level
   nix.gc.automatic = !isDarwin;
