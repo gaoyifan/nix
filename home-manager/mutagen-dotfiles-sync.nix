@@ -7,32 +7,77 @@
   cfg = config.services.mutagen.dotfileSync;
   isDarwin = pkgs.stdenv.isDarwin;
   localPath = "${config.home.homeDirectory}/.syncd-dotfiles";
-  specPath = "${config.home.homeDirectory}/.config/mutagen-dotfiles-sync/spec.json";
   stateDir = "${config.home.homeDirectory}/.local/state/mutagen-dotfiles-sync";
   specHashPath = "${stateDir}/spec-hash";
+  mutagenDataDir = "${stateDir}/mutagen-data";
+  identityFile = cfg.identityFile;
+  specHash = builtins.hashString "sha256" (builtins.toJSON {
+    inherit localPath;
+    host = cfg.host;
+    user = cfg.user;
+    port = cfg.port;
+    remotePath = cfg.remotePath;
+    identityFile = cfg.identityFile;
+    mode = "two-way-safe";
+    watchMode = "portable";
+    ignoreVcs = true;
+    symlinkMode = "portable";
+    scanMode = "accelerated";
+    compression = "deflate";
+  });
+  sshWrapper = pkgs.symlinkJoin {
+    name = "mutagen-dotfiles-ssh-wrapper";
+    paths = [
+      (pkgs.writeShellScriptBin "ssh" ''
+        if [ -f ${lib.escapeShellArg identityFile} ]; then
+          exec env -u SSH_AUTH_SOCK -u SSH_AGENT_PID ${pkgs.openssh}/bin/ssh \
+            -o IdentityAgent=none \
+            -o IdentitiesOnly=yes \
+            -o IdentityFile=${lib.escapeShellArg identityFile} \
+            "$@"
+        fi
+
+        exec ${pkgs.openssh}/bin/ssh "$@"
+      '')
+      (pkgs.writeShellScriptBin "scp" ''
+        if [ -f ${lib.escapeShellArg identityFile} ]; then
+          exec env -u SSH_AUTH_SOCK -u SSH_AGENT_PID ${pkgs.openssh}/bin/scp \
+            -o IdentityAgent=none \
+            -o IdentitiesOnly=yes \
+            -o IdentityFile=${lib.escapeShellArg identityFile} \
+            "$@"
+        fi
+
+        exec ${pkgs.openssh}/bin/scp "$@"
+      '')
+    ];
+  };
   reconcileScript = pkgs.writeShellApplication {
     name = "mutagen-dotfiles-reconcile";
     runtimeInputs = with pkgs; [
       coreutils
       gnugrep
-      gawk
       mutagen
     ];
     text = ''
       set -euo pipefail
+      export MUTAGEN_DATA_DIRECTORY=${mutagenDataDir}
+      export MUTAGEN_SSH_PATH=${sshWrapper}/bin
+      unset SSH_AUTH_SOCK SSH_AGENT_PID
 
       host_name="$(/bin/hostname -s)"
       session_name="syncd-dotfiles-$host_name"
-      host_selector="service==syncd-dotfiles,host==$host_name"
+      service_selector="managed==true,service==syncd-dotfiles"
       # Mutagen 0.18.0 parses SCP-style SSH endpoints as user@host:port:path; ssh://... is not recognized by pkg/url.Parse.
       remote_endpoint="${cfg.user}@${cfg.host}:${toString cfg.port}:${cfg.remotePath}"
-      desired_hash="$(sha256sum ${lib.escapeShellArg specPath} | awk '{print $1}')"
+      desired_hash="${specHash}"
 
       ensure_daemon() {
-        if mutagen sync list >/dev/null 2>&1; then
-          return 0
-        fi
-
+        # This sync uses a dedicated MUTAGEN_DATA_DIRECTORY, so restarting its
+        # daemon here won't affect unrelated Mutagen usage. We restart to make
+        # sure SSH transport changes (MUTAGEN_SSH_PATH, IdentityFile, etc.)
+        # actually apply after `home-manager switch`.
+        mutagen daemon stop >/dev/null 2>&1 || true
         mutagen daemon start >/dev/null 2>&1 || true
 
         if mutagen sync list >/dev/null 2>&1; then
@@ -59,11 +104,11 @@
           "$remote_endpoint"
       }
 
-      mkdir -p ${lib.escapeShellArg localPath} ${lib.escapeShellArg stateDir}
+      mkdir -p ${lib.escapeShellArg localPath} ${lib.escapeShellArg stateDir} ${lib.escapeShellArg mutagenDataDir}
       ensure_daemon
 
       session_exists=0
-      managed_count="$(mutagen sync list --label-selector "$host_selector" 2>/dev/null | grep -c '^Identifier: ' || true)"
+      managed_count="$(mutagen sync list --label-selector "$service_selector" 2>/dev/null | grep -c '^Identifier: ' || true)"
       if mutagen sync resume "$session_name" >/dev/null 2>&1; then
         session_exists=1
       fi
@@ -76,7 +121,7 @@
       fi
 
       if [ "$managed_count" -gt 0 ]; then
-        mutagen sync terminate --label-selector "$host_selector" >/dev/null 2>&1 || true
+        mutagen sync terminate --label-selector "$service_selector" >/dev/null 2>&1 || true
       fi
 
       create_session
@@ -88,9 +133,10 @@
     runtimeInputs = [pkgs.mutagen];
     text = ''
       set -euo pipefail
+      export MUTAGEN_DATA_DIRECTORY=${mutagenDataDir}
 
-      session_name="syncd-dotfiles-$(/bin/hostname -s)"
-      exec mutagen sync list "$session_name" -l
+      selector="managed==true,service==syncd-dotfiles"
+      exec mutagen sync list --label-selector "$selector" -l
     '';
   };
   resetScript = pkgs.writeShellApplication {
@@ -101,9 +147,10 @@
     ];
     text = ''
       set -euo pipefail
+      export MUTAGEN_DATA_DIRECTORY=${mutagenDataDir}
 
-      session_name="syncd-dotfiles-$(/bin/hostname -s)"
-      mutagen sync terminate "$session_name" >/dev/null 2>&1 || true
+      selector="managed==true,service==syncd-dotfiles"
+      mutagen sync terminate --label-selector "$selector" >/dev/null 2>&1 || true
       rm -f ${lib.escapeShellArg specHashPath}
     '';
   };
@@ -121,7 +168,7 @@
         exit 1
       fi
 
-      key_path="''${1:-$HOME/.ssh/id_ed25519.pub}"
+      key_path="''${1:-${cfg.identityFile}.pub}"
       private_key_path="''${key_path%.pub}"
 
       if [ "$#" -eq 0 ]; then
@@ -143,13 +190,13 @@
         exit 1
       fi
 
-      key_line="$(tr -d '\r\n' < "$key_path")"
-      if [ -z "$key_line" ]; then
-        echo "public key is empty: $key_path" >&2
-        exit 1
-      fi
-
-      exec ssh-copy-id -i "$key_path" -p ${toString cfg.port} ${cfg.user}@${cfg.host}
+      # `-i` selects the public key to upload. `-f` skips ssh-copy-id's
+      # private-key preflight so authentication can come from the SSH agent.
+      exec ssh-copy-id \
+        -f \
+        -i "$key_path" \
+        -p ${toString cfg.port} \
+        ${cfg.user}@${cfg.host}
     '';
   };
   daemonServiceName = "mutagen-daemon-start";
@@ -178,6 +225,12 @@ in {
       default = "/data/syncd-dotfiles";
       description = "Remote path inside the SSH container that stores the shared dotfiles.";
     };
+
+    identityFile = lib.mkOption {
+      type = lib.types.str;
+      default = "${config.home.homeDirectory}/.ssh/id_ed25519";
+      description = "SSH private key file used by Mutagen for the central sync server.";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -196,20 +249,6 @@ in {
       uploadKeyScript
     ];
 
-    home.file.".config/mutagen-dotfiles-sync/spec.json".text = builtins.toJSON {
-      inherit localPath;
-      host = cfg.host;
-      user = cfg.user;
-      port = cfg.port;
-      remotePath = cfg.remotePath;
-      mode = "two-way-safe";
-      watchMode = "portable";
-      ignoreVcs = true;
-      symlinkMode = "portable";
-      scanMode = "accelerated";
-      compression = "deflate";
-    };
-
     home.activation.mutagenDotfileSync = lib.hm.dag.entryAfter ["writeBoundary"] ''
       ${lib.getExe reconcileScript} || true
     '';
@@ -221,6 +260,12 @@ in {
         };
         Service = {
           Type = "oneshot";
+          Environment = [
+            "MUTAGEN_DATA_DIRECTORY=${mutagenDataDir}"
+            "MUTAGEN_SSH_PATH=${sshWrapper}/bin"
+            "SSH_AUTH_SOCK="
+            "SSH_AGENT_PID="
+          ];
           ExecStart = "${pkgs.mutagen}/bin/mutagen daemon start";
           RemainAfterExit = true;
         };
@@ -234,6 +279,12 @@ in {
       "${daemonServiceName}" = {
         enable = true;
         config = {
+          EnvironmentVariables = {
+            MUTAGEN_DATA_DIRECTORY = "${mutagenDataDir}";
+            MUTAGEN_SSH_PATH = "${sshWrapper}/bin";
+            SSH_AUTH_SOCK = "";
+            SSH_AGENT_PID = "";
+          };
           ProgramArguments = [
             "${pkgs.mutagen}/bin/mutagen"
             "daemon"
