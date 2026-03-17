@@ -65,8 +65,7 @@
       export MUTAGEN_SSH_PATH=${sshWrapper}/bin
       unset SSH_AUTH_SOCK SSH_AGENT_PID
 
-      host_name="$(/bin/hostname -s)"
-      session_name="syncd-dotfiles-$host_name"
+      session_name="syncd-dotfiles"
       service_selector="managed==true,service==syncd-dotfiles"
       # Mutagen 0.18.0 parses SCP-style SSH endpoints as user@host:port:path; ssh://... is not recognized by pkg/url.Parse.
       remote_endpoint="${cfg.user}@${cfg.host}:${toString cfg.port}:${cfg.remotePath}"
@@ -93,7 +92,6 @@
           --name "$session_name" \
           --label "managed=true" \
           --label "service=syncd-dotfiles" \
-          --label "host=$host_name" \
           --mode=two-way-safe \
           --watch-mode=portable \
           --ignore-vcs \
