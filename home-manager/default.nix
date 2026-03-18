@@ -98,8 +98,10 @@ in {
 
   home.file = lib.mkMerge [
     {
-      ".config/opencode".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/Sync/dotfiles/.config/opencode";
-      ".local/share/opencode/auth.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/Sync/dotfiles/.local/share/opencode/auth.json";
+      ".config/opencode".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.config/opencode";
+      ".local/share/opencode/auth.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.local/share/opencode/auth.json";
+      ".codex/auth.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.codex/auth.json";
+      ".codex/config.toml".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.codex/config.toml";
     }
     (lib.mkIf isDarwin {
       "Library/Rime" = {
