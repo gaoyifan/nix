@@ -188,10 +188,9 @@
         exit 1
       fi
 
-      # `-i` selects the public key to upload. `-f` skips ssh-copy-id's
-      # private-key preflight so authentication can come from the SSH agent.
+      # `-i` selects the public key to upload. Authentication can come from
+      # the SSH agent or the default SSH configuration for the target.
       exec ssh-copy-id \
-        -f \
         -i "$key_path" \
         -p ${toString cfg.port} \
         ${cfg.user}@${cfg.host}
@@ -247,7 +246,13 @@ in {
       uploadKeyScript
     ];
 
-    home.activation.mutagenDotfileSync = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    home.activation.mutagenDotfileSyncKey = lib.hm.dag.entryAfter ["writeBoundary"] ''
+      if [ ! -f ${lib.escapeShellArg identityFile} ]; then
+        ${lib.getExe uploadKeyScript}
+      fi
+    '';
+
+    home.activation.mutagenDotfileSync = lib.hm.dag.entryAfter ["mutagenDotfileSyncKey"] ''
       ${lib.getExe reconcileScript} || true
     '';
 
