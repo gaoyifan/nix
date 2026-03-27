@@ -237,7 +237,10 @@
       # `-i` selects the public key to upload. Authentication can come from
       # the SSH agent or the default SSH configuration for the target.
       exec ssh-copy-id \
+        -F /dev/null \
         -i "$key_path" \
+        -o StrictHostKeyChecking=accept-new \
+        -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
         -p ${toString cfg.port} \
         ${cfg.user}@${cfg.host}
     '';
