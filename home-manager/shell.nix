@@ -164,6 +164,15 @@ in {
       fi
     '';
 
+    profileExtra = ''
+      # Prefer the 1Password SSH agent over macOS's transient launchd socket.
+      case "''${SSH_AUTH_SOCK:-}" in
+        ""|/private/tmp/com.apple.launchd.*/Listeners|/var/run/com.apple.launchd.*/Listeners)
+          export SSH_AUTH_SOCK="$HOME/.ssh/agent.sock"
+          ;;
+      esac
+    '';
+
     initContent = pkgs.lib.mkMerge [
       (pkgs.lib.mkBefore ''
         # Nix single-user mode on Linux
