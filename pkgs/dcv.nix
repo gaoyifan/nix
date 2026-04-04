@@ -23,7 +23,8 @@ in
 
     preBuild = ''
       # dcv embeds helper binaries for talking to Docker inside DinD containers.
-      make build-helpers
+      # On unstable, those helpers must bypass the vendored buildGoModule setup.
+      GOFLAGS=-mod=mod make build-helpers
     '';
 
     ldflags = [

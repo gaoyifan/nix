@@ -2,7 +2,6 @@
 # Provides: nh, nil (LSP), alejandra (formatter), just, home-manager, darwin-rebuild
 {
   pkgs,
-  pkgsUnstable,
   home-manager,
   nix-darwin,
   deploy-rs,
@@ -14,7 +13,7 @@ pkgs.mkShell {
       pkgs.nil
       pkgs.nixd
       pkgs.alejandra
-      pkgsUnstable.just
+      pkgs.just
       deploy-rs.packages.${pkgs.stdenv.hostPlatform.system}.deploy-rs
       home-manager.packages.${pkgs.stdenv.hostPlatform.system}.default
     ]

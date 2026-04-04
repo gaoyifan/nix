@@ -6,7 +6,6 @@
   username,
   ...
 }: let
-  unstablePkgs = inputs.nixpkgs-unstable.legacyPackages.${pkgs.stdenv.hostPlatform.system};
   defaultHomebrew = import ./homebrew/default.nix;
   openclawHomebrew = import ./homebrew/openclaw.nix;
 in {
@@ -43,7 +42,7 @@ in {
   environment.systemPackages = with pkgs; [
     just # Command runner
     nil # Nix language server
-    unstablePkgs.bun # Fast JavaScript package manager
+    bun # Fast JavaScript package manager
   ];
 
   system = {

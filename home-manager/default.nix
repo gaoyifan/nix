@@ -8,7 +8,6 @@
   ...
 }: let
   isDarwin = pkgs.stdenv.isDarwin;
-  unstablePkgs = inputs.nixpkgs-unstable.legacyPackages.${pkgs.stdenv.hostPlatform.system};
   rimeIce = pkgs.fetchFromGitHub {
     owner = "iDvel";
     repo = "rime-ice";
@@ -44,7 +43,7 @@ in {
     tree
     uv
     ripgrep
-    unstablePkgs.just
+    just
     fzf
 
     # lowPrio to avoid conflict with nix-darwin's nh
