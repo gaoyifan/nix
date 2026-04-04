@@ -4,14 +4,28 @@
   lib,
   ...
 }: let
-  hasRealSecrets = builtins.pathExists ./files/.gitkeep;
+  realSecretsDir = ./files;
+  exampleSecretsDir = ./files-example;
+  hasRealSecrets = builtins.pathExists (realSecretsDir + "/.gitkeep");
+  hasAtuinSecrets =
+    hasRealSecrets
+    && builtins.pathExists (realSecretsDir + "/home/atuin-key")
+    && builtins.pathExists (realSecretsDir + "/home/atuin-password");
   secretsDir =
     if hasRealSecrets
-    then ./files
-    else ./files-example;
+    then realSecretsDir
+    else exampleSecretsDir;
   cfg = config.services.secrets;
 in {
   options.services.secrets = {
+    hasRealFiles = lib.mkOption {
+      type = lib.types.bool;
+      default = hasRealSecrets;
+      description = "Whether the real secrets submodule is available locally";
+      internal = true;
+      readOnly = true;
+    };
+
     filesDir = lib.mkOption {
       type = lib.types.path;
       default = secretsDir;
@@ -21,6 +35,13 @@ in {
 
     atuin = {
       enable = lib.mkEnableOption "Atuin sync key deployment";
+      available = lib.mkOption {
+        type = lib.types.bool;
+        default = hasAtuinSecrets;
+        description = "Whether real Atuin credentials are available locally";
+        internal = true;
+        readOnly = true;
+      };
       keyFile = lib.mkOption {
         type = lib.types.path;
         default = "${cfg.filesDir}/home/atuin-key";
@@ -42,7 +63,7 @@ in {
     };
   };
 
-  config = lib.mkIf cfg.atuin.enable {
+  config = lib.mkIf (cfg.atuin.enable && cfg.atuin.available) {
     home.file.".local/share/atuin/key" = {
       source = cfg.atuin.keyFile;
       force = true;

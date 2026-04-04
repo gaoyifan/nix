@@ -1,11 +1,14 @@
 # Nix profile path
 nix_profile := "/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh"
+nix_bin_dir := "/nix/var/nix/profiles/default/bin"
+submodule_path := "secrets/files"
+self_just := quote(just_executable()) + " --justfile " + quote(justfile()) + " --working-directory " + quote(justfile_directory()) + " --quiet"
 
 # Default recipe: ensures nix is installed, then applies the appropriate configuration
 default: ensure-nix
     #!/usr/bin/env bash
     set -euo pipefail
-    if [ -f "{{ nix_profile }}" ]; then . "{{ nix_profile }}"; fi
+    source <({{ self_just }} _emit_nix_env)
     if [ "$(uname)" = "Darwin" ]; then
         echo "Detected macOS, applying nix-darwin configuration..."
         just darwin
@@ -44,6 +47,28 @@ install-nix:
     printf '%s\n' '{"substituters":{"https://nix-cache.yfgao.net https://cache.nixos.org":true},"trusted-public-keys":{"nix-cache.yfgao.net-1:mSv/FykKK4oFZbX9JgD38D/me1+xJeAKsQ+STHiHVp4= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=":true}}' > ~/.local/share/nix/trusted-settings.json
     echo "Nix installation complete!"
 
+[private]
+_emit_nix_env:
+    #!/usr/bin/env cat
+    if [ -f "{{ nix_profile }}" ]; then . "{{ nix_profile }}"; fi
+    if [ -d "{{ nix_bin_dir }}" ]; then export PATH="{{ nix_bin_dir }}:$HOME/.nix-profile/bin:$PATH"; fi
+
+[private]
+_emit_flake_ref:
+    #!/usr/bin/env cat
+    FLAKE_REF='.'
+    if [ -f "{{ submodule_path }}/.gitkeep" ] || [ -f "{{ submodule_path }}/.git" ]; then
+        FLAKE_REF='.?submodules=1'
+    elif git config -f .gitmodules --get-regexp '^submodule\.secrets/files\.path$' >/dev/null 2>&1; then
+        echo "secrets/files submodule is unavailable; continuing with files-example fallback."
+    fi
+    export FLAKE_REF
+
+[private]
+_write_username:
+    #!/usr/bin/env bash
+    printf '"%s"\n' "$(whoami)" > username.nix
+
 # Switch home-manager configuration
 [group('config')]
 home:
@@ -53,13 +78,13 @@ home:
         echo "Refusing to run standalone Home Manager on macOS. Use 'just darwin' instead." >&2
         exit 1
     fi
-    if [ -f "{{ nix_profile }}" ]; then . "{{ nix_profile }}"; fi
-    git submodule update --init
-    printf '"%s"\n' "$(whoami)" > username.nix
+    source <({{ self_just }} _emit_nix_env)
+    source <({{ self_just }} _emit_flake_ref)
+    {{ self_just }} _write_username
     if command -v nh >/dev/null 2>&1; then
-        nh home switch --accept-flake-config '.?submodules=1' --backup-extension backup
+        nh home switch --accept-flake-config "$FLAKE_REF" --backup-extension backup
     else
-        nix run nixpkgs#nh -- home switch --accept-flake-config '.?submodules=1' --backup-extension backup
+        nix run nixpkgs#nh -- home switch --accept-flake-config "$FLAKE_REF" --backup-extension backup
     fi
 
 # Switch nix-darwin configuration
@@ -67,17 +92,17 @@ home:
 darwin hostname='':
     #!/usr/bin/env bash
     set -euo pipefail
-    if [ -f "{{ nix_profile }}" ]; then . "{{ nix_profile }}"; fi
-    git submodule update --init
-    printf '"%s"\n' "$(whoami)" > username.nix
+    source <({{ self_just }} _emit_nix_env)
+    source <({{ self_just }} _emit_flake_ref)
+    {{ self_just }} _write_username
     hostname_args=()
     if [ -n "{{ hostname }}" ]; then
         hostname_args+=(--hostname "{{ hostname }}")
     fi
     if command -v nh >/dev/null 2>&1; then
-        nh darwin switch --accept-flake-config "${hostname_args[@]}" '.?submodules=1' --
+        nh darwin switch --accept-flake-config "${hostname_args[@]}" "$FLAKE_REF" --
     else
-        nix run --accept-flake-config nixpkgs#nh -- darwin switch --accept-flake-config "${hostname_args[@]}" '.?submodules=1' --
+        nix run --accept-flake-config nixpkgs#nh -- darwin switch --accept-flake-config "${hostname_args[@]}" "$FLAKE_REF" --
     fi
 
 # Format all nix files
@@ -85,7 +110,7 @@ darwin hostname='':
 fmt:
     #!/usr/bin/env bash
     set -euo pipefail
-    if [ -f "{{ nix_profile }}" ]; then . "{{ nix_profile }}"; fi
+    source <({{ self_just }} _emit_nix_env)
     nix fmt .
 
 # Check flake
@@ -93,7 +118,7 @@ fmt:
 check:
     #!/usr/bin/env bash
     set -euo pipefail
-    if [ -f "{{ nix_profile }}" ]; then . "{{ nix_profile }}"; fi
+    source <({{ self_just }} _emit_nix_env)
     if [ "$(uname)" = "Darwin" ]; then
         arch="$(uname -m)"
         case "$arch" in
@@ -111,8 +136,8 @@ check:
 deploy target:
     #!/usr/bin/env bash
     set -euo pipefail
-    if [ -f "{{ nix_profile }}" ]; then . "{{ nix_profile }}"; fi
-    git submodule update --init
+    source <({{ self_just }} _emit_nix_env)
+    source <({{ self_just }} _emit_flake_ref)
     nix develop --accept-flake-config -c deploy .#{{ target }} --skip-checks
 
 # Apply home-manager, then install restic systemd timer

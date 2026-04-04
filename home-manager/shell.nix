@@ -4,6 +4,7 @@
   lib,
   ...
 }: let
+  hasAtuinSecrets = config.services.secrets.atuin.available;
   iterm2-shell-integration = pkgs.fetchFromGitHub {
     owner = "gnachman";
     repo = "iTerm2-shell-integration";
@@ -23,18 +24,21 @@ in {
   programs.atuin = {
     enable = true;
     forceOverwriteSettings = true;
-    settings = {
-      workspaces = true;
-      filter_mode_shell_up_key_binding = "workspace";
-      inline_height = 9;
-      sync_address = "http://atuin-server.ts.gaof.net";
-      auto_sync = true;
-      sync_frequency = "5m";
-      enter_accept = true;
-      sync = {
-        records = true;
+    settings =
+      {
+        workspaces = true;
+        filter_mode_shell_up_key_binding = "workspace";
+        inline_height = 9;
+        enter_accept = true;
+      }
+      // lib.optionalAttrs hasAtuinSecrets {
+        sync_address = "http://atuin-server.ts.gaof.net";
+        auto_sync = true;
+        sync_frequency = "5m";
+        sync = {
+          records = true;
+        };
       };
-    };
     # zsh-vi-mode initializes vi keymaps lazily and runs `bindkey -v`, which can
     # clobber bindings set by atuin's default zsh integration. We initialize atuin
     # via zsh-vi-mode's `after_init` hook instead (see `programs.zsh.initContent`).
@@ -43,7 +47,9 @@ in {
 
   # Atuin Login Automation (failures are non-blocking to avoid breaking deployment)
   home.activation.atuinLogin = lib.hm.dag.entryAfter ["linkGeneration"] ''
-    if [ -f "${config.services.secrets.atuin.passwordFile}" ] && [ -f "${config.services.secrets.atuin.keyFile}" ]; then
+    if [ "${lib.boolToString hasAtuinSecrets}" = "true" ] \
+      && [ -f "${config.services.secrets.atuin.passwordFile}" ] \
+      && [ -f "${config.services.secrets.atuin.keyFile}" ]; then
       if ! ${pkgs.atuin}/bin/atuin status 2>/dev/null | grep -q "Username: ${config.home.username}"; then
         echo "Atuin not logged in. Attempting automated login..."
         ${pkgs.atuin}/bin/atuin login -u ${config.home.username} \

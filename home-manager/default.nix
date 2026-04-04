@@ -61,6 +61,7 @@ in {
   # Cargo binaries (rust tools installed via cargo install)
   home.sessionPath =
     [
+      "${config.home.homeDirectory}/.nix-profile/bin"
       "${config.home.homeDirectory}/.cargo/bin"
       "${config.home.homeDirectory}/.local/bin"
       "${config.home.homeDirectory}/.bun/bin"
@@ -96,13 +97,13 @@ in {
   programs.home-manager.enable = true;
 
   home.file = lib.mkMerge [
-    {
+    (lib.mkIf config.services.mutagen.dotfileSync.enable {
       ".agent".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.agent";
       ".codex/auth.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.codex/auth.json";
       ".codex/config.toml".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.codex/config.toml";
       ".config/opencode".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.config/opencode";
       ".local/share/opencode/auth.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.local/share/opencode/auth.json";
-    }
+    })
     (lib.mkIf isDarwin {
       "Library/Rime" = {
         source = rimeIce;
@@ -119,7 +120,7 @@ in {
   services.secrets.atuin.enable = true;
 
   services.mutagen.dotfileSync = {
-    enable = true;
+    enable = lib.mkDefault config.services.secrets.hasRealFiles;
     host = "mutagen.yfgao.com";
     user = "syncd";
     port = 2221;
