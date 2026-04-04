@@ -150,9 +150,6 @@
     "telegram"
     "voov-meeting" # Tencent Meeting
 
-    # RSS
-    "folo"
-
     # Games
     "playcover-community" # Run iOS apps on Apple Silicon
   ];
