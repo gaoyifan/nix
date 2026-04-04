@@ -60,6 +60,7 @@
       "Yifans-MacBook-Air-2022"
       "Yifans-Mac-Studio"
       "Yans-Mac-mini"
+      "openclaw"
       "default"
     ];
     overlay = final: prev: import ./pkgs prev;
@@ -107,7 +108,13 @@
     darwinConfigurations = nixpkgs.lib.genAttrs darwinHosts (
       hostname:
         nix-darwin.lib.darwinSystem {
-          specialArgs = {inherit inputs username;};
+          specialArgs = {
+            inherit inputs username;
+            darwinProfile =
+              if hostname == "openclaw"
+              then "openclaw"
+              else "default";
+          };
           modules = [
             # Apply overlay and allow unfree packages
             {

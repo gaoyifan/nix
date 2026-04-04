@@ -64,16 +64,20 @@ home:
 
 # Switch nix-darwin configuration
 [group('config')]
-darwin:
+darwin hostname='':
     #!/usr/bin/env bash
     set -euo pipefail
     if [ -f "{{ nix_profile }}" ]; then . "{{ nix_profile }}"; fi
     git submodule update --init
     printf '"%s"\n' "$(whoami)" > username.nix
+    hostname_args=()
+    if [ -n "{{ hostname }}" ]; then
+        hostname_args+=(--hostname "{{ hostname }}")
+    fi
     if command -v nh >/dev/null 2>&1; then
-        nh darwin switch --accept-flake-config '.?submodules=1' --
+        nh darwin switch --accept-flake-config "${hostname_args[@]}" '.?submodules=1' --
     else
-        nix run --accept-flake-config nixpkgs#nh -- darwin switch --accept-flake-config '.?submodules=1' --
+        nix run --accept-flake-config nixpkgs#nh -- darwin switch --accept-flake-config "${hostname_args[@]}" '.?submodules=1' --
     fi
 
 # Format all nix files
