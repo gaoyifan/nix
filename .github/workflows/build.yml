@@ -56,6 +56,13 @@ jobs:
       - name: Build devshell
         run: nix build --accept-flake-config .#devShells.${{ matrix.system }}.default -o result-devshell
 
+      - name: Switch home-manager configuration
+        if: runner.os == 'Linux'
+        run: |
+          # Validate the same Home Manager switch path used locally. Skip Darwin
+          # because `just darwin` is too slow on GitHub-hosted runners.
+          nix develop --accept-flake-config .#devShells.${{ matrix.system }}.default -c just home
+
       - name: Sign closure with secret key
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
