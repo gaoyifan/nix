@@ -81,10 +81,13 @@ home:
     source <({{ self_just }} _emit_nix_env)
     source <({{ self_just }} _emit_flake_ref)
     {{ self_just }} _write_username
-    if command -v nh >/dev/null 2>&1; then
-        nh home switch --accept-flake-config "$FLAKE_REF" --backup-extension backup
+    # Use Home Manager directly on Linux. `nh home switch` can fail when an
+    # older generation references a GC'd derivation during diff/metadata
+    # handling, even though the current flake evaluates and activates fine.
+    if command -v home-manager >/dev/null 2>&1; then
+        home-manager switch -b backup --flake "$FLAKE_REF"
     else
-        nix run nixpkgs#nh -- home switch --accept-flake-config "$FLAKE_REF" --backup-extension backup
+        nix run nixpkgs#home-manager -- switch -b backup --flake "$FLAKE_REF"
     fi
 
 # Switch nix-darwin configuration
