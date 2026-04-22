@@ -59,7 +59,7 @@
     username = import ./username.nix;
     darwinHosts = [
       "Yifans-MacBook-Air-2022"
-      "Yifans-Mac-Studio"
+      "YifansMacStudio"
       "Yans-Mac-mini"
       "openclaw"
       "default"
@@ -113,6 +113,8 @@
             darwinProfile =
               if hostname == "openclaw"
               then "openclaw"
+              else if hostname == "YifansMacStudio"
+              then "yifansmacstudio"
               else "default";
           };
           modules = [

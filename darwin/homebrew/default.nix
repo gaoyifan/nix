@@ -101,6 +101,7 @@
     "lm-studio" # Local LLM runner
     "openclaw"
     "opencode-desktop"
+    "typeless"
 
     # Development
     "cursor"
