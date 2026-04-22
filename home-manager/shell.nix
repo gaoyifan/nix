@@ -199,7 +199,7 @@ in {
       '')
       (pkgs.lib.mkAfter ''
         # iTerm2 Shell Integration
-        if [[ "$TERM_PROGRAM" == "iTerm.app" || ( -z "$TERM_PROGRAM" && ${iterm2-shell-integration}/utilities/it2check ) ]]; then
+        if [[ "$TERM_PROGRAM" == "iTerm.app" || "$TMUX" == *lazyssh* || ( -z "$TERM_PROGRAM" && ${iterm2-shell-integration}/utilities/it2check ) ]]; then
             source ${iterm2-shell-integration}/shell_integration/zsh
             path+=(${iterm2-shell-integration}/utilities)
         fi
