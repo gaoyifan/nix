@@ -89,6 +89,7 @@
   casks = [
     # Password & Security
     "1password"
+    "1password-cli"
     "electrum" # Bitcoin wallet
     "ramonvermeulen/whosthere/whosthere" # See who's on your network
 
