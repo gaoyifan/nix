@@ -1,0 +1,175 @@
+name: Bump Codex
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Optional Codex version to bump to, without the rust-v prefix"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bump-codex-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install Nix
+        uses: nixbuild/nix-quick-install-action@v34
+
+      - name: Determine target version
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUESTED_VERSION: ${{ github.event.inputs.version || '' }}
+        run: |
+          set -euo pipefail
+
+          current="$(sed -n 's/^[[:space:]]*version = "\([^"]*\)";$/\1/p' pkgs/codex.nix)"
+
+          if [ -n "$REQUESTED_VERSION" ]; then
+            latest="$REQUESTED_VERSION"
+          else
+            latest="$(
+              curl --fail --silent --show-error \
+                -H "Accept: application/vnd.github+json" \
+                -H "Authorization: Bearer ${GH_TOKEN}" \
+                -H "X-GitHub-Api-Version: 2022-11-28" \
+                "https://api.github.com/repos/openai/codex/releases?per_page=100" \
+              | jq -r '
+                  [
+                    .[]
+                    | select(.tag_name | test("^rust-v[0-9]+\\.[0-9]+\\.[0-9]+$"))
+                    | select(
+                        ([.assets[].name] | contains([
+                          "codex-x86_64-unknown-linux-musl.tar.gz",
+                          "codex-aarch64-unknown-linux-musl.tar.gz",
+                          "codex-aarch64-apple-darwin.tar.gz"
+                        ]))
+                      )
+                  ][0].tag_name // ""
+                ' \
+              | sed 's/^rust-v//'
+            )"
+          fi
+
+          if [ -z "$latest" ]; then
+            echo "Could not find a Codex release with all required assets." >&2
+            exit 1
+          fi
+
+          echo "current=$current" >> "$GITHUB_OUTPUT"
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+
+          if [ "$current" = "$latest" ]; then
+            echo "update_needed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "update_needed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Prefetch release hashes
+        if: steps.version.outputs.update_needed == 'true'
+        id: hashes
+        env:
+          VERSION: ${{ steps.version.outputs.latest }}
+        run: |
+          set -euo pipefail
+
+          prefetch_hash() {
+            local asset="$1"
+            local url="https://github.com/openai/codex/releases/download/rust-v${VERSION}/${asset}"
+            nix store prefetch-file --json "$url" | jq -r .hash
+          }
+
+          {
+            echo "x86_64_linux=$(prefetch_hash codex-x86_64-unknown-linux-musl.tar.gz)"
+            echo "aarch64_linux=$(prefetch_hash codex-aarch64-unknown-linux-musl.tar.gz)"
+            echo "aarch64_darwin=$(prefetch_hash codex-aarch64-apple-darwin.tar.gz)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Update package
+        if: steps.version.outputs.update_needed == 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.latest }}
+          X86_64_LINUX_HASH: ${{ steps.hashes.outputs.x86_64_linux }}
+          AARCH64_LINUX_HASH: ${{ steps.hashes.outputs.aarch64_linux }}
+          AARCH64_DARWIN_HASH: ${{ steps.hashes.outputs.aarch64_darwin }}
+        run: |
+          set -euo pipefail
+
+          python3 <<'PY'
+          import os
+          import pathlib
+          import re
+
+          path = pathlib.Path("pkgs/codex.nix")
+          text = path.read_text()
+
+          text = re.sub(
+              r'version = "[^"]+";',
+              f'version = "{os.environ["VERSION"]}";',
+              text,
+              count=1,
+          )
+
+          hashes = {
+              "x86_64-linux": os.environ["X86_64_LINUX_HASH"],
+              "aarch64-linux": os.environ["AARCH64_LINUX_HASH"],
+              "aarch64-darwin": os.environ["AARCH64_DARWIN_HASH"],
+          }
+
+          for system, hash_value in hashes.items():
+              pattern = (
+                  rf'({re.escape(system)} = \{{\n'
+                  rf'        arch = "[^"]+";\n'
+                  rf'        os = "[^"]+";\n'
+                  rf'        hash = ")[^"]+(";)'
+              )
+              text, count = re.subn(pattern, rf"\g<1>{hash_value}\2", text)
+              if count != 1:
+                  raise SystemExit(f"failed to update hash for {system}")
+
+          path.write_text(text)
+          PY
+
+      - name: Format package
+        if: steps.version.outputs.update_needed == 'true'
+        run: nix run nixpkgs#alejandra -- pkgs/codex.nix
+
+      - name: Validate package
+        if: steps.version.outputs.update_needed == 'true'
+        run: nix build --accept-flake-config .#codex
+
+      - name: Commit and push
+        if: steps.version.outputs.update_needed == 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.latest }}
+        run: |
+          set -euo pipefail
+
+          if git diff --quiet; then
+            echo "No changes after update."
+            exit 0
+          fi
+
+          git add pkgs/codex.nix
+          git \
+            -c user.name='github-actions[bot]' \
+            -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+            commit -m "chore(pkgs): bump codex to ${VERSION}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
+      - name: No update needed
+        if: steps.version.outputs.update_needed == 'false'
+        run: echo "Codex is already at ${{ steps.version.outputs.current }}."
