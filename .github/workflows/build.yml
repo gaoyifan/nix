@@ -64,12 +64,12 @@ jobs:
           nix develop --accept-flake-config .#devShells.${{ matrix.system }}.default -c just home
 
       - name: Sign closure with secret key
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         run: |
           echo "$BINARY_CACHE_SECRET_KEY" > ./secret.key
           nix store sign --recursive --key-file ./secret.key ./result ./result-devshell
 
       - name: Push closure to R2
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         run: |
           nix copy --to "s3://nix-cache?endpoint=$S3_ENDPOINT&compression=zstd" ./result ./result-devshell
