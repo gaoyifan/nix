@@ -56,6 +56,11 @@
       "aarch64-darwin"
     ];
     forAllSystems = nixpkgs.lib.genAttrs systems;
+    pkgsFor = system:
+      import nixpkgs {
+        inherit system;
+        config.allowUnfree = true;
+      };
     username = import ./username.nix;
     darwinHosts = [
       "Yifans-MacBook-Air-2022"
@@ -67,7 +72,7 @@
     overlay = final: prev: import ./pkgs prev;
   in {
     # Custom packages: nix build .#lazyssh
-    packages = forAllSystems (system: import ./pkgs nixpkgs.legacyPackages.${system});
+    packages = forAllSystems (system: import ./pkgs (pkgsFor system));
 
     # nix fmt
     formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.alejandra);
