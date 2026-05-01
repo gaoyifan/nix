@@ -25,6 +25,7 @@
 ## Commits
 
 Use conventional subjects: `feat(scope):`, `fix:`, `refactor:`, `chore:`, `docs:`, `ci:`, `style:`
+Do not add tool or agent attribution trailers such as `Made-with` or `Co-authored-by` to commit messages.
 
 ## Testing
 
