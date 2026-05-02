@@ -72,7 +72,31 @@
     overlay = final: prev: import ./pkgs prev;
   in {
     # Custom packages: nix build .#lazyssh
-    packages = forAllSystems (system: import ./pkgs (pkgsFor system));
+    packages = forAllSystems (system: let
+      packages = import ./pkgs (pkgsFor system);
+    in
+      packages
+      // {
+        cursor-agent = packages.cursor-cli;
+      });
+
+    # Runnable apps: nix run .#codex / nix run .#cursor-agent
+    apps = forAllSystems (system: let
+      packages = self.packages.${system};
+      cursorAgent = {
+        type = "app";
+        program = nixpkgs.lib.getExe packages.cursor-agent;
+        meta = packages.cursor-agent.meta;
+      };
+    in {
+      codex = {
+        type = "app";
+        program = nixpkgs.lib.getExe packages.codex;
+        meta = packages.codex.meta;
+      };
+      cursor-agent = cursorAgent;
+      cursor-cli = cursorAgent;
+    });
 
     # nix fmt
     formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.alejandra);
