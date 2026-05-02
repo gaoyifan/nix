@@ -8,6 +8,9 @@
   ...
 }: let
   isDarwin = pkgs.stdenv.isDarwin;
+  darwinHomePackages = lib.optionalAttrs isDarwin {
+    home.packages = [pkgs.lazyssh];
+  };
   rimeIce = pkgs.fetchFromGitHub {
     owner = "iDvel";
     repo = "rime-ice";
@@ -21,6 +24,7 @@ in {
     ./mutagen-dotfiles-sync.nix
     ./restic-systemd-installer.nix
     ../secrets/home.nix
+    darwinHomePackages
   ];
 
   home.username = lib.mkDefault "yifan";
@@ -50,7 +54,6 @@ in {
     (lib.lowPrio nh)
 
     # Custom package from ./pkgs (via overlay)
-    lazyssh
     dcv
     restic
 
