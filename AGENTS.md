@@ -31,3 +31,10 @@ Do not add tool or agent attribution trailers such as `Made-with` or `Co-authore
 ## Testing
 
 Run `just fmt` and `just check` before opening a PR. Don't commit `result/` outputs.
+
+## CI
+
+GitHub Actions live in `.github/workflows/`:
+
+- `build.yml`: builds Home Manager / nix-darwin closures and dynamically loaded CLI apps on every push/PR; signs and pushes them to the R2 binary cache on `main`.
+- `bump-cli-packages.yml`: nightly bump for dynamically loaded CLI packages; auto-commits and triggers `build.yml`.
