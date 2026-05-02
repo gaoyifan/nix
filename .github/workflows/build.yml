@@ -56,6 +56,15 @@ jobs:
       - name: Build devshell
         run: nix build --accept-flake-config .#devShells.${{ matrix.system }}.default -o result-devshell
 
+      - name: Build CLI apps
+        run: |
+          set -euo pipefail
+
+          nix build --accept-flake-config --no-link --print-out-paths \
+            .#packages.${{ matrix.system }}.codex \
+            .#packages.${{ matrix.system }}.cursor-agent \
+            | tee cli-app-store-paths
+
       - name: Switch home-manager configuration
         if: runner.os == 'Linux'
         run: |
@@ -67,9 +76,10 @@ jobs:
         if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         run: |
           echo "$BINARY_CACHE_SECRET_KEY" > ./secret.key
-          nix store sign --recursive --key-file ./secret.key ./result ./result-devshell
+
+          xargs nix store sign --recursive --key-file ./secret.key ./result ./result-devshell < cli-app-store-paths
 
       - name: Push closure to R2
         if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         run: |
-          nix copy --to "s3://nix-cache?endpoint=$S3_ENDPOINT&compression=zstd" ./result ./result-devshell
+          xargs nix copy --to "s3://nix-cache?endpoint=$S3_ENDPOINT&compression=zstd" ./result ./result-devshell < cli-app-store-paths
