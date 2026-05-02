@@ -8,9 +8,6 @@
   ...
 }: let
   isDarwin = pkgs.stdenv.isDarwin;
-  darwinHomePackages = lib.optionalAttrs isDarwin {
-    home.packages = [pkgs.lazyssh];
-  };
   rimeIce = pkgs.fetchFromGitHub {
     owner = "iDvel";
     repo = "rime-ice";
@@ -24,7 +21,6 @@ in {
     ./mutagen-dotfiles-sync.nix
     ./restic-systemd-installer.nix
     ../secrets/home.nix
-    darwinHomePackages
   ];
 
   home.username = lib.mkDefault "yifan";
@@ -35,31 +31,33 @@ in {
   );
   home.stateVersion = "25.11"; # Do not change - see home-manager release notes
 
-  home.packages = with pkgs; [
-    # Git tools
-    delta
-    difftastic
-    diffutils
+  home.packages = with pkgs;
+    [
+      # Git tools
+      delta
+      difftastic
+      diffutils
 
-    # Core utilities
-    curl
-    wget
-    tree
-    uv
-    ripgrep
-    just
-    fzf
+      # Core utilities
+      curl
+      wget
+      tree
+      uv
+      ripgrep
+      just
+      fzf
 
-    # lowPrio to avoid conflict with nix-darwin's nh
-    (lib.lowPrio nh)
+      # lowPrio to avoid conflict with nix-darwin's nh
+      (lib.lowPrio nh)
 
-    # Custom package from ./pkgs (via overlay)
-    dcv
-    restic
+      # Custom package from ./pkgs (via overlay)
+      dcv
+      restic
 
-    # External flake package
-    inputs.witr.packages.${stdenv.hostPlatform.system}.default
-  ];
+      # External flake package
+      inputs.witr.packages.${stdenv.hostPlatform.system}.default
+    ]
+    ++ lib.optionals isDarwin [pkgs.lazyssh];
 
   # Cargo binaries (rust tools installed via cargo install)
   home.sessionPath =
