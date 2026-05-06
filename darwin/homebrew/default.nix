@@ -4,6 +4,7 @@
     "anomalyco/tap"
     "ramonvermeulen/whosthere"
     "tokuhirom/tap"
+    "deskflow/tap"
   ];
 
   brews = [
@@ -106,6 +107,7 @@
 
     # Development
     "cursor"
+    "deskflow"
     "iterm2"
     "zed"
     "orbstack" # Docker/Linux VM alternative
