@@ -112,7 +112,6 @@
     "cursor"
     "deskflow"
     "iterm2"
-    "warp"
     "zed"
     "orbstack" # Docker/Linux VM alternative
     "xquartz" # X11 server
