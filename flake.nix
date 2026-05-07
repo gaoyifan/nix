@@ -157,15 +157,18 @@
 
             # Integrate home-manager as a darwin module
             home-manager.darwinModules.home-manager
-            {
+            ({pkgs, ...}: {
               home-manager = {
                 useGlobalPkgs = true; # Use system nixpkgs instead of standalone
                 useUserPackages = true; # Install to /etc/profiles instead of ~/.nix-profile
-                backupFileExtension = "backup";
+                backupCommand = pkgs.writeShellScript "home-manager-backup" ''
+                  target="$1"
+                  [ -n "$target" ] && mv "$target" "$target.backup-$(date +%Y%m%d-%H%M%S)"
+                '';
                 extraSpecialArgs = {inherit inputs;};
                 users.${username} = import ./home-manager;
               };
-            }
+            })
           ];
         }
     );

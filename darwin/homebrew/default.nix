@@ -5,6 +5,7 @@
     "ramonvermeulen/whosthere"
     "tokuhirom/tap"
     "deskflow/tap"
+    "gaoyifan/tap"
   ];
 
   brews = [
@@ -50,6 +51,7 @@
     "tuios" # Terminal multiplexer (alternative to tmux)
     "watch" # Execute command periodically
     "zsh"
+    "lucasgelfond/zerobrew/zerobrew" # Run Homebrew formulae in isolated environments
 
     # File & disk utilities
     "fd" # Fast 'find' alternative
@@ -103,6 +105,7 @@
     "lm-studio" # Local LLM runner
     "openclaw"
     "opencode-desktop"
+    "openwarp"
     "typeless"
 
     # Development
