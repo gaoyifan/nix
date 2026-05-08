@@ -62,6 +62,7 @@
         config.allowUnfree = true;
       };
     username = import ./username.nix;
+    homeManagerBackupExtension = "backup-$(date +%Y%m%d-%H%M%S)";
     darwinHosts = [
       "Yifans-MacBook-Air-2022"
       "YifansMacStudio"
@@ -163,7 +164,7 @@
                 useUserPackages = true; # Install to /etc/profiles instead of ~/.nix-profile
                 backupCommand = pkgs.writeShellScript "home-manager-backup" ''
                   target="$1"
-                  [ -n "$target" ] && mv "$target" "$target.backup-$(date +%Y%m%d-%H%M%S)"
+                  [ -n "$target" ] && mv "$target" "$target.${homeManagerBackupExtension}"
                 '';
                 extraSpecialArgs = {inherit inputs;};
                 users.${username} = import ./home-manager;

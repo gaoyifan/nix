@@ -2,6 +2,7 @@
 nix_profile := "/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh"
 nix_bin_dir := "/nix/var/nix/profiles/default/bin"
 submodule_path := "secrets/files"
+home_manager_backup_extension := "backup-$(date +%Y%m%d-%H%M%S)"
 self_just := quote(just_executable()) + " --justfile " + quote(justfile()) + " --working-directory " + quote(justfile_directory()) + " --quiet"
 
 # Default recipe: ensures nix is installed, then applies the appropriate configuration
@@ -84,10 +85,11 @@ home:
     # Use Home Manager directly on Linux. `nh home switch` can fail when an
     # older generation references a GC'd derivation during diff/metadata
     # handling, even though the current flake evaluates and activates fine.
+    backup_extension="{{ home_manager_backup_extension }}"
     if command -v home-manager >/dev/null 2>&1; then
-        home-manager switch -b backup --flake "$FLAKE_REF"
+        home-manager switch -b "$backup_extension" --flake "$FLAKE_REF"
     else
-        nix run nixpkgs#home-manager -- switch -b backup --flake "$FLAKE_REF"
+        nix run nixpkgs#home-manager -- switch -b "$backup_extension" --flake "$FLAKE_REF"
     fi
 
 # Switch nix-darwin configuration
