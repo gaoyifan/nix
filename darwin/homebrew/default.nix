@@ -105,7 +105,6 @@
     "lm-studio" # Local LLM runner
     "openclaw"
     "opencode-desktop"
-    "openwarp"
     "typeless"
 
     # Development
