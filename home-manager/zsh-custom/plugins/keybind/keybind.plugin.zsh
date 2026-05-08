@@ -2,6 +2,24 @@
 # which resets the keymap. We must use zvm_after_init hook to ensure
 # our custom keybindings survive the initialization.
 function zvm_after_init() {
+  function _codex_accept_buffer() {
+    local prompt="$BUFFER"
+
+    if [[ -z "${prompt//[[:space:]]/}" ]]; then
+      zle redisplay
+      return 0
+    fi
+
+    BUFFER="codex ${(qqq)prompt}"
+    CURSOR=${#BUFFER}
+
+    zle accept-line
+  }
+  zle -N _codex_accept_buffer
+
+  # Option+Enter to run the current buffer as a Codex prompt
+  bindkey '^[^M' _codex_accept_buffer
+
   # Esc+S to toggle sudo prefix (oh-my-zsh sudo plugin)
   bindkey "^[s" sudo-command-line
 
