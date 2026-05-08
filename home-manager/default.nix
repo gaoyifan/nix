@@ -119,6 +119,12 @@ in {
           "switches/@0/reset": 1
       '';
     })
+    {
+      ".warp-dev/remote-server/warp-oss" = {
+        source = "${pkgs.openwarp-ssh-extension}/bin/warp-oss";
+        executable = true;
+      };
+    }
   ];
 
   # Enable atuin sync key deployment from secrets module

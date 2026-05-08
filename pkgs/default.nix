@@ -4,4 +4,5 @@ pkgs: {
   restic = import ./restic.nix {inherit pkgs;};
   codex = import ./codex.nix {inherit pkgs;};
   cursor-cli = import ./cursor-cli.nix {inherit pkgs;};
+  openwarp-ssh-extension = import ./openwarp-ssh-extension.nix {inherit pkgs;};
 }
