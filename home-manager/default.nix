@@ -14,6 +14,13 @@
     rev = "51003473600d90ff4b46004a5122ee1b98210606";
     hash = "sha256-4BJrs+PkC4flA7a6ZrATNT+CtUdUuoWKb62Mw5t91q4=";
   };
+  # OpenWarp's SSH extension probes ~/.warp-dev/remote-server/warp-oss with
+  # `test -x` to decide whether to skip its broken upstream installer (see
+  # ../pkgs/openwarp-ssh-extension.nix). Only wire the symlink on platforms
+  # the package supports — aarch64-linux has no upstream artifact.
+  openwarpSshExtensionSystems = ["x86_64-linux" "aarch64-darwin"];
+  isOpenwarpSshExtensionSupported =
+    lib.elem pkgs.stdenv.hostPlatform.system openwarpSshExtensionSystems;
 in {
   imports = [
     ./shell.nix
@@ -98,6 +105,13 @@ in {
   programs.home-manager.enable = true;
 
   home.file = lib.mkMerge [
+    (lib.mkIf isOpenwarpSshExtensionSupported {
+      # Satisfy OpenWarp's `test -x ~/.warp-dev/remote-server/warp-oss` check
+      # so the SSH extension uses our pre-installed warp-oss binary instead
+      # of timing out on the disabled cloud installer.
+      ".warp-dev/remote-server/warp-oss".source =
+        lib.getExe pkgs.openwarp-ssh-extension;
+    })
     (lib.mkIf config.services.mutagen.dotfileSync.enable {
       ".agent".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.agent";
       ".codex/auth.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.codex/auth.json";
