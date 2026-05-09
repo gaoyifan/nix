@@ -17,6 +17,7 @@
 in {
   imports = [
     ./shell.nix
+    ./ssh-auth-sock.nix
     ./neovim.nix
     ./mutagen-dotfiles-sync.nix
     ./restic-systemd-installer.nix
