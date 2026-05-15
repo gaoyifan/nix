@@ -7,10 +7,10 @@
 
   # Vim configuration (shared across platforms)
   vimConfig = pkgs.fetchFromGitHub {
-    owner = "amix";
+    owner = "gaoyifan";
     repo = "vimrc";
-    rev = "46294d589d15d2e7308cf76c58f2df49bbec31e8";
-    sha256 = "sha256-g1appWgZlE27Rm8gorGp9B1c6UvGhg1bESgHk8umJ8g=";
+    rev = "4cbe53d706a9f0834ee5b895bcb68089a1e2fe8e";
+    sha256 = "sha256-5YXDdpsBkZfih9ICaC02YiexMJyGo06H7QtOov7nHGk=";
   };
 
   # Neovim init configuration (shared across platforms)
