@@ -31,11 +31,6 @@
 
         for sock in "''${candidates[@]}"; do
             [[ -S "$sock" ]] || continue
-            SSH_AUTH_SOCK="$sock" ssh-add -l >/dev/null 2>&1
-            case "$?" in
-                0|1) ;;
-                *) continue ;;
-            esac
 
             zstat -A stat_info +mtime -- "$sock" 2>/dev/null || continue
             mtime="$stat_info[1]"
