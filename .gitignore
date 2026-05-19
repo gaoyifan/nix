@@ -6,5 +6,7 @@ result-*
 .direnv
 
 # Private secrets submodule (use secrets-example for CI)
-# Private secrets submodule (use secrets-example for CI)
 secrets/files/
+
+# Antigravity CLI sessions
+.antigravitycli

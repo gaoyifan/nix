@@ -107,6 +107,8 @@ in {
       ".config/opencode".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.config/opencode";
       ".cursor/cli-config.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.cursor/cli-config.json";
       ".local/share/opencode/auth.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.local/share/opencode/auth.json";
+      ".gemini/antigravity-cli/antigravity-oauth-token".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.gemini/antigravity-cli/antigravity-oauth-token";
+      ".gemini/antigravity-cli/settings.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.gemini/antigravity-cli/settings.json";
     })
     (lib.mkIf (config.services.mutagen.dotfileSync.enable && !isDarwin) {
       ".config/cursor/auth.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.config/cursor/auth.json";
