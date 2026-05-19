@@ -204,12 +204,6 @@ in {
             path+=(${iterm2-shell-integration}/utilities)
         fi
       '')
-      (pkgs.lib.mkAfter ''
-        # Warp Terminal integration
-        if [[ "$-" == *i* ]]; then
-            printf '\eP$f{"hook": "SourcedRcFileForWarp", "value": { "shell": "zsh", "uname": "'$(uname)'" }}\x9c'
-        fi
-      '')
     ];
   };
 
