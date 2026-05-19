@@ -13,6 +13,21 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 
 PACKAGES = {
+    "antigravity-cli": {
+        "path": ROOT / "pkgs/antigravity-cli.nix",
+        "manifest_base": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app",
+        "manifests": {
+            "x86_64-linux": "linux_amd64",
+            "aarch64-linux": "linux_arm64",
+            "aarch64-darwin": "darwin_arm64",
+        },
+        "assets": {
+            "x86_64-linux": "linux-x64/cli_linux_x64.tar.gz",
+            "aarch64-linux": "linux-arm/cli_linux_arm64.tar.gz",
+            "aarch64-darwin": "darwin-arm/cli_mac_arm64.tar.gz",
+        },
+        "url": lambda version, asset: f"https://storage.googleapis.com/antigravity-public/antigravity-cli/{version}/{asset}",
+    },
     "codex": {
         "path": ROOT / "pkgs/codex.nix",
         "release_api": "https://api.github.com/repos/openai/codex/releases?per_page=100",
@@ -75,7 +90,25 @@ def latest_cursor_cli():
     return match.group(1)
 
 
+def latest_antigravity(config):
+    releases = set()
+
+    for manifest in config["manifests"].values():
+        data = json.loads(fetch_text(f"{config['manifest_base']}/manifests/{manifest}.json", user_agent="curl/8.0"))
+        match = re.search(r"/antigravity-cli/([^/]+)/", data.get("url", ""))
+        if not match:
+            raise RuntimeError(f"could not find Antigravity release in {manifest} manifest")
+        releases.add(match.group(1))
+
+    if len(releases) != 1:
+        raise RuntimeError(f"Antigravity manifests disagree on release: {', '.join(sorted(releases))}")
+
+    return releases.pop()
+
+
 def latest_version(name, config):
+    if name == "antigravity-cli":
+        return latest_antigravity(config)
     if name == "codex":
         return latest_codex(config)
     if name == "cursor-cli":

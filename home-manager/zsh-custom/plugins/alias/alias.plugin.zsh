@@ -10,6 +10,7 @@ _yf_nix_run_cli() {
     "github:gaoyifan/nix#$app" -- "$@"
 }
 
+alias agy='_yf_nix_run_cli agy'
 alias codex='_yf_nix_run_cli codex'
 alias cursor-agent='_yf_nix_run_cli cursor-agent'
 alias ls='ls -G --color=auto'
