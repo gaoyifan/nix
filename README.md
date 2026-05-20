@@ -1,4 +1,4 @@
-# Oh my Nix
+# Oh My Nix
 
 This repository is public primarily as a reference for people putting together their own Nix setup.
 
