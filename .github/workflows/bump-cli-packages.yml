@@ -13,6 +13,7 @@ on:
         options:
           - all
           - antigravity-cli
+          - copilot-cli
           - codex
           - cursor-cli
       version:
@@ -53,7 +54,7 @@ jobs:
 
       - name: Validate packages
         if: steps.bump.outputs.changed == 'true'
-        run: nix build --accept-flake-config .#agy .#codex .#cursor-cli
+        run: nix build --accept-flake-config .#agy .#copilot .#codex .#cursor-cli
 
       - name: Commit and push
         if: steps.bump.outputs.changed == 'true'

@@ -79,16 +79,22 @@
       packages
       // {
         agy = packages.antigravity-cli;
+        copilot = packages.copilot-cli;
         cursor-agent = packages.cursor-cli;
       });
 
-    # Runnable apps: nix run .#codex / nix run .#cursor-agent / nix run .#agy
+    # Runnable apps: nix run .#copilot / nix run .#codex / nix run .#cursor-agent / nix run .#agy
     apps = forAllSystems (system: let
       packages = self.packages.${system};
       agy = {
         type = "app";
         program = nixpkgs.lib.getExe packages.agy;
         meta = packages.agy.meta;
+      };
+      copilot = {
+        type = "app";
+        program = nixpkgs.lib.getExe packages.copilot;
+        meta = packages.copilot.meta;
       };
       cursorAgent = {
         type = "app";
@@ -99,6 +105,8 @@
       inherit agy;
       antigravity = agy;
       antigravity-cli = agy;
+      inherit copilot;
+      copilot-cli = copilot;
       codex = {
         type = "app";
         program = nixpkgs.lib.getExe packages.codex;

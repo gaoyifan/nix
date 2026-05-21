@@ -28,9 +28,22 @@ PACKAGES = {
         },
         "url": lambda version, asset: f"https://storage.googleapis.com/antigravity-public/antigravity-cli/{version}/{asset}",
     },
+    "copilot-cli": {
+        "path": ROOT / "pkgs/copilot-cli.nix",
+        "release_api": "https://api.github.com/repos/github/copilot-cli/releases?per_page=100",
+        "tag_pattern": r"^v[0-9]+\.[0-9]+\.[0-9]+$",
+        "version_from_tag": lambda tag: tag.removeprefix("v"),
+        "assets": {
+            "x86_64-linux": "copilot-linux-x64.tar.gz",
+            "aarch64-linux": "copilot-linux-arm64.tar.gz",
+            "aarch64-darwin": "copilot-darwin-arm64.tar.gz",
+        },
+        "url": lambda version, asset: f"https://github.com/github/copilot-cli/releases/download/v{version}/{asset}",
+    },
     "codex": {
         "path": ROOT / "pkgs/codex.nix",
         "release_api": "https://api.github.com/repos/openai/codex/releases?per_page=100",
+        "tag_pattern": r"^rust-v[0-9]+\.[0-9]+\.[0-9]+$",
         "version_from_tag": lambda tag: tag.removeprefix("rust-v"),
         "assets": {
             "x86_64-linux": "codex-x86_64-unknown-linux-musl.tar.gz",
@@ -68,10 +81,10 @@ def current_version(path):
     return match.group(1)
 
 
-def latest_codex(config):
+def latest_github_release(config):
     releases = json.loads(fetch_text(config["release_api"], token=os.environ.get("GH_TOKEN")))
     required_assets = set(config["assets"].values())
-    tag_pattern = re.compile(r"^rust-v[0-9]+\.[0-9]+\.[0-9]+$")
+    tag_pattern = re.compile(config["tag_pattern"])
 
     for release in releases:
         tag = release.get("tag_name", "")
@@ -79,7 +92,7 @@ def latest_codex(config):
         if tag_pattern.match(tag) and required_assets <= assets:
             return config["version_from_tag"](tag)
 
-    raise RuntimeError("could not find a Codex release with all required assets")
+    raise RuntimeError(f"could not find a release with all required assets for {config['path'].name}")
 
 
 def latest_cursor_cli():
@@ -109,8 +122,8 @@ def latest_antigravity(config):
 def latest_version(name, config):
     if name == "antigravity-cli":
         return latest_antigravity(config)
-    if name == "codex":
-        return latest_codex(config)
+    if name in {"copilot-cli", "codex"}:
+        return latest_github_release(config)
     if name == "cursor-cli":
         return latest_cursor_cli()
     raise RuntimeError(f"unsupported package: {name}")

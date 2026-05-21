@@ -60,10 +60,15 @@ jobs:
         run: |
           set -euo pipefail
 
+          cli_apps=(
+            .#packages.${{ matrix.system }}.agy
+            .#packages.${{ matrix.system }}.copilot
+            .#packages.${{ matrix.system }}.codex
+            .#packages.${{ matrix.system }}.cursor-agent
+          )
+
           nix build --accept-flake-config --no-link --print-out-paths \
-            .#packages.${{ matrix.system }}.agy \
-            .#packages.${{ matrix.system }}.codex \
-            .#packages.${{ matrix.system }}.cursor-agent \
+            "${cli_apps[@]}" \
             | tee cli-app-store-paths
 
       - name: Switch home-manager configuration
