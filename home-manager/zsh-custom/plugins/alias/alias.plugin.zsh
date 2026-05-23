@@ -11,7 +11,7 @@ _yf_nix_run_cli() {
 }
 
 alias agy='_yf_nix_run_cli agy'
-alias copilot='_yf_nix_run_cli copilot'
+alias copilot='_yf_nix_run_cli copilot --yolo'
 alias codex='_yf_nix_run_cli codex'
 alias cursor-agent='_yf_nix_run_cli cursor-agent'
 alias ls='ls -G --color=auto'
