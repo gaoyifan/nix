@@ -58,6 +58,9 @@ jobs:
 
       - name: Commit and push
         if: steps.bump.outputs.changed == 'true'
+        env:
+          COMMIT_SUBJECT: ${{ steps.bump.outputs.commit_subject }}
+          COMMIT_BODY: ${{ steps.bump.outputs.commit_body }}
         run: |
           set -euo pipefail
 
@@ -70,7 +73,7 @@ jobs:
           git \
             -c user.name='github-actions[bot]' \
             -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
-            commit -m "chore(pkgs): bump CLI packages"
+            commit -m "$COMMIT_SUBJECT" -m "$COMMIT_BODY"
           git push origin "HEAD:${GITHUB_REF_NAME}"
 
       - name: Trigger build and cache

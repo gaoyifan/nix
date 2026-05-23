@@ -159,9 +159,31 @@ def set_output(name, value):
     output_path = os.environ.get("GITHUB_OUTPUT")
     if output_path:
         with open(output_path, "a") as output:
-            print(f"{name}={value}", file=output)
+            if "\n" in value:
+                print(f"{name}<<__GITHUB_OUTPUT_EOF__", file=output)
+                print(value, file=output)
+                print("__GITHUB_OUTPUT_EOF__", file=output)
+            else:
+                print(f"{name}={value}", file=output)
     else:
         print(f"{name}={value}")
+
+
+def format_summary(name, current, latest):
+    return f"{name}: {current} -> {latest}"
+
+
+def commit_subject(changes):
+    if len(changes) == 1:
+        name, _, latest = changes[0]
+        return f"chore(pkgs): bump {name} to {latest}"
+
+    details = ", ".join(f"{name} {latest}" for name, _, latest in changes)
+    return f"chore(pkgs): bump CLI packages ({details})"
+
+
+def commit_body(changes):
+    return "\n".join(f"- {format_summary(name, current, latest)}" for name, current, latest in changes)
 
 
 def main():
@@ -181,18 +203,20 @@ def main():
         config = PACKAGES[name]
         current = current_version(config["path"])
         latest = args.version or latest_version(name, config)
-        summaries.append(f"{name}: {current} -> {latest}")
+        summaries.append(format_summary(name, current, latest))
 
         if current == latest:
             continue
 
         update_package(name, config, latest)
-        changed.append(name)
+        changed.append((name, current, latest))
 
     set_output("changed", "true" if changed else "false")
-    set_output("packages", " ".join(changed))
-    set_output("files", " ".join(str(PACKAGES[name]["path"].relative_to(ROOT)) for name in changed))
+    set_output("packages", " ".join(name for name, _, _ in changed))
+    set_output("files", " ".join(str(PACKAGES[name]["path"].relative_to(ROOT)) for name, _, _ in changed))
     set_output("summary", "; ".join(summaries))
+    set_output("commit_subject", commit_subject(changed) if changed else "")
+    set_output("commit_body", commit_body(changed) if changed else "")
 
     for summary in summaries:
         print(summary)
