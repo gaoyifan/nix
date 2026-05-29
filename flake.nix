@@ -14,18 +14,18 @@
   };
 
   inputs = {
-    # Keep nix-darwin and Home Manager on the same moving nixpkgs to avoid
-    # carrying a second unstable package set through the flake.
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    # Use 26.05 release branches instead of unstable inputs.
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-26.05";
+    nixpkgs-darwin.url = "github:nixos/nixpkgs/nixpkgs-26.05-darwin";
 
     home-manager = {
-      url = "github:nix-community/home-manager/master";
+      url = "github:nix-community/home-manager/release-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     nix-darwin = {
-      url = "github:LnL7/nix-darwin/master";
-      inputs.nixpkgs.follows = "nixpkgs";
+      url = "github:LnL7/nix-darwin/nix-darwin-26.05";
+      inputs.nixpkgs.follows = "nixpkgs-darwin";
     };
 
     witr = {
@@ -45,6 +45,7 @@
   outputs = {
     self,
     nixpkgs,
+    nixpkgs-darwin,
     home-manager,
     nix-darwin,
     deploy-rs,
@@ -56,8 +57,12 @@
       "aarch64-darwin"
     ];
     forAllSystems = nixpkgs.lib.genAttrs systems;
+    nixpkgsForSystem = system:
+      if nixpkgs.lib.hasSuffix "darwin" system
+      then nixpkgs-darwin
+      else nixpkgs;
     pkgsFor = system:
-      import nixpkgs {
+      import (nixpkgsForSystem system) {
         inherit system;
         config.allowUnfree = true;
       };
@@ -117,7 +122,7 @@
     });
 
     # nix fmt
-    formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.alejandra);
+    formatter = forAllSystems (system: (nixpkgsForSystem system).legacyPackages.${system}.alejandra);
 
     # Overlay to make custom packages available as pkgs.lazyssh
     overlays.default = overlay;
@@ -125,7 +130,7 @@
     # nix develop
     devShells = forAllSystems (system: {
       default = import ./shell.nix {
-        pkgs = nixpkgs.legacyPackages.${system};
+        pkgs = (nixpkgsForSystem system).legacyPackages.${system};
         inherit home-manager nix-darwin deploy-rs;
       };
     });

@@ -23,7 +23,7 @@ in
 
     preBuild = ''
       # dcv embeds helper binaries for talking to Docker inside DinD containers.
-      # On unstable, those helpers must bypass the vendored buildGoModule setup.
+      # On current nixpkgs, those helpers must bypass the vendored buildGoModule setup.
       GOFLAGS=-mod=mod make build-helpers
     '';
 
