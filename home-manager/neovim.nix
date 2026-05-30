@@ -48,8 +48,6 @@ in {
   # On non-Darwin: use programs.neovim (closure is small, ~40MB with gcc-lib)
   programs.neovim = lib.mkIf (!isDarwin) {
     enable = true;
-    withPython3 = false;
-    withRuby = false;
     defaultEditor = true;
     viAlias = true;
     vimAlias = true;

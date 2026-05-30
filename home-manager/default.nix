@@ -30,7 +30,7 @@ in {
     then "/Users/${config.home.username}"
     else "/home/${config.home.username}"
   );
-  home.stateVersion = "25.11"; # Do not change - see home-manager release notes
+  home.stateVersion = "26.05";
 
   home.packages = with pkgs;
     [
