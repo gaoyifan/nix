@@ -5,17 +5,20 @@ submodule_path := "secrets/files"
 home_manager_backup_extension := "backup-$(date +%Y%m%d-%H%M%S)"
 self_just := quote(just_executable()) + " --justfile " + quote(justfile()) + " --working-directory " + quote(justfile_directory()) + " --quiet"
 
-# Default recipe: ensures nix is installed, then applies the appropriate configuration
-default: ensure-nix
+# Default recipe: pulls the latest code, then applies the appropriate configuration
+default:
     #!/usr/bin/env bash
     set -euo pipefail
+    echo "Pulling latest repository changes..."
+    git pull
+    {{ self_just }} ensure-nix
     source <({{ self_just }} _emit_nix_env)
     if [ "$(uname)" = "Darwin" ]; then
         echo "Detected macOS, applying nix-darwin configuration..."
-        just darwin
+        {{ self_just }} darwin
     else
         echo "Detected Linux, applying home-manager configuration..."
-        just home
+        {{ self_just }} home
     fi
 
 # Ensure nix is installed before proceeding
