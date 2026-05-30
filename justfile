@@ -89,10 +89,14 @@ home:
     # older generation references a GC'd derivation during diff/metadata
     # handling, even though the current flake evaluates and activates fine.
     backup_extension="{{ home_manager_backup_extension }}"
+    # --option eval-cache false: nix fingerprints local git flakes by commit hash
+    # only, ignoring ?submodules=1. Without this, initialising the submodule
+    # after a no-secrets switch hits a stale cache entry and keeps deploying
+    # the files-example fallback.
     if command -v home-manager >/dev/null 2>&1; then
-        home-manager switch -b "$backup_extension" --flake "$FLAKE_REF"
+        home-manager switch -b "$backup_extension" --flake "$FLAKE_REF" --option eval-cache false
     else
-        nix run nixpkgs#home-manager -- switch -b "$backup_extension" --flake "$FLAKE_REF"
+        nix run nixpkgs#home-manager -- switch -b "$backup_extension" --flake "$FLAKE_REF" --option eval-cache false
     fi
 
 # Switch nix-darwin configuration
@@ -108,9 +112,9 @@ darwin hostname='':
         hostname_args+=(--hostname "{{ hostname }}")
     fi
     if command -v nh >/dev/null 2>&1; then
-        nh darwin switch --accept-flake-config "${hostname_args[@]}" "$FLAKE_REF" --
+        nh darwin switch --accept-flake-config "${hostname_args[@]}" "$FLAKE_REF" -- --option eval-cache false
     else
-        nix run --accept-flake-config nixpkgs#nh -- darwin switch --accept-flake-config "${hostname_args[@]}" "$FLAKE_REF" --
+        nix run --accept-flake-config nixpkgs#nh -- darwin switch --accept-flake-config "${hostname_args[@]}" "$FLAKE_REF" -- --option eval-cache false
     fi
 
 # Format all nix files
