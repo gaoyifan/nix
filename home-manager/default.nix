@@ -58,7 +58,8 @@ in {
       # External flake package
       inputs.witr.packages.${stdenv.hostPlatform.system}.default
     ]
-    ++ lib.optionals isDarwin [pkgs.lazyssh];
+    ++ lib.optionals isDarwin [pkgs.lazyssh]
+    ++ lib.optionals (!isDarwin) [jip];
 
   # Cargo binaries (rust tools installed via cargo install)
   home.sessionPath =
