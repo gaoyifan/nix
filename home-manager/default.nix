@@ -32,6 +32,11 @@ in {
   );
   home.stateVersion = "26.05";
 
+  i18n.glibcLocales = lib.mkIf (!isDarwin) (pkgs.glibcLocales.override {
+    allLocales = false;
+    locales = ["en_US.UTF-8/UTF-8"];
+  });
+
   home.packages = with pkgs;
     [
       # Git tools

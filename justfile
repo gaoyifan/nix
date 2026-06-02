@@ -140,7 +140,7 @@ check:
         esac
         nix flake check --accept-flake-config --system "$system" --no-build
     else
-        nix flake check --accept-flake-config --all-systems
+        nix flake check --accept-flake-config --all-systems --no-build
     fi
 
 # Deploy NixOS configuration to remote host
