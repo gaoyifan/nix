@@ -6,17 +6,17 @@
       x86_64-linux = {
         os = "linux";
         arch = "x64";
-        hash = "sha256-SmCZG4W+SYfbIDorr9xGlqkCF7T21zHusOggJCHH17w=";
+        hash = "sha256-JZ8x9NzMp67MJTeJOb+CE0bT5n6pX8ID+L3oHSPT/yE=";
       };
       aarch64-linux = {
         os = "linux";
         arch = "arm64";
-        hash = "sha256-CUw+Hq06bCHB4SqvaOwT56Fr21sKw+skqQ/QYbdzoxg=";
+        hash = "sha256-XGt7Gafn35U+jVRJKMrmpyMMlcf/kDXeodzvoymvASw=";
       };
       aarch64-darwin = {
         os = "darwin";
         arch = "arm64";
-        hash = "sha256-/sA0o9KTecqFseHVmMlSDlK4eQUAoe8UTiNT8fxDm1Y=";
+        hash = "sha256-4ekEuAL1KKUxteLtcP3WoCS7J6Px8oOwwxk+jkLPOgk=";
       };
     }
     .${
@@ -26,7 +26,7 @@
 in
   stdenv.mkDerivation rec {
     pname = "cursor-cli";
-    version = "2026.06.11-03-15-00-241fc09";
+    version = "2026.06.11-22-20-56-3eca7f8";
 
     src = fetchurl {
       url = "https://downloads.cursor.com/lab/${version}/${platform.os}/${platform.arch}/agent-cli-package.tar.gz";
