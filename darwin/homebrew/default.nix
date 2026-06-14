@@ -6,6 +6,7 @@
     "tokuhirom/tap"
     "deskflow/tap"
     "gaoyifan/tap"
+    "lucasgelfond/zerobrew"
   ];
 
   brews = [
