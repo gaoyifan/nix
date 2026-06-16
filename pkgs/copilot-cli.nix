@@ -6,17 +6,17 @@
       x86_64-linux = {
         os = "linux";
         arch = "x64";
-        hash = "sha256-y7SkAMhqGHYx3ta/gXeq358ohvylqeJ5mESRUaKM88g=";
+        hash = "sha256-ZNSoBJYkjzFgMMNY9TDmC5a65nDhjww/YuH5H++sr4I=";
       };
       aarch64-linux = {
         os = "linux";
         arch = "arm64";
-        hash = "sha256-CZygkeO/pRDQsiNlxNpNBKwUycaR3i3TmxB14qjEj8o=";
+        hash = "sha256-+jJVQ519Y64OUathSwKFYGISsxZ5BVA1Hq6Ipi8Lsg8=";
       };
       aarch64-darwin = {
         os = "darwin";
         arch = "arm64";
-        hash = "sha256-qtbhHNyAzIKIvBD4H2qGVIR6/HkRdL+9FV3f0rusg2k=";
+        hash = "sha256-hO8J+ymI6y6lNgYlIm7CVfadDr9SGyAp1mWPjTa2dM0=";
       };
     }
     .${
@@ -26,7 +26,7 @@
 in
   stdenv.mkDerivation rec {
     pname = "copilot-cli";
-    version = "1.0.62";
+    version = "1.0.63";
 
     src = fetchurl {
       url = "https://github.com/github/copilot-cli/releases/download/v${version}/copilot-${platform.os}-${platform.arch}.tar.gz";
