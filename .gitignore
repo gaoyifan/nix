@@ -10,3 +10,7 @@ secrets/files/
 
 # Antigravity CLI sessions
 .antigravitycli
+
+# Python bytecode
+__pycache__/
+*.pyc
