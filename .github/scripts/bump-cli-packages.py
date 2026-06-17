@@ -80,7 +80,7 @@ def fetch_text(url, *, token=None, user_agent="bump-cli-packages", retries=5):
             if attempt == retries - 1:
                 raise
             delay = 2 ** attempt
-            print(f"warning: fetch failed ({exc}), retrying in {delay}s...", file=sys.stderr)
+            print(f"warning: fetch failed for {url} (attempt {attempt + 1}/{retries}): {exc}, retrying in {delay}s...", file=sys.stderr)
             time.sleep(delay)
 
 
