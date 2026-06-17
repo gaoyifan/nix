@@ -42,11 +42,16 @@ jobs:
 
       - name: Bump packages
         id: bump
+        uses: nick-fields/retry@v4
         env:
           GH_TOKEN: ${{ github.token }}
           REQUESTED_PACKAGE: ${{ github.event.inputs.package || 'all' }}
           REQUESTED_VERSION: ${{ github.event.inputs.version || '' }}
-        run: python3 .github/scripts/bump-cli-packages.py --package "$REQUESTED_PACKAGE" --version "$REQUESTED_VERSION"
+        with:
+          max_attempts: 5
+          retry_wait_seconds: 1
+          timeout_minutes: 10
+          command: python3 .github/scripts/bump-cli-packages.py --package "$REQUESTED_PACKAGE" --version "$REQUESTED_VERSION"
 
       - name: Format package
         if: steps.bump.outputs.changed == 'true'

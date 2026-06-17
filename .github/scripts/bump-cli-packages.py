@@ -6,7 +6,6 @@ import pathlib
 import re
 import subprocess
 import sys
-import time
 import urllib.request
 
 
@@ -71,15 +70,8 @@ def fetch_text(url, *, token=None, user_agent="bump-cli-packages"):
         headers["Authorization"] = f"Bearer {token}"
         headers["X-GitHub-Api-Version"] = "2022-11-28"
     request = urllib.request.Request(url, headers=headers)
-    for attempt in range(5):
-        try:
-            with urllib.request.urlopen(request, timeout=60) as response:
-                return response.read().decode()
-        except Exception as exc:
-            if attempt == 4:
-                raise
-            print(f"warning: fetch failed for {url} (attempt {attempt + 1}/5): {exc}, retrying in 1s...", file=sys.stderr)
-            time.sleep(1)
+    with urllib.request.urlopen(request, timeout=60) as response:
+        return response.read().decode()
 
 
 def current_version(path):
