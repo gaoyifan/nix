@@ -6,6 +6,8 @@ import pathlib
 import re
 import subprocess
 import sys
+import time
+import urllib.error
 import urllib.request
 
 
@@ -64,14 +66,22 @@ PACKAGES = {
 }
 
 
-def fetch_text(url, *, token=None, user_agent="bump-cli-packages"):
+def fetch_text(url, *, token=None, user_agent="bump-cli-packages", retries=5):
     headers = {"Accept": "application/vnd.github+json", "User-Agent": user_agent}
     if token:
         headers["Authorization"] = f"Bearer {token}"
         headers["X-GitHub-Api-Version"] = "2022-11-28"
     request = urllib.request.Request(url, headers=headers)
-    with urllib.request.urlopen(request, timeout=60) as response:
-        return response.read().decode()
+    for attempt in range(retries):
+        try:
+            with urllib.request.urlopen(request, timeout=60) as response:
+                return response.read().decode()
+        except (urllib.error.URLError, ConnectionError, OSError) as exc:
+            if attempt == retries - 1:
+                raise
+            delay = 2 ** attempt
+            print(f"warning: fetch failed ({exc}), retrying in {delay}s...", file=sys.stderr)
+            time.sleep(delay)
 
 
 def current_version(path):
