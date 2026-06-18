@@ -13,6 +13,7 @@ permissions:
 jobs:
   build:
     name: ${{ matrix.cache-mode }} (${{ matrix.system }})
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -115,11 +116,6 @@ jobs:
 
           measure build-cli-apps \
             nix build --accept-flake-config --no-link --print-out-paths "${cli_apps[@]}"
-
-          if [[ "$RUNNER_OS" == "Linux" ]]; then
-            measure switch-home-manager \
-              nix develop --accept-flake-config .#devShells.${{ matrix.system }}.default -c just home
-          fi
 
           {
             echo "## Nix command timings"
