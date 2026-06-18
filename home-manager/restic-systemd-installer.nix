@@ -9,6 +9,9 @@
   homeDir = config.home.homeDirectory;
   resticBin = "${homeDir}/.nix-profile/bin/restic";
   resticConfigDir = "${homeDir}/.config/restic-systemd";
+  # Keep the Restic environment file outside the Nix store so real secrets do
+  # not depend on whether the secrets submodule is included in the flake source.
+  resticEnvFile = "${homeDir}/nix/secrets/files/home/restic-env";
 in
   lib.mkIf (!isDarwin) (let
     resticExcludeContent = ''
@@ -40,9 +43,11 @@ in
       Type=oneshot
       User=root
       Group=root
-      EnvironmentFile=${config.services.secrets.restic.envFile}
+      EnvironmentFile=${resticEnvFile}
       ExecStart=${resticBin} backup --exclude-file ${resticConfigDir}/restic-exclude.txt /
-      ExecStartPost=${resticBin} forget --keep-daily 7 --keep-weekly 4 --keep-monthly 12 --prune
+      # Daily prune can OOM-kill small hosts while repacking the shared repo.
+      # Run prune manually or from a larger host when space reclamation is needed.
+      ExecStartPost=${resticBin} forget --keep-daily 7 --keep-weekly 4 --keep-monthly 12
     '';
     resticTimerContent = ''
       [Unit]
@@ -71,7 +76,7 @@ in
           exec sudo -- "$0"
         fi
 
-        test -f "${config.services.secrets.restic.envFile}"
+        test -f "${resticEnvFile}"
         test -x "${resticBin}"
         test -f "${resticConfigDir}/restic-backup.service"
         test -f "${resticConfigDir}/restic-backup.timer"
