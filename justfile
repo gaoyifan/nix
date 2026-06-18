@@ -10,7 +10,7 @@ default:
     #!/usr/bin/env bash
     set -euo pipefail
     echo "Pulling latest repository changes..."
-    git pull
+    git pull --recurse-submodules
     {{ self_just }} ensure-nix
     source <({{ self_just }} _emit_nix_env)
     if [ "$(uname)" = "Darwin" ]; then
