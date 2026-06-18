@@ -48,14 +48,6 @@ jobs:
           nix_conf: |
             keep-env-derivations = true
 
-      - name: Restore and save Nix store
-        uses: nix-community/cache-nix-action@v7.0.2
-        with:
-          primary-key: nix-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/*.nix', '**/flake.lock') }}
-          restore-prefixes-first-match: nix-${{ runner.os }}-${{ runner.arch }}-
-          purge: true
-          purge-prefixes: nix-${{ runner.os }}-${{ runner.arch }}-
-
       - name: Build configuration
         run: nix build --accept-flake-config .#${{ matrix.target }}
 
