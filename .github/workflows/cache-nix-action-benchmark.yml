@@ -1,0 +1,138 @@
+name: Benchmark Nix GitHub Cache
+
+on:
+  push:
+    branches:
+      - experiment/cache-nix-action-benchmark
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.cache-mode }} (${{ matrix.system }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            system: x86_64-linux
+            target: homeConfigurations.yifan.config.home.activationPackage
+            cache-mode: with-cache-nix-action
+          - os: ubuntu-24.04-arm
+            system: aarch64-linux
+            target: homeConfigurations.yifan.config.home.activationPackage
+            cache-mode: with-cache-nix-action
+          - os: macos-latest
+            system: aarch64-darwin
+            target: darwinConfigurations.default.system
+            cache-mode: with-cache-nix-action
+          - os: ubuntu-latest
+            system: x86_64-linux
+            target: homeConfigurations.yifan.config.home.activationPackage
+            cache-mode: without-cache-nix-action
+          - os: ubuntu-24.04-arm
+            system: aarch64-linux
+            target: homeConfigurations.yifan.config.home.activationPackage
+            cache-mode: without-cache-nix-action
+          - os: macos-latest
+            system: aarch64-darwin
+            target: darwinConfigurations.default.system
+            cache-mode: without-cache-nix-action
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install Nix
+        uses: nixbuild/nix-quick-install-action@v34
+        with:
+          nix_conf: |
+            keep-env-derivations = true
+
+      - name: Restore and save Nix store
+        id: nix-cache
+        if: matrix.cache-mode == 'with-cache-nix-action'
+        uses: nix-community/cache-nix-action@v7.0.2
+        with:
+          primary-key: benchmark-cache-nix-action-${{ matrix.system }}-${{ hashFiles('**/*.nix', '**/flake.lock') }}
+          restore-prefixes-first-match: benchmark-cache-nix-action-${{ matrix.system }}-
+
+      - name: Record cache restore result
+        if: matrix.cache-mode == 'with-cache-nix-action'
+        run: |
+          {
+            echo "## cache-nix-action restore"
+            echo
+            echo "| field | value |"
+            echo "| --- | --- |"
+            echo "| hit | ${{ steps.nix-cache.outputs.hit }} |"
+            echo "| hit-primary-key | ${{ steps.nix-cache.outputs.hit-primary-key }} |"
+            echo "| hit-first-match | ${{ steps.nix-cache.outputs.hit-first-match }} |"
+            echo "| restored-key | ${{ steps.nix-cache.outputs.restored-key }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Benchmark build commands
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p benchmark-results
+          metrics_file="benchmark-results/${{ matrix.cache-mode }}-${{ matrix.system }}.tsv"
+          printf 'step\tseconds\n' > "$metrics_file"
+
+          measure() {
+            local name="$1"
+            shift
+
+            echo "::group::$name"
+            local started
+            local finished
+            started="$(date +%s)"
+            "$@"
+            finished="$(date +%s)"
+            echo "::endgroup::"
+
+            printf '%s\t%s\n' "$name" "$((finished - started))" | tee -a "$metrics_file"
+          }
+
+          measure build-configuration \
+            nix build --accept-flake-config .#${{ matrix.target }}
+
+          measure build-devshell \
+            nix build --accept-flake-config .#devShells.${{ matrix.system }}.default -o result-devshell
+
+          cli_apps=(
+            .#packages.${{ matrix.system }}.agy
+            .#packages.${{ matrix.system }}.copilot
+            .#packages.${{ matrix.system }}.codex
+            .#packages.${{ matrix.system }}.cursor-agent
+          )
+
+          measure build-cli-apps \
+            nix build --accept-flake-config --no-link --print-out-paths "${cli_apps[@]}"
+
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            measure switch-home-manager \
+              nix develop --accept-flake-config .#devShells.${{ matrix.system }}.default -c just home
+          fi
+
+          {
+            echo "## Nix command timings"
+            echo
+            echo "| step | seconds |"
+            echo "| --- | ---: |"
+            tail -n +2 "$metrics_file" | while IFS=$'\t' read -r step seconds; do
+              echo "| $step | $seconds |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v6
+        with:
+          name: benchmark-${{ matrix.cache-mode }}-${{ matrix.system }}
+          path: benchmark-results/
