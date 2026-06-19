@@ -17,6 +17,7 @@ env:
   AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
   BINARY_CACHE_SECRET_KEY: ${{ secrets.BINARY_CACHE_SECRET_KEY }}
+  R2_BUCKET: nix-cache
   S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
 
 jobs:
@@ -84,14 +85,12 @@ jobs:
           # because `just darwin` is too slow on GitHub-hosted runners.
           nix develop --accept-flake-config .#devShells.${{ matrix.system }}.default -c just home
 
-      - name: Sign closure with secret key
+      - name: Push paths missing from cache.nixos.org to R2
         if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs['publish-cache']))
         run: |
-          echo "$BINARY_CACHE_SECRET_KEY" > ./secret.key
+          set -euo pipefail
 
-          xargs nix store sign --recursive --key-file ./secret.key ./result ./result-devshell < cli-app-store-paths
+          printf '%s\n' ./result ./result-devshell > cache-roots
+          cat cli-app-store-paths >> cache-roots
 
-      - name: Push closure to R2
-        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs['publish-cache']))
-        run: |
-          xargs nix copy --to "s3://nix-cache?endpoint=$S3_ENDPOINT&compression=zstd" ./result ./result-devshell < cli-app-store-paths
+          .github/scripts/push-r2-cache-misses.sh cache-roots
