@@ -21,7 +21,10 @@ keep_urls=$work_dir/keep-urls
 secret_key=$work_dir/secret.key
 
 mkdir -p "$cache_results"
-mapfile -t roots < "$roots_file"
+roots=()
+while IFS= read -r root; do
+  roots+=("$root")
+done < "$roots_file"
 
 nix path-info --recursive "${roots[@]}" | sort -u > "$closure_paths"
 
