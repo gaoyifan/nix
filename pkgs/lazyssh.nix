@@ -7,7 +7,7 @@ pkgs.lazyssh.overrideAttrs (oldAttrs: {
   src = pkgs.fetchFromGitHub {
     owner = "gaoyifan";
     repo = "lazyssh";
-    rev = "bbd7d48fa2313492659763b3b75e43dc2b42652e";
-    hash = "sha256-1ULbP0WVKZR3QyBo/HmfQOnWJuGr3dEKDfkZB07VJZI=";
+    rev = "8f29f6c12480024d56eed171a8c45c7eaa70d256";
+    hash = "sha256-IDml59RHeTNmINZO+srXSLa7fjV49J6DRN0yncalLgo=";
   };
 })
