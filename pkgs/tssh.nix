@@ -6,8 +6,8 @@ pkgs.buildGo125Module rec {
   src = pkgs.fetchFromGitHub {
     owner = "gaoyifan";
     repo = "trzsz-ssh";
-    rev = "2e82d47b9c61702116b7a8de41e9fe0b9d8164e7";
-    hash = "sha256-XYCoZmpmb4lNlLxZIqFlpzttNWG53JoYZyaT8JhwBP4=";
+    rev = "6885a2034bcc9cc1491816dbaedc8b23a90a9add";
+    hash = "sha256-+jiynzU7Q5n+y0ULSNOADTbyyVJPsXCQ+FM3dwdyH+k=";
   };
 
   vendorHash = "sha256-cEV1w4VQUciifTKDhBvgLnqw5OHhbz7OqsgcXxKZ73M=";
