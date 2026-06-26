@@ -14,6 +14,8 @@
     rev = "51003473600d90ff4b46004a5122ee1b98210606";
     hash = "sha256-4BJrs+PkC4flA7a6ZrATNT+CtUdUuoWKb62Mw5t91q4=";
   };
+  cursorCliConfigSource = "${config.home.homeDirectory}/.syncd-dotfiles/.cursor/cli-config.json";
+  cursorCliConfigTarget = "${config.home.homeDirectory}/.cursor/cli-config.json";
 in {
   imports = [
     ./shell.nix
@@ -111,7 +113,6 @@ in {
       ".codex/config.toml".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.codex/config.toml";
       ".codex/skills".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.codex/skills";
       ".config/opencode".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.config/opencode";
-      ".cursor/cli-config.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.cursor/cli-config.json";
       ".local/share/opencode/auth.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.local/share/opencode/auth.json";
       ".gemini/antigravity-cli/antigravity-oauth-token".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.gemini/antigravity-cli/antigravity-oauth-token";
       ".gemini/antigravity-cli/settings.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.gemini/antigravity-cli/settings.json";
@@ -133,6 +134,16 @@ in {
       '';
     })
   ];
+
+  home.activation.cursorCliConfigInit = lib.mkIf config.services.mutagen.dotfileSync.enable (lib.hm.dag.entryAfter ["linkGeneration"] ''
+    source=${lib.escapeShellArg cursorCliConfigSource}
+    target=${lib.escapeShellArg cursorCliConfigTarget}
+
+    if [ -e "$source" ] && [ ! -e "$target" ] && [ ! -L "$target" ]; then
+      run mkdir -p "$(dirname "$target")"
+      run cp -p "$source" "$target"
+    fi
+  '');
 
   # Enable atuin sync key deployment from secrets module
   services.secrets.atuin.enable = true;
