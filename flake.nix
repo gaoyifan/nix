@@ -146,12 +146,13 @@
         agy = packages.antigravity-cli;
         copilot = packages.copilot-cli;
         cursor-agent = packages.cursor-cli;
+        yazi = (pkgsFor system).yazi-unwrapped;
       }
       // nixpkgs.lib.optionalAttrs (!(nixpkgs.lib.hasSuffix "darwin" system)) {
         system-manager = system-manager.packages.${system}.default;
       });
 
-    # Runnable apps: nix run .#copilot / nix run .#codex / nix run .#cursor-agent / nix run .#agy
+    # Runnable apps: nix run .#copilot / nix run .#codex / nix run .#cursor-agent / nix run .#agy / nix run .#yazi
     apps = forAllSystems (system: let
       packages = self.packages.${system};
       agy = {
@@ -169,6 +170,11 @@
         program = nixpkgs.lib.getExe packages.cursor-agent;
         meta = packages.cursor-agent.meta;
       };
+      yazi = {
+        type = "app";
+        program = nixpkgs.lib.getExe packages.yazi;
+        meta = packages.yazi.meta;
+      };
     in {
       inherit agy;
       antigravity = agy;
@@ -182,6 +188,7 @@
       };
       cursor-agent = cursorAgent;
       cursor-cli = cursorAgent;
+      inherit yazi;
     });
 
     # nix fmt
