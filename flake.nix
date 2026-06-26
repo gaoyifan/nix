@@ -25,6 +25,11 @@
       flake = false;
     };
 
+    flake-utils = {
+      url = "github:numtide/flake-utils";
+      inputs.systems.follows = "systems";
+    };
+
     home-manager = {
       url = "github:nix-community/home-manager/release-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -47,7 +52,7 @@
       # url = "github:szlend/deploy-rs/fix-show-derivation-parsing";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-compat.follows = "flake-compat";
-      inputs.utils.inputs.systems.follows = "systems";
+      inputs.utils.follows = "flake-utils";
     };
 
     system-manager = {
