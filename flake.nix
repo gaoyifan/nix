@@ -141,10 +141,13 @@
             # drop this once the pin has nginx sslDhparam removed or system-manager
             # imports the matching dependency itself.
             "${nixpkgs}/nixos/modules/security/dhparams.nix"
-            {
+            ({pkgs, ...}: {
               nixpkgs.hostPlatform = system;
               nixpkgs.config.allowUnfree = true;
-            }
+              environment.systemPackages = [
+                pkgs.tsshd
+              ];
+            })
           ]
           ++ extraModules;
       };
