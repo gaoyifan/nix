@@ -46,6 +46,21 @@ trust-flake-config:
     set -euo pipefail
     mkdir -p ~/.local/share/nix
     printf '%s\n' '{"substituters":{"https://cache.nixos.org https://nix-cache.yfgao.net?priority=50":true},"trusted-public-keys":{"cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-cache.yfgao.net-1:mSv/FykKK4oFZbX9JgD38D/me1+xJeAKsQ+STHiHVp4=":true}}' > ~/.local/share/nix/trusted-settings.json
+    if [ -w /etc/nix/nix.custom.conf ] || command -v sudo >/dev/null 2>&1; then
+        if ! grep -q 'nix-cache.yfgao.net' /etc/nix/nix.custom.conf 2>/dev/null; then
+            {
+                echo ''
+                echo '# yifan nix binary cache'
+                echo 'extra-substituters = https://nix-cache.yfgao.net?priority=50'
+                echo 'extra-trusted-public-keys = nix-cache.yfgao.net-1:mSv/FykKK4oFZbX9JgD38D/me1+xJeAKsQ+STHiHVp4='
+            } | sudo tee -a /etc/nix/nix.custom.conf >/dev/null
+            if [ "$(uname)" = "Darwin" ]; then
+                sudo launchctl kickstart -k system/systems.determinate.nix-daemon || true
+            else
+                sudo systemctl restart nix-daemon 2>/dev/null || true
+            fi
+        fi
+    fi
     echo "Trusted flake substituter settings are up to date."
 
 # Install nix using Determinate Systems installer
