@@ -12,6 +12,7 @@ default:
     echo "Pulling latest repository changes..."
     git pull --recurse-submodules
     {{ self_just }} ensure-nix
+    {{ self_just }} trust-flake-config
     source <({{ self_just }} _emit_nix_env)
     if [ "$(uname)" = "Darwin" ]; then
         echo "Detected macOS, applying nix-darwin configuration..."
@@ -32,6 +33,15 @@ ensure-nix:
         echo "Nix is already installed."
     fi
 
+# Trust this flake's substituter settings for future runs.
+[group('setup')]
+trust-flake-config:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    mkdir -p ~/.local/share/nix
+    printf '%s\n' '{"substituters":{"https://cache.nixos.org https://nix-cache.yfgao.net?priority=50":true},"trusted-public-keys":{"cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-cache.yfgao.net-1:mSv/FykKK4oFZbX9JgD38D/me1+xJeAKsQ+STHiHVp4=":true}}' > ~/.local/share/nix/trusted-settings.json
+    echo "Trusted flake substituter settings are up to date."
+
 # Install nix using Determinate Systems installer
 [group('setup')]
 install-nix:
@@ -47,8 +57,7 @@ install-nix:
     else
         sudo systemctl restart nix-daemon 2>/dev/null || true
     fi
-    mkdir -p ~/.local/share/nix
-    printf '%s\n' '{"substituters":{"https://nix-cache.yfgao.net https://cache.nixos.org":true},"trusted-public-keys":{"nix-cache.yfgao.net-1:mSv/FykKK4oFZbX9JgD38D/me1+xJeAKsQ+STHiHVp4= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=":true}}' > ~/.local/share/nix/trusted-settings.json
+    {{ self_just }} trust-flake-config
     echo "Nix installation complete!"
 
 [private]

@@ -5,7 +5,7 @@ _yf_nix_run_cli() {
   shift
 
   command nix run \
-    --option extra-substituters https://nix-cache.yfgao.net \
+    --option extra-substituters 'https://nix-cache.yfgao.net?priority=50' \
     --option extra-trusted-public-keys nix-cache.yfgao.net-1:mSv/FykKK4oFZbX9JgD38D/me1+xJeAKsQ+STHiHVp4= \
     "github:gaoyifan/nix#$app" -- "$@"
 }

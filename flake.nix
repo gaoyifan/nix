@@ -1,15 +1,16 @@
 {
   description = "Nix configuration for yifan";
 
-  # Binary cache configuration - prioritize personal cache for faster builds
+  # Binary cache configuration. The personal cache intentionally stores only
+  # paths missing from cache.nixos.org, so keep it as a fallback substituter.
   nixConfig = {
     substituters = [
-      "https://nix-cache.yfgao.net"
       "https://cache.nixos.org"
+      "https://nix-cache.yfgao.net?priority=50"
     ];
     trusted-public-keys = [
-      "nix-cache.yfgao.net-1:mSv/FykKK4oFZbX9JgD38D/me1+xJeAKsQ+STHiHVp4="
       "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+      "nix-cache.yfgao.net-1:mSv/FykKK4oFZbX9JgD38D/me1+xJeAKsQ+STHiHVp4="
     ];
   };
 
