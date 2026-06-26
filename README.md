@@ -6,6 +6,7 @@ It is a personal flake covering:
 
 - macOS machines via `nix-darwin`
 - Linux user environments via `home-manager`
+- Linux system services via `system-manager`
 - NixOS hosts, including the `exp0` router
 - A small set of custom packages under [`pkgs/`](pkgs)
 
@@ -15,6 +16,7 @@ It is a personal flake covering:
 - [`justfile`](justfile): day-to-day commands
 - [`darwin/`](darwin): macOS system configuration
 - [`home-manager/`](home-manager): shared user environment
+- [`system-manager/`](system-manager): Linux system services
 - [`nixos/`](nixos): NixOS hosts and modules
 - [`pkgs/`](pkgs): custom packages exposed by the flake overlay
 - [`secrets/`](secrets): secret modules and CI-safe placeholders
@@ -39,7 +41,7 @@ just check
 `just` is the main entry point if you want to use the repo directly:
 
 - macOS: runs `just darwin`
-- Linux: runs `just home`
+- Linux: runs `just home`, then `just system`
 
 If Nix is not installed yet, `just` will bootstrap it via the Determinate Systems installer.
 
@@ -51,6 +53,9 @@ just
 
 # Apply only the Home Manager profile on Linux
 just home
+
+# Apply only the system-manager profile on Linux
+just system
 
 # Apply the nix-darwin system on macOS
 just darwin
@@ -72,6 +77,7 @@ The flake exposes:
 - `packages.<system>.*`: custom packages from [`pkgs/default.nix`](pkgs/default.nix)
 - `devShells.<system>.default`: development shell used by CI and local development
 - `legacyPackages.<system>.homeConfigurations.<username>`: standalone Home Manager configs for Linux
+- `systemConfigs.<system>.default`: standalone system-manager configs for Linux
 - `darwinConfigurations.<hostname>`: integrated macOS system configs
 - `nixosConfigurations.exp0`: NixOS router configuration
 

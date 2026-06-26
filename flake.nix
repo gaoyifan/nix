@@ -18,6 +18,12 @@
     # Use 26.05 release branches instead of unstable inputs.
     nixpkgs.url = "github:nixos/nixpkgs/nixos-26.05";
     nixpkgs-darwin.url = "github:nixos/nixpkgs/nixpkgs-26.05-darwin";
+    systems.url = "github:nix-systems/default";
+
+    flake-compat = {
+      url = "github:edolstra/flake-compat";
+      flake = false;
+    };
 
     home-manager = {
       url = "github:nix-community/home-manager/release-26.05";
@@ -40,6 +46,15 @@
       url = "github:serokell/deploy-rs/pull/359/head";
       # url = "github:szlend/deploy-rs/fix-show-derivation-parsing";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-compat.follows = "flake-compat";
+      inputs.utils.inputs.systems.follows = "systems";
+    };
+
+    system-manager = {
+      url = "github:numtide/system-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-compat.follows = "flake-compat";
+      inputs.userborn.inputs.systems.follows = "systems";
     };
   };
 
@@ -50,6 +65,7 @@
     home-manager,
     nix-darwin,
     deploy-rs,
+    system-manager,
     ...
   } @ inputs: let
     systems = [
@@ -57,7 +73,31 @@
       "aarch64-linux"
       "aarch64-darwin"
     ];
+    linuxSystems = [
+      "x86_64-linux"
+      "aarch64-linux"
+    ];
     forAllSystems = nixpkgs.lib.genAttrs systems;
+    forAllLinuxSystems = nixpkgs.lib.genAttrs linuxSystems;
+    resticBackupHosts = [
+      "CJIA-GW.gaof.net"
+      "bitmagnet"
+      "blog"
+      "debian21"
+      "debian41"
+      "do"
+      "docker"
+      "docker22"
+      "el2"
+      "el2.gaof.net"
+      "gw-el"
+      "misc0-61"
+      "misc0-sz"
+      "misc1"
+      "nfs"
+      "nfs2"
+      "oracle"
+    ];
     nixpkgsForSystem = system:
       if nixpkgs.lib.hasSuffix "darwin" system
       then nixpkgs-darwin
@@ -77,6 +117,25 @@
       "default"
     ];
     overlay = final: prev: import ./pkgs prev;
+    mkLinuxSystemConfig = system: extraModules:
+      system-manager.lib.makeSystemConfig {
+        overlays = [overlay];
+        specialArgs = {inherit username;};
+        modules =
+          [
+            ./system-manager/restic.nix
+            # system-manager imports NixOS nginx without the full NixOS module
+            # list. This nixpkgs pin's nginx still references security.dhparams;
+            # drop this once the pin has nginx sslDhparam removed or system-manager
+            # imports the matching dependency itself.
+            "${nixpkgs}/nixos/modules/security/dhparams.nix"
+            {
+              nixpkgs.hostPlatform = system;
+              nixpkgs.config.allowUnfree = true;
+            }
+          ]
+          ++ extraModules;
+      };
   in {
     # Custom packages: nix build .#lazyssh
     packages = forAllSystems (system: let
@@ -87,6 +146,9 @@
         agy = packages.antigravity-cli;
         copilot = packages.copilot-cli;
         cursor-agent = packages.cursor-cli;
+      }
+      // nixpkgs.lib.optionalAttrs (!(nixpkgs.lib.hasSuffix "darwin" system)) {
+        system-manager = system-manager.packages.${system}.default;
       });
 
     # Runnable apps: nix run .#copilot / nix run .#codex / nix run .#cursor-agent / nix run .#agy
@@ -207,6 +269,19 @@
         ];
       };
     };
+
+    # Linux system configuration for non-NixOS hosts.
+    # Usage: system-manager switch --flake .
+    systemConfigs = forAllLinuxSystems (
+      system:
+        {
+          default = mkLinuxSystemConfig system [];
+        }
+        // nixpkgs.lib.genAttrs resticBackupHosts (_host:
+          mkLinuxSystemConfig system [
+            {services.resticBackup.enable = true;}
+          ])
+    );
 
     # deploy-rs configuration
     deploy.nodes.exp0 = {

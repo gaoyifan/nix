@@ -20,6 +20,12 @@ default:
     else
         echo "Detected Linux, applying home-manager configuration..."
         {{ self_just }} home
+        if [ -e /etc/NIXOS ]; then
+            echo "Detected NixOS, skipping system-manager configuration."
+        else
+            echo "Detected non-NixOS Linux, applying system-manager configuration..."
+            {{ self_just }} system
+        fi
     fi
 
 # Ensure nix is installed before proceeding
@@ -108,6 +114,40 @@ home:
         nix run nixpkgs#home-manager -- switch -b "$backup_extension" --flake "$FLAKE_REF" --option eval-cache false
     fi
 
+# Switch system-manager configuration
+[group('config')]
+system:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ "$(uname)" = "Darwin" ]; then
+        echo "Refusing to run system-manager on macOS. Use 'just darwin' instead." >&2
+        exit 1
+    fi
+    if [ -e /etc/NIXOS ]; then
+        echo "Refusing to run system-manager on NixOS. Use 'just deploy <target>' or nixos-rebuild instead." >&2
+        exit 1
+    fi
+    source <({{ self_just }} _emit_nix_env)
+    source <({{ self_just }} _emit_flake_ref)
+    {{ self_just }} _write_username
+    for unit in restic-backup.service restic-backup.timer; do
+        path="/etc/systemd/system/$unit"
+        legacy="$HOME/.config/restic-systemd/$unit"
+        if [ -L "$path" ] && [ "$(readlink "$path")" = "$legacy" ]; then
+            sudo rm "$path"
+        fi
+    done
+    wants_path="/etc/systemd/system/timers.target.wants/restic-backup.timer"
+    if [ -L "$wants_path" ]; then
+        wants_target="$(readlink "$wants_path")"
+        case "$wants_target" in
+            "$HOME/.config/restic-systemd/restic-backup.timer"|*hm_.configresticsystemdresticbackup.timer)
+                sudo rm "$wants_path"
+                ;;
+        esac
+    fi
+    nix run --accept-flake-config "$FLAKE_REF#system-manager" -- switch --sudo --flake "$FLAKE_REF" --nix-option eval-cache false
+
 # Switch nix-darwin configuration
 [group('config')]
 darwin hostname='':
@@ -160,9 +200,3 @@ deploy target:
     source <({{ self_just }} _emit_nix_env)
     source <({{ self_just }} _emit_flake_ref)
     nix develop --accept-flake-config -c deploy .#{{ target }} --skip-checks
-
-# Apply home-manager, then install restic systemd timer
-[group('config')]
-restic-setup:
-    restic-install-systemd-timer
-    systemctl status restic-backup.timer

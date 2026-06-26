@@ -22,7 +22,6 @@ in {
     ./ssh-auth-sock.nix
     ./neovim.nix
     ./mutagen-dotfiles-sync.nix
-    ./restic-systemd-installer.nix
     ../secrets/home.nix
   ];
 
@@ -60,7 +59,6 @@ in {
 
       # Custom package from ./pkgs (via overlay)
       dcv
-      restic
 
       # External flake package
       inputs.witr.packages.${stdenv.hostPlatform.system}.default
