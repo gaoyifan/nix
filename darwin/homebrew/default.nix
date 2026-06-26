@@ -1,12 +1,29 @@
 {
   taps = [
-    "devnullvoid/pvetui"
-    "anomalyco/tap"
-    "ramonvermeulen/whosthere"
-    "tokuhirom/tap"
-    "deskflow/tap"
-    "gaoyifan/tap"
-    "lucasgelfond/zerobrew"
+    {
+      name = "devnullvoid/pvetui";
+      trusted = true;
+    }
+    {
+      name = "anomalyco/tap";
+      trusted = true;
+    }
+    {
+      name = "ramonvermeulen/whosthere";
+      trusted = true;
+    }
+    {
+      name = "deskflow/tap";
+      trusted = true;
+    }
+    {
+      name = "gaoyifan/tap";
+      trusted = true;
+    }
+    {
+      name = "lucasgelfond/zerobrew";
+      trusted = true;
+    }
   ];
 
   brews = [
@@ -43,7 +60,6 @@
     "rustup" # Rust toolchain manager
     "step" # Smallstep CLI for certificates/PKI
     "yarn" # JavaScript package manager
-    "tokuhirom/tap/dcv" # Docker Compose TUI viewer
 
     # Shell & terminal
     "asciinema" # Record and share terminal sessions
