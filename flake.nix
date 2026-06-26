@@ -30,6 +30,13 @@
       inputs.systems.follows = "systems";
     };
 
+    userborn = {
+      url = "github:jfroche/userborn/system-manager";
+      inputs.flake-compat.follows = "flake-compat";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.systems.follows = "systems";
+    };
+
     home-manager = {
       url = "github:nix-community/home-manager/release-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -59,7 +66,7 @@
       url = "github:numtide/system-manager";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-compat.follows = "flake-compat";
-      inputs.userborn.inputs.systems.follows = "systems";
+      inputs.userborn.follows = "userborn";
     };
   };
 
