@@ -62,6 +62,10 @@ jobs:
       - name: Build devshell
         run: nix build --accept-flake-config .#devShells.${{ matrix.system }}.default -o result-devshell
 
+      - name: Initialize cache path list
+        run: |
+          : > cache-store-paths
+
       - name: Build CLI apps
         run: |
           set -euo pipefail
@@ -75,7 +79,21 @@ jobs:
 
           nix build --accept-flake-config --no-link --print-out-paths \
             "${cli_apps[@]}" \
-            | tee cli-app-store-paths
+            | tee -a cache-store-paths
+
+      - name: Build system-manager configurations
+        if: runner.os == 'Linux'
+        run: |
+          set -euo pipefail
+
+          system_manager_configs=(
+            .#systemConfigs.${{ matrix.system }}.default
+            .#systemConfigs.${{ matrix.system }}.el2
+          )
+
+          nix build --accept-flake-config --no-link --print-out-paths \
+            "${system_manager_configs[@]}" \
+            | tee -a cache-store-paths
 
       - name: Switch home-manager configuration
         if: runner.os == 'Linux'
@@ -89,9 +107,9 @@ jobs:
         run: |
           echo "$BINARY_CACHE_SECRET_KEY" > ./secret.key
 
-          xargs nix store sign --recursive --key-file ./secret.key ./result ./result-devshell < cli-app-store-paths
+          xargs nix store sign --recursive --key-file ./secret.key ./result ./result-devshell < cache-store-paths
 
       - name: Push closure to R2
         if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs['publish-cache']))
         run: |
-          xargs nix copy --to "s3://nix-cache?endpoint=$S3_ENDPOINT&compression=zstd" ./result ./result-devshell < cli-app-store-paths
+          xargs nix copy --to "s3://nix-cache?endpoint=$S3_ENDPOINT&compression=zstd" ./result ./result-devshell < cache-store-paths
