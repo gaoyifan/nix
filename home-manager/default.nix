@@ -78,6 +78,7 @@ in {
       "${config.home.homeDirectory}/.bun/bin"
     ]
     ++ lib.optionals (!isDarwin) [
+      "/run/current-system/sw/bin"
       "/home/linuxbrew/.linuxbrew/opt/rustup/bin"
     ];
 
