@@ -20,6 +20,7 @@ in {
   imports = [
     ./shell.nix
     ./ssh-auth-sock.nix
+    ./htop.nix
     ./neovim.nix
     ./mutagen-dotfiles-sync.nix
     ../secrets/home.nix
