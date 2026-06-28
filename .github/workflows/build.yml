@@ -119,23 +119,27 @@ jobs:
         run: |
           xargs nix copy --to "s3://nix-cache?endpoint=$S3_ENDPOINT&compression=zstd" ./result ./result-devshell < cache-store-paths
 
-      # Record the full recursive closure that was just pushed so the prune job
-      # can compute the union of objects that must be kept in R2.
-      - name: Record built closure paths
+      # Stage everything we push into a throwaway local binary cache so we can
+      # read back the *exact* object keys (each "<hash>.narinfo", its
+      # "nar/<filehash>.nar.zst" and "nix-cache-info") that R2 holds. This is
+      # authoritative and avoids guessing nar filenames by fetching narinfos.
+      - name: List cache objects via a local copy
         if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs['prune']
         run: |
           set -euo pipefail
+          lc="$RUNNER_TEMP/localcache"
+          rm -rf "$lc"
           { echo ./result; echo ./result-devshell; cat cache-store-paths; } \
-            | xargs nix path-info --recursive \
-            | sort -u > "closure-${{ matrix.system }}.txt"
-          echo "closure paths: $(wc -l < "closure-${{ matrix.system }}.txt")"
+            | xargs nix copy --to "file://$lc?compression=zstd"
+          ( cd "$lc" && find . -type f | sed 's|^\./||' ) | sort -u > "objects-${{ matrix.system }}.txt"
+          echo "objects: $(wc -l < "objects-${{ matrix.system }}.txt")"
 
-      - name: Upload closure path list
+      - name: Upload object key list
         if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs['prune']
         uses: actions/upload-artifact@v4
         with:
-          name: closure-${{ matrix.system }}
-          path: closure-${{ matrix.system }}.txt
+          name: objects-${{ matrix.system }}
+          path: objects-${{ matrix.system }}.txt
           retention-days: 1
 
   # Garbage-collect R2: keep every object referenced by the freshly built
@@ -153,32 +157,24 @@ jobs:
       AWS_DEFAULT_REGION: auto
       S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
       BUCKET: nix-cache
-      CACHE_URL: https://nix-cache.yfgao.net
       LC_ALL: C
 
     steps:
-      - name: Download closure path lists
+      - name: Download object key lists
         uses: actions/download-artifact@v4
         with:
-          pattern: closure-*
-          path: closures
+          pattern: objects-*
+          path: objects
           merge-multiple: true
 
-      - name: Compute keep set (narinfos + nars)
+      - name: Compute keep set
         run: |
           set -euo pipefail
-          cat closures/closure-*.txt | sort -u > all-paths.txt
-          test -s all-paths.txt
-          # store path -> "<hash>.narinfo"
-          sed -E 's#.*/##; s/-.*//' all-paths.txt | sort -u | sed 's/$/.narinfo/' > keep-narinfos.txt
-          # resolve the "nar/<filehash>.nar.zst" key referenced by each narinfo.
-          # Each parallel worker prints a single short line so concurrent writes
-          # to the pipe stay atomic.
-          # shellcheck disable=SC2016  # $CACHE_URL/$1 expand inside the inner sh -c, by design
-          xargs -P 32 -I{} sh -c 'curl -fsS "$CACHE_URL/$1" | sed -n "s/^URL: //p"' _ {} \
-            < keep-narinfos.txt | sort -u > keep-nars.txt
-          { cat keep-narinfos.txt keep-nars.txt; echo "nix-cache-info"; } | sort -u > keep.txt
-          echo "keep objects: $(wc -l < keep.txt) (narinfos=$(wc -l < keep-narinfos.txt), nars=$(wc -l < keep-nars.txt))"
+          # Each build job already listed the exact objects it pushed (narinfos,
+          # nars and nix-cache-info); the keep set is just their union.
+          cat objects/objects-*.txt | sort -u > keep.txt
+          test -s keep.txt
+          echo "keep objects: $(wc -l < keep.txt)"
 
       - name: List all R2 objects
         run: |
@@ -200,7 +196,15 @@ jobs:
             exit 1
           fi
           comm -23 all-keys.txt keep.txt > orphans.txt
-          echo "orphans to delete: $(wc -l < orphans.txt)"
+          total=$(wc -l < all-keys.txt)
+          orphan=$(wc -l < orphans.txt)
+          echo "orphans to delete: $orphan / $total"
+          # Safety: refuse to delete an implausibly large share of the bucket
+          # (e.g. a systematic key-format mismatch between the listing and R2).
+          if [ "$total" -gt 0 ] && [ "$((orphan * 100))" -gt "$((total * 40))" ]; then
+            echo "Refusing to prune: would delete $orphan of $total objects (>40%)"
+            exit 1
+          fi
           if [ ! -s orphans.txt ]; then
             echo "Nothing to prune."
             exit 0
