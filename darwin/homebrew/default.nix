@@ -88,7 +88,6 @@
     "restic" # Backup program with deduplication and encryption
 
     # System monitoring
-    "htop" # Interactive process viewer
     "mactop" # Apple Silicon Monitor Top written in Go Lang
     "nvtop" # GPU process monitor
 

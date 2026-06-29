@@ -41,7 +41,6 @@
     "tokei" # Fast code statistics
 
     # Monitoring & editing
-    "htop" # Interactive process viewer
     "neovim"
   ];
 
