@@ -1,9 +1,16 @@
 # htop configuration
 # Synthesized from this machine's htoprc and the configs on
 # 100.65.1.63, 100.127.110.112, nfs.ts.gaof.net, nfs2.ts.gaof.net
-{config, ...}: {
+{
+  config,
+  pkgs,
+  ...
+}: {
   programs.htop = {
     enable = true;
+    # Personal fork: multi-column CPU meters fill the full width when a
+    # half-meter holds fewer cores than its column count (see pkgs/htop.nix).
+    package = pkgs.htop;
 
     settings =
       {

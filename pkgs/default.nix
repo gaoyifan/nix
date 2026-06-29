@@ -8,6 +8,7 @@ pkgs:
   codex = import ./codex.nix {inherit pkgs;};
   cursor-cli = import ./cursor-cli.nix {inherit pkgs;};
   tssh = import ./tssh.nix {inherit pkgs;};
+  htop = import ./htop.nix {inherit pkgs;};
 }
 // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
   jip = import ./jip.nix {inherit pkgs;};
