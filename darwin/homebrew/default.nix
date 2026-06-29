@@ -44,6 +44,7 @@
     "socat" # Multipurpose network relay (netcat++)
     "tailscale" # WireGuard-based VPN mesh
     "telnet" # Telnet client
+    "tsshd" # UDP-based SSH server with roaming support
     "wakeonlan" # Send WOL magic packets
     "wireshark" # Network packet analyzer (CLI)
 
