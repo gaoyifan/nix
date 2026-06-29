@@ -1,13 +1,13 @@
 {pkgs}:
 pkgs.buildGo125Module rec {
   pname = "tssh";
-  version = "0.1.25-unstable-2026-06-26";
+  version = "0.1.25-unstable-2026-06-29";
 
   src = pkgs.fetchFromGitHub {
     owner = "gaoyifan";
     repo = "trzsz-ssh";
-    rev = "6885a2034bcc9cc1491816dbaedc8b23a90a9add";
-    hash = "sha256-+jiynzU7Q5n+y0ULSNOADTbyyVJPsXCQ+FM3dwdyH+k=";
+    rev = "0d9b2576d2c9a1ff22adade6b61d66d7e476be1e";
+    hash = "sha256-4JjqMBxhtSRsVFEZltmB0A8wrO6cXbDg82XI4XI5rf4=";
   };
 
   vendorHash = "sha256-cEV1w4VQUciifTKDhBvgLnqw5OHhbz7OqsgcXxKZ73M=";
