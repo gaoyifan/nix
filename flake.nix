@@ -161,13 +161,14 @@
         agy = packages.antigravity-cli;
         copilot = packages.copilot-cli;
         cursor-agent = packages.cursor-cli;
+        fd = (pkgsFor system).fd;
         yazi = (pkgsFor system).yazi-unwrapped;
       }
       // nixpkgs.lib.optionalAttrs (!(nixpkgs.lib.hasSuffix "darwin" system)) {
         system-manager = system-manager.packages.${system}.default;
       });
 
-    # Runnable apps: nix run .#copilot / nix run .#codex / nix run .#cursor-agent / nix run .#agy / nix run .#yazi
+    # On-demand CLI apps used by _yf_nix_run_cli aliases to keep Home Manager closures small.
     apps = forAllSystems (system: let
       packages = self.packages.${system};
       agy = {
@@ -184,6 +185,11 @@
         type = "app";
         program = nixpkgs.lib.getExe packages.cursor-agent;
         meta = packages.cursor-agent.meta;
+      };
+      fd = {
+        type = "app";
+        program = nixpkgs.lib.getExe packages.fd;
+        meta = packages.fd.meta;
       };
       yazi = {
         type = "app";
@@ -203,6 +209,7 @@
       };
       cursor-agent = cursorAgent;
       cursor-cli = cursorAgent;
+      inherit fd;
       inherit yazi;
     });
 
