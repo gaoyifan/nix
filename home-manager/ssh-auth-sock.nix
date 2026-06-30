@@ -20,6 +20,7 @@
         candidates+=(
             "$HOME"/.ssh/agent/*(N=)
             /tmp/ssh-*/agent.*(N=)
+            /tmp/tsshd-*/agent.*(N=)
             /private/tmp/ssh-*/agent.*(N=)
             /private/tmp/com.apple.launchd.*/Listeners(N=)
             /var/folders/*/*/*/ssh-*/agent.*(N=)
