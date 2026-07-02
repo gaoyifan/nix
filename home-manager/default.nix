@@ -14,6 +14,10 @@
     rev = "51003473600d90ff4b46004a5122ee1b98210606";
     hash = "sha256-4BJrs+PkC4flA7a6ZrATNT+CtUdUuoWKb62Mw5t91q4=";
   };
+  rimeIceCustom = pkgs.writeText "rime_ice.custom.yaml" ''
+    patch:
+      "switches/@0/reset": 1
+  '';
   cursorCliConfigSource = "${config.home.homeDirectory}/.syncd-dotfiles/.cursor/cli-config.json";
   cursorCliConfigTarget = "${config.home.homeDirectory}/.cursor/cli-config.json";
 in {
@@ -23,6 +27,7 @@ in {
     ./htop.nix
     ./neovim.nix
     ./mutagen-dotfiles-sync.nix
+    ./locked-home-symlinks.nix
     ../secrets/home.nix
   ];
 
@@ -131,12 +136,14 @@ in {
         source = rimeIce;
         recursive = true;
       };
-      "Library/Rime/rime_ice.custom.yaml".text = ''
-        patch:
-          "switches/@0/reset": 1
-      '';
+      "Library/Rime/rime_ice.custom.yaml".source = rimeIceCustom;
     })
   ];
+
+  services.lockedHomeSymlinks = lib.mkIf isDarwin {
+    enable = true;
+    paths = ["Library/Rime"];
+  };
 
   home.activation.cursorCliConfigInit = lib.mkIf config.services.mutagen.dotfileSync.enable (lib.hm.dag.entryAfter ["linkGeneration"] ''
     source=${lib.escapeShellArg cursorCliConfigSource}
