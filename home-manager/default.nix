@@ -18,6 +18,8 @@
     patch:
       "switches/@0/reset": 1
   '';
+  cursorCliConfigSource = "${config.home.homeDirectory}/.syncd-dotfiles/.cursor/cli-config.json";
+  cursorCliConfigTarget = "${config.home.homeDirectory}/.cursor/cli-config.json";
 in {
   imports = [
     ./shell.nix
@@ -119,7 +121,6 @@ in {
       ".codex/config.toml".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.codex/config.toml";
       ".codex/skills".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.codex/skills";
       ".config/opencode".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.config/opencode";
-      ".cursor/cli-config.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.cursor/cli-config.json";
       ".local/share/opencode/auth.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.local/share/opencode/auth.json";
       ".gemini/antigravity-cli/antigravity-oauth-token".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.gemini/antigravity-cli/antigravity-oauth-token";
       ".gemini/antigravity-cli/settings.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.gemini/antigravity-cli/settings.json";
@@ -141,11 +142,18 @@ in {
 
   services.lockedHomeSymlinks = lib.mkIf isDarwin {
     enable = true;
-    paths = [
-      ".cursor/cli-config.json"
-      "Library/Rime"
-    ];
+    paths = ["Library/Rime"];
   };
+
+  home.activation.cursorCliConfigInit = lib.mkIf config.services.mutagen.dotfileSync.enable (lib.hm.dag.entryAfter ["linkGeneration"] ''
+    source=${lib.escapeShellArg cursorCliConfigSource}
+    target=${lib.escapeShellArg cursorCliConfigTarget}
+
+    if [ -e "$source" ] && [ ! -e "$target" ] && [ ! -L "$target" ]; then
+      run mkdir -p "$(dirname "$target")"
+      run cp -p "$source" "$target"
+    fi
+  '');
 
   # Enable atuin sync key deployment from secrets module
   services.secrets.atuin.enable = true;
