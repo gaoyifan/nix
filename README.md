@@ -7,7 +7,7 @@ It is a personal flake covering:
 - macOS machines via `nix-darwin`
 - Linux user environments via `home-manager`
 - Linux system services via `system-manager`
-- NixOS hosts
+- NixOS hosts managed through deploy-rs
 - A small set of custom packages under [`pkgs/`](pkgs)
 
 ## Layout
@@ -67,7 +67,7 @@ just fmt
 just check
 
 # Deploy a NixOS target through deploy-rs
-just deploy somo-minisforum
+just deploy <target>
 ```
 
 ## Flake Outputs
@@ -109,7 +109,7 @@ See [`docs/secrets.md`](docs/secrets.md) for setup, migration, and adding new se
 
 - Treat this repo as a collection of patterns rather than a reusable module set.
 - Hostnames, package choices, and layout reflect one real environment, not a generic template.
-- The most reusable parts are likely the `justfile`, the flake structure, and the `home-manager/` modules.
+- The most reusable parts are likely the `justfile`, the flake structure, the `home-manager/` modules, and the shared `nixos/common/` modules.
 
 ## Development Notes
 

@@ -5,7 +5,7 @@
 - `flake.nix`: Flake entrypoint with packages, apps, devShells, homeConfigurations, darwinConfigurations, nixosConfigurations, systemConfigs
 - `darwin/configuration.nix`: nix-darwin system config (macOS) - Homebrew packages/casks, system settings
 - `home-manager/`: Home Manager config (shared across platforms) - shell, neovim, packages
-- `nixos/`: NixOS configurations
+- `nixos/`: NixOS configurations - `common/` modules shared by all hosts, `hosts/<name>/` per host
 - `system-manager/`: system-manager modules for non-NixOS Linux hosts (e.g., restic backups)
 - `pkgs/`: Custom packages exported via `pkgs/default.nix`; overlay defined inline in `flake.nix`
 - `secrets/`: Secret modules with `files/` (gitignored submodule) and `files-example/` (CI fallback). See [docs/secrets.md](docs/secrets.md)

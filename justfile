@@ -215,3 +215,24 @@ deploy target:
     source <({{ self_just }} _emit_nix_env)
     source <({{ self_just }} _emit_flake_ref)
     nix develop --accept-flake-config -c deploy .#{{ target }} --skip-checks
+
+# Deploy somo-minisforum via target-side nixos-rebuild.
+[group('config')]
+deploy-somo-minisforum:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source <({{ self_just }} _emit_nix_env)
+    source <({{ self_just }} _emit_flake_ref)
+    target="somo-minisforum"
+    host="$(nix eval --accept-flake-config "$FLAKE_REF#deploy.nodes.$target.hostname" --raw)"
+    remote_dir="/home/yifan/nix"
+    ssh "root@$host" "install -d -m 755 '$remote_dir'"
+    rsync -az --delete \
+        --exclude='.git' \
+        --exclude='result' \
+        ./ "root@$host:$remote_dir/"
+    ssh "root@$host" \
+        "set -euo pipefail
+        nixos-rebuild switch --flake '$remote_dir#$target' \
+            --option substituters 'https://mirrors.ustc.edu.cn/nix-channels/store https://mirror.sjtu.edu.cn/nix-channels/store'
+        chown -R yifan:users '$remote_dir'"

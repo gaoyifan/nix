@@ -129,6 +129,44 @@
       "default"
     ];
     overlay = final: prev: import ./pkgs prev;
+    # NixOS host builder: shared nixpkgs setup, common modules, and
+    # home-manager integration. Hosts only list their own modules.
+    mkNixosHost = system: hostModules:
+      nixpkgs.lib.nixosSystem {
+        inherit system;
+        specialArgs = {inherit inputs username;};
+        modules =
+          [
+            {
+              nixpkgs.overlays = [overlay];
+              nixpkgs.config.allowUnfree = true;
+            }
+            ./nixos/common
+            home-manager.nixosModules.home-manager
+            {
+              home-manager = {
+                useGlobalPkgs = true;
+                useUserPackages = true;
+                extraSpecialArgs = {inherit inputs;};
+                users.${username} = {pkgs, ...}: {
+                  imports = [./home-manager];
+                  home.packages = [home-manager.packages.${pkgs.stdenv.hostPlatform.system}.default];
+                  services.mutagen.dotfileSync.enable = false;
+                };
+              };
+            }
+          ]
+          ++ hostModules;
+      };
+    mkDeployNode = system: hostname: nixosConfig: {
+      inherit hostname;
+      sshUser = "root";
+      profiles.system = {
+        user = "root";
+        path = deploy-rs.lib.${system}.activate.nixos nixosConfig;
+        remoteBuild = true;
+      };
+    };
     mkLinuxSystemConfig = system: extraModules:
       system-manager.lib.makeSystemConfig {
         overlays = [overlay];
@@ -269,7 +307,9 @@
     );
 
     # NixOS configurations
-    nixosConfigurations = {};
+    nixosConfigurations = {
+      somo-minisforum = mkNixosHost "x86_64-linux" [./nixos/hosts/somo-minisforum];
+    };
 
     # Linux system configuration for non-NixOS hosts.
     # Usage: system-manager switch --flake .
@@ -285,7 +325,7 @@
     );
 
     # deploy-rs configuration
-    deploy.nodes = {};
+    deploy.nodes.somo-minisforum = mkDeployNode "x86_64-linux" "192.168.1.22" self.nixosConfigurations.somo-minisforum;
     checks = builtins.mapAttrs (system: deployLib: deployLib.deployChecks self.deploy) deploy-rs.lib;
   };
 }

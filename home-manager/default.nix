@@ -83,6 +83,9 @@ in {
       "${config.home.homeDirectory}/.bun/bin"
     ]
     ++ lib.optionals (!isDarwin) [
+      # Keep setuid wrappers (sudo, ...) ahead of the plain copies in
+      # /run/current-system/sw/bin, which fail with "must be owned by uid 0".
+      "/run/wrappers/bin"
       "/run/current-system/sw/bin"
       "/home/linuxbrew/.linuxbrew/opt/rustup/bin"
     ];
