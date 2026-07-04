@@ -1,5 +1,38 @@
 {
   "nodes": {
+    "china-operator-ip": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1783145173,
+        "narHash": "sha256-DP6sGVb2cJTai2Ozjf1VScQpIqLVeEZI7b9ddezBkJQ=",
+        "owner": "gaoyifan",
+        "repo": "china-operator-ip",
+        "rev": "8b116cff10512ac8b9901661c91226aa1975c16c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "gaoyifan",
+        "ref": "ip-lists",
+        "repo": "china-operator-ip",
+        "type": "github"
+      }
+    },
+    "chnroutes2": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1783180803,
+        "narHash": "sha256-/perO2N+oC3Gc+c6ZAgu6Wqvsd2M0Fw/1oM1n4J6uCU=",
+        "owner": "misakaio",
+        "repo": "chnroutes2",
+        "rev": "88082423c91804dc987fa2a0b89cab9d67360040",
+        "type": "github"
+      },
+      "original": {
+        "owner": "misakaio",
+        "repo": "chnroutes2",
+        "type": "github"
+      }
+    },
     "deploy-rs": {
       "inputs": {
         "flake-compat": [
@@ -208,6 +241,8 @@
     },
     "root": {
       "inputs": {
+        "china-operator-ip": "china-operator-ip",
+        "chnroutes2": "chnroutes2",
         "deploy-rs": "deploy-rs",
         "flake-compat": "flake-compat",
         "flake-utils": "flake-utils",

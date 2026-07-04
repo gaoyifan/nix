@@ -11,6 +11,9 @@
     ./vms.nix
     ./adguard.nix
     ./tailscale.nix
+    ./nylon.nix
+    ./nylon-exit.nix
+    ./wlt.nix
   ];
 
   boot.loader.systemd-boot.enable = true;

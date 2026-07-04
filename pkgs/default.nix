@@ -12,5 +12,6 @@ pkgs:
 }
 // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
   jip = import ./jip.nix {inherit pkgs;};
+  nylon = import ./nylon.nix {inherit pkgs;};
   tsshd = import ./tsshd.nix {inherit pkgs;};
 }
