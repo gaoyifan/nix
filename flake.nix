@@ -158,7 +158,6 @@
     in
       packages
       // {
-        agy = packages.antigravity-cli;
         copilot = packages.copilot-cli;
         cursor-agent = packages.cursor-cli;
         difftastic = (pkgsFor system).difftastic;
@@ -181,7 +180,6 @@
       cliApps =
         nixpkgs.lib.genAttrs [
           "agy"
-          "antigravity-cli"
           "codex"
           "copilot"
           "copilot-cli"
@@ -193,7 +191,7 @@
         ]
         mkApp;
     in
-      cliApps // {antigravity = cliApps.agy;});
+      cliApps);
 
     # nix fmt
     formatter = forAllSystems (system: (nixpkgsForSystem system).legacyPackages.${system}.alejandra);

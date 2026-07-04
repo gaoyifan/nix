@@ -50,7 +50,6 @@ in
       runHook preInstall
 
       install -Dm755 antigravity "$out/bin/agy"
-      ln -s "$out/bin/agy" "$out/bin/antigravity"
 
       runHook postInstall
     '';
