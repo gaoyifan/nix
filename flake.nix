@@ -325,7 +325,7 @@
     );
 
     # deploy-rs configuration
-    deploy.nodes.somo-minisforum = mkDeployNode "x86_64-linux" "192.168.1.22" self.nixosConfigurations.somo-minisforum;
+    deploy.nodes.somo-minisforum = mkDeployNode "x86_64-linux" "somo-minisforum.ts.gaof.net" self.nixosConfigurations.somo-minisforum;
     checks = builtins.mapAttrs (system: deployLib: deployLib.deployChecks self.deploy) deploy-rs.lib;
   };
 }
