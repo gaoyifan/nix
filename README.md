@@ -7,7 +7,7 @@ It is a personal flake covering:
 - macOS machines via `nix-darwin`
 - Linux user environments via `home-manager`
 - Linux system services via `system-manager`
-- NixOS hosts, including the `exp0` router
+- NixOS hosts
 - A small set of custom packages under [`pkgs/`](pkgs)
 
 ## Layout
@@ -67,7 +67,7 @@ just fmt
 just check
 
 # Deploy a NixOS target through deploy-rs
-just deploy exp0
+just deploy somo-minisforum
 ```
 
 ## Flake Outputs
@@ -79,7 +79,7 @@ The flake exposes:
 - `legacyPackages.<system>.homeConfigurations.<username>`: standalone Home Manager configs for Linux
 - `systemConfigs.<system>.default`: standalone system-manager configs for Linux
 - `darwinConfigurations.<hostname>`: integrated macOS system configs
-- `nixosConfigurations.exp0`: NixOS router configuration
+- `nixosConfigurations.<hostname>`: NixOS host configurations
 
 Examples:
 
@@ -109,7 +109,7 @@ See [`docs/secrets.md`](docs/secrets.md) for setup, migration, and adding new se
 
 - Treat this repo as a collection of patterns rather than a reusable module set.
 - Hostnames, package choices, and layout reflect one real environment, not a generic template.
-- The most reusable parts are likely the `justfile`, the flake structure, the `home-manager/` modules, and the `nixos/modules/router/` modules.
+- The most reusable parts are likely the `justfile`, the flake structure, and the `home-manager/` modules.
 
 ## Development Notes
 

@@ -269,15 +269,7 @@
     );
 
     # NixOS configurations
-    nixosConfigurations = {
-      exp0 = nixpkgs.lib.nixosSystem {
-        system = "aarch64-linux";
-        specialArgs = {inherit username;};
-        modules = [
-          ./nixos/exp0
-        ];
-      };
-    };
+    nixosConfigurations = {};
 
     # Linux system configuration for non-NixOS hosts.
     # Usage: system-manager switch --flake .
@@ -293,15 +285,7 @@
     );
 
     # deploy-rs configuration
-    deploy.nodes.exp0 = {
-      hostname = "nixos-exp0";
-      sshUser = "root";
-      profiles.system = {
-        user = "root";
-        path = deploy-rs.lib.aarch64-linux.activate.nixos self.nixosConfigurations.exp0;
-        remoteBuild = true;
-      };
-    };
+    deploy.nodes = {};
     checks = builtins.mapAttrs (system: deployLib: deployLib.deployChecks self.deploy) deploy-rs.lib;
   };
 }

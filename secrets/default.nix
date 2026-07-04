@@ -1,5 +1,5 @@
 # Secrets configuration - base module for NixOS
-# This module only defines the filesDir option and imports NixOS secrets.
+# This module only defines the filesDir option.
 # home-manager imports secrets/home.nix directly for home-manager-specific secrets.
 {
   config,
@@ -12,10 +12,6 @@
     then ./files
     else ./files-example;
 in {
-  imports = [
-    ./nixos.nix
-  ];
-
   options.services.secrets.filesDir = lib.mkOption {
     type = lib.types.path;
     default = secretsDir;
