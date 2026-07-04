@@ -11,6 +11,11 @@ import urllib.request
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 
+# Excluded from "all" (scheduled) bumps; can still be bumped explicitly via
+# workflow_dispatch. cursor-cli carries a substituteInPlace patch on minified
+# JS that must be re-verified manually after each upstream release.
+AUTO_BUMP_SKIP = {"cursor-cli"}
+
 
 PACKAGES = {
     "antigravity-cli": {
@@ -192,7 +197,7 @@ def main():
     parser.add_argument("--version", default="")
     args = parser.parse_args()
 
-    selected = list(PACKAGES) if args.package == "all" else [args.package]
+    selected = [name for name in PACKAGES if name not in AUTO_BUMP_SKIP] if args.package == "all" else [args.package]
     if args.version and len(selected) != 1:
         raise SystemExit("--version requires selecting one package")
 
