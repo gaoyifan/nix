@@ -170,54 +170,30 @@
       });
 
     # On-demand CLI apps used by _yf_nix_run_cli aliases to keep Home Manager closures small.
+    # Every name maps to the same-named flake package; extra aliases are added at the end.
     apps = forAllSystems (system: let
       packages = self.packages.${system};
-      agy = {
+      mkApp = name: {
         type = "app";
-        program = nixpkgs.lib.getExe packages.agy;
-        meta = packages.agy.meta;
+        program = nixpkgs.lib.getExe packages.${name};
+        meta = packages.${name}.meta;
       };
-      copilot = {
-        type = "app";
-        program = nixpkgs.lib.getExe packages.copilot;
-        meta = packages.copilot.meta;
-      };
-      cursorAgent = {
-        type = "app";
-        program = nixpkgs.lib.getExe packages.cursor-agent;
-        meta = packages.cursor-agent.meta;
-      };
-      fd = {
-        type = "app";
-        program = nixpkgs.lib.getExe packages.fd;
-        meta = packages.fd.meta;
-      };
-      yazi = {
-        type = "app";
-        program = nixpkgs.lib.getExe packages.yazi;
-        meta = packages.yazi.meta;
-      };
-    in {
-      inherit agy;
-      antigravity = agy;
-      antigravity-cli = agy;
-      inherit copilot;
-      copilot-cli = copilot;
-      codex = {
-        type = "app";
-        program = nixpkgs.lib.getExe packages.codex;
-        meta = packages.codex.meta;
-      };
-      cursor-agent = cursorAgent;
-      cursor-cli = cursorAgent;
-      difftastic = {
-        type = "app";
-        program = nixpkgs.lib.getExe packages.difftastic;
-        meta = packages.difftastic.meta;
-      };
-      inherit fd;
-      inherit yazi;
-    });
+      cliApps =
+        nixpkgs.lib.genAttrs [
+          "agy"
+          "antigravity-cli"
+          "codex"
+          "copilot"
+          "copilot-cli"
+          "cursor-agent"
+          "cursor-cli"
+          "difftastic"
+          "fd"
+          "yazi"
+        ]
+        mkApp;
+    in
+      cliApps // {antigravity = cliApps.agy;});
 
     # nix fmt
     formatter = forAllSystems (system: (nixpkgsForSystem system).legacyPackages.${system}.alejandra);
