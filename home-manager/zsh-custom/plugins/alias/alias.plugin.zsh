@@ -1,6 +1,6 @@
 alias -g stat_='sort | uniq -c | sort -nk 1'
 
-_yf_nix_run_cli() {
+_nix_app() {
   local app="$1"
   shift
 
@@ -10,12 +10,12 @@ _yf_nix_run_cli() {
     "github:gaoyifan/nix#$app" -- "$@"
 }
 
-alias agy='_yf_nix_run_cli agy'
-alias copilot='_yf_nix_run_cli copilot --yolo'
-alias codex='_yf_nix_run_cli codex'
-alias cursor-agent='_yf_nix_run_cli cursor-agent'
-alias difft='_yf_nix_run_cli difftastic'
-alias fd='_yf_nix_run_cli fd'
-alias yazi='_yf_nix_run_cli yazi'
+alias agy='_nix_app agy'
+alias copilot='_nix_app copilot --yolo'
+alias codex='_nix_app codex'
+alias cursor-agent='_nix_app cursor-agent'
+alias difft='_nix_app difftastic'
+alias fd='_nix_app fd'
+alias yazi='_nix_app yazi'
 alias ls='ls -G --color=auto'
 alias ncdu='ncdu -x --exclude "com~apple~CloudDocs" --exclude "Mobile Documents"'

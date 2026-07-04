@@ -169,7 +169,7 @@
         system-manager = system-manager.packages.${system}.default;
       });
 
-    # On-demand CLI apps used by _yf_nix_run_cli aliases to keep Home Manager closures small.
+    # On-demand CLI apps used by _nix_app aliases to keep Home Manager closures small.
     # Every name maps to the same-named flake package; extra aliases are added at the end.
     apps = forAllSystems (system: let
       packages = self.packages.${system};
