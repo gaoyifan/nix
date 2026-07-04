@@ -32,6 +32,8 @@ Use conventional subjects: `feat(scope):`, `fix:`, `refactor:`, `chore:`, `docs:
 
 ## Testing
 
+Before Nix evaluation or switch, run `git add -N <filename>.nix` for new `.nix` files.
+
 Run `just fmt` and `just check` before opening a PR. Don't commit `result/` outputs.
 
 ## CI
