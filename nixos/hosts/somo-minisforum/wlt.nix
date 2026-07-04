@@ -91,6 +91,7 @@
   '';
 
   commonContainer = {
+    inherit image;
     volumes = [
       "${wltConfig}:/app/config.toml:ro"
       "${configD}:/app/config.d:ro"
@@ -116,7 +117,6 @@ in {
       wlt =
         commonContainer
         // {
-          inherit image;
           # Bind explicitly to the lo portal addresses: this host runs no
           # packet filter, so do not expose the portal on every interface.
           cmd = [
@@ -135,7 +135,6 @@ in {
       wlt-persist =
         commonContainer
         // {
-          inherit image;
           cmd = ["uv" "run" "wlt-persist"];
           volumes = commonContainer.volumes ++ ["${persistDir}:/etc/nftables"];
         };
@@ -143,7 +142,6 @@ in {
   };
 
   systemd.tmpfiles.rules = [
-    "d /var/lib/wlt 0755 root root -"
     "d ${configD} 0755 root root -"
     "d ${persistDir} 0755 root root -"
     # The ruleset includes the snapshot, so it must exist before nftables
