@@ -80,6 +80,7 @@ jobs:
             .#packages.${{ matrix.system }}.copilot
             .#packages.${{ matrix.system }}.codex
             .#packages.${{ matrix.system }}.cursor-agent
+            .#packages.${{ matrix.system }}.difftastic
           )
 
           nix build --accept-flake-config --no-link --print-out-paths \

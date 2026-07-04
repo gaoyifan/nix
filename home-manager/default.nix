@@ -48,7 +48,6 @@ in {
     [
       # Git tools
       delta
-      difftastic
       diffutils
 
       # Core utilities

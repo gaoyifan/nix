@@ -161,6 +161,7 @@
         agy = packages.antigravity-cli;
         copilot = packages.copilot-cli;
         cursor-agent = packages.cursor-cli;
+        difftastic = (pkgsFor system).difftastic;
         fd = (pkgsFor system).fd;
         yazi = (pkgsFor system).yazi-unwrapped;
       }
@@ -209,6 +210,11 @@
       };
       cursor-agent = cursorAgent;
       cursor-cli = cursorAgent;
+      difftastic = {
+        type = "app";
+        program = nixpkgs.lib.getExe packages.difftastic;
+        meta = packages.difftastic.meta;
+      };
       inherit fd;
       inherit yazi;
     });
