@@ -10,6 +10,7 @@
     ./virtualisation.nix
     ./vms.nix
     ./dnsmasq.nix
+    ./newapi.nix
     ./wifi-ap.nix
     ./tailscale.nix
     ./nylon.nix
