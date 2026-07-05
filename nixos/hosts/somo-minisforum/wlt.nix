@@ -2,7 +2,7 @@
 # nylon MPLS exit per source IP via a web portal, modeled on the el2 instance.
 #
 # Split responsibility with the server-maintenance Ansible repo:
-#   * Nix (here): docker containers, base config.toml, the nftables `wlt`
+#   * Nix (here): podman containers, base config.toml, the nftables `wlt`
 #     table (src2mark maps + CN/overseas destination split), portal addresses
 #     on lo, guard/pinned policy-routing rules, snapshot persistence wiring.
 #   * Ansible (playbooks/nylon-wlt-deploy.yml): the per-exit outlets
@@ -11,7 +11,6 @@
 {
   inputs,
   pkgs,
-  username,
   ...
 }: let
   image = "ghcr.io/gaoyifan/wlt:main";
@@ -109,19 +108,13 @@
     ];
   };
 in {
-  virtualisation.docker.enable = true;
-  # Manage docker without sudo.
-  users.users.${username}.extraGroups = ["docker"];
-  # Containers run with host networking only: no default bridge (docker0) and
-  # no dockerd netfilter management, so nftables owns the ruleset alone.
-  virtualisation.docker.daemon.settings = {
-    iptables = false;
-    ip6tables = false;
-    bridge = "none";
-  };
+  # Containers run with host networking only: podman is daemonless and its
+  # netavark firewall driver only installs rules for bridged networks, so
+  # nftables owns the ruleset alone.
+  virtualisation.podman.enable = true;
 
   virtualisation.oci-containers = {
-    backend = "docker";
+    backend = "podman";
     containers = {
       wlt =
         commonContainer
@@ -179,8 +172,8 @@ in {
     linkConfig.RequiredForOnline = "no";
   };
 
-  # All packet filtering on this host is declared in nix (docker runs with
-  # iptables/bridge disabled, incus only attaches to the unmanaged bridges,
+  # All packet filtering on this host is declared in nix (podman containers
+  # use host networking only, incus only attaches to the unmanaged bridges,
   # tailscale runs with netfilter-mode=off), so flush the whole ruleset on
   # reload to keep kernel state exactly consistent with this configuration.
   networking.nftables.flushRuleset = true;

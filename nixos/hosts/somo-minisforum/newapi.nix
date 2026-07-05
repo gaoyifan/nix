@@ -8,12 +8,12 @@
 # tokens; everything lives under /var/lib/new-api.
 {...}: {
   virtualisation.oci-containers.containers.new-api = {
-    image = "calciumion/new-api:latest";
+    image = "docker.io/calciumion/new-api:latest";
     volumes = ["/var/lib/new-api:/data"];
     environment.TZ = "Asia/Shanghai";
     # Host networking, same as the other containers on this host (wlt,
-    # diverge): the docker daemon runs with iptables management off, so
-    # bridged port publishing would not work anyway. Listens on :3000.
+    # diverge): nftables owns the ruleset, so no bridged port publishing.
+    # Listens on :3000.
     extraOptions = ["--network=host"];
   };
 

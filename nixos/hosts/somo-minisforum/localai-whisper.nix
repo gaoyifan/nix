@@ -22,7 +22,7 @@
   '';
 in {
   virtualisation.oci-containers.containers.localai-whisper = {
-    image = "localai/localai:latest-gpu-vulkan";
+    image = "docker.io/localai/localai:latest-gpu-vulkan";
     volumes = [
       "${modelsDir}:/models"
       "${backendsDir}:/backends"
@@ -57,7 +57,7 @@ in {
     "d ${uploadsDir} 0750 root root -"
   ];
 
-  systemd.services.docker-localai-whisper.serviceConfig.ExecStartPre = lib.mkAfter [
+  systemd.services.podman-localai-whisper.serviceConfig.ExecStartPre = lib.mkAfter [
     (pkgs.writeShellScript "localai-whisper-install-backend" ''
       set -euo pipefail
 
@@ -65,13 +65,13 @@ in {
         exit 0
       fi
 
-      ${pkgs.docker}/bin/docker pull localai/localai:latest-gpu-vulkan
-      ${pkgs.docker}/bin/docker run --rm \
+      ${pkgs.podman}/bin/podman pull docker.io/localai/localai:latest-gpu-vulkan
+      ${pkgs.podman}/bin/podman run --rm \
         --name localai-whisper-backend-install \
         --entrypoint=/local-ai \
         -e LOCALAI_BACKENDS_PATH=/backends \
         -v ${backendsDir}:/backends \
-        localai/localai:latest-gpu-vulkan \
+        docker.io/localai/localai:latest-gpu-vulkan \
         backends install localai@vulkan-whisper
     '')
   ];
