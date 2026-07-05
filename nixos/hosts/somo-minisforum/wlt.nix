@@ -27,6 +27,11 @@
   configD = "/var/lib/wlt/config.d";
   persistDir = "/var/lib/wlt/persist";
   sshDir = "/var/lib/wlt/ssh";
+
+  # Mesh-wide nylon interface MTU (node.yaml `mtu`, rendered by Ansible from
+  # nylon_default_mtu) and the worst-case TCP MSS through an MPLS exit.
+  nylonMtu = 1400;
+  nylonMssV6 = nylonMtu - 8 - 60;
   snapshotFile = "${persistDir}/wlt_src2mark.conf";
 
   # nftables CN destination sets, same upstream lists as el2 uses:
@@ -225,30 +230,35 @@ in {
         ip6 daddr != @cn6 meta mark set 0x44
       }
 
-      # MPLS-encapped exits shrink the path MTU below the LAN's; clamp
-      # forwarded TCP so LAN clients do not rely on PMTUD.
-      chain forward {
-        type filter hook forward priority filter; policy accept;
+      # MPLS-encapped exits shrink the path MTU below the LAN's; clamp TCP
+      # so clients do not rely on PMTUD. Postrouting (rather than forward)
+      # also covers host-originated flows, whose sockets negotiate MSS
+      # against the unmarked route (enp3s0, MTU 1500) before the output
+      # chain diverts them to nylon0. rt mtu accounts for the MPLS label
+      # headroom on the encap routes automatically.
+      chain postrouting {
+        type filter hook postrouting priority mangle; policy accept;
         tcp flags syn tcp option maxseg size set rt mtu
       }
 
-      # The forward clamp above uses rt mtu, which reports the nylon0 device
-      # MTU (1420) and misses the 8-byte MPLS label stack, so nylon-bound
-      # TCP still negotiates segments 8 bytes too large. For forwarded flows
-      # that only costs a PMTU round trip, but for host-originated flows the
-      # kernel's local packet-too-big creates a PMTU exception in the main
-      # table (route lookups for exceptions ignore the fwmark), which
-      # defeats the suppress_prefixlength guard and flips the live flow
-      # back to enp3s0, breaking the NAT'd connection with a peer RST.
-      # Clamp both directions of nylon traffic to the real effective MTU:
-      # 1352 = 1420 (nylon0) - 8 (two MPLS labels) - 60 (IPv6+TCP headers).
-      chain postrouting {
-        type filter hook postrouting priority mangle; policy accept;
-        oifname "nylon0" tcp flags syn tcp option maxseg size > 1352 tcp option maxseg size set 1352
-      }
+      # Reverse direction for nylon ingress: the peer's advertised MSS
+      # governs what this side sends, and for host flows an oversized local
+      # segment would generate a PMTU exception in the main table (exception
+      # lookups ignore the fwmark), which defeats the suppress_prefixlength
+      # guard and flips the live flow back to enp3s0, breaking the NAT'd
+      # connection. ${toString nylonMssV6} = ${toString nylonMtu} (mesh MTU,
+      # Ansible nylon_default_mtu) - 8 (MPLS labels) - 60 (IPv6+TCP).
       chain prerouting-mss {
         type filter hook prerouting priority mangle; policy accept;
-        iifname "nylon0" tcp flags syn tcp option maxseg size > 1352 tcp option maxseg size set 1352
+        iifname "nylon0" tcp flags syn tcp option maxseg size > ${toString nylonMssV6} tcp option maxseg size set ${toString nylonMssV6}
+      }
+
+      # The SSH selector (wlt-ssh) listens on 2222; let LAN clients reach it
+      # on the portal addresses' plain SSH port.
+      chain portal-dnat {
+        type nat hook prerouting priority dstnat; policy accept;
+        ip daddr ${portalV4} tcp dport 22 dnat ip to ${portalV4}:2222
+        ip6 daddr ${portalV6} tcp dport 22 dnat ip6 to [${portalV6}]:2222
       }
     '';
   };
