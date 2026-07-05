@@ -130,7 +130,7 @@ nixos hostname='':
     if [ -n "{{ hostname }}" ]; then
         flake="$FLAKE_REF#{{ hostname }}"
     fi
-    sudo nixos-rebuild switch --flake "$flake" --option eval-cache false
+    sudo nixos-rebuild switch --accept-flake-config --flake "$flake" --option eval-cache false
 
 # Switch home-manager configuration
 [group('config')]
@@ -261,5 +261,5 @@ deploy-somo-minisforum:
         ./ "root@$host:$remote_dir/"
     ssh "root@$host" \
         "set -euo pipefail
-        nixos-rebuild switch --flake 'path:$remote_dir#$target' \
+        nixos-rebuild switch --accept-flake-config --flake 'path:$remote_dir#$target' \
             --option substituters 'https://mirrors.ustc.edu.cn/nix-channels/store https://mirror.sjtu.edu.cn/nix-channels/store https://nix-cache.yfgao.net?priority=50 https://cache.nixos.org?priority=100'"
