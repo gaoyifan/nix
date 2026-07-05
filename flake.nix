@@ -237,6 +237,7 @@
           "cursor-cli"
           "difftastic"
           "fd"
+          "mcat"
           "yazi"
         ]
         mkApp;
