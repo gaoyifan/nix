@@ -46,7 +46,7 @@
     (name: vm: "${vm.devices.eth0.hwaddr},${vm.staticLease},${name}")
     (lib.filterAttrs (_: vm: vm ? staticLease) vms);
 in {
-  # docker with host networking and no netfilter management, same as the wlt
+  # podman with host networking and no netfilter management, same as the wlt
   # containers (see wlt.nix).
   virtualisation.oci-containers.containers.diverge = {
     image = "ghcr.io/gaoyifan/diverge-rs:master";
@@ -57,11 +57,15 @@ in {
     extraOptions = ["--network=host"];
   };
 
-  # The host resolves through diverge too (the ISP resolvers from DHCP are
-  # poisoned); enp3s0's DHCP/RA DNS is ignored in networking.nix. LAN
-  # hostnames still resolve via dnsmasq on the br-gnet address.
+  # The host resolves via Cloudflare directly instead of the local diverge
+  # container: host DNS must keep working while the containers are down
+  # (e.g. during nixos-rebuild switch), and the wlt output chain marks
+  # non-CN destinations onto the nylon overseas exit, so plain UDP to
+  # 1.1.1.1 is not poisoned. enp3s0's DHCP/RA DNS (poisoned ISP resolvers)
+  # is ignored in networking.nix; LAN hostnames still resolve via dnsmasq
+  # on the br-gnet address. LAN clients keep using dnsmasq -> diverge.
   services.resolved.settings.Resolve = {
-    DNS = [divergeListen];
+    DNS = ["1.1.1.1" "1.0.0.1"];
     Domains = ["~."];
   };
   systemd.network.networks."40-br-gnet" = {

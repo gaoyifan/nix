@@ -91,7 +91,7 @@ in {
         IPv6AcceptRA = true;
       };
       # The ISP resolvers handed out here are poisoned; the host resolves
-      # through the local diverge splitter instead (see dnsmasq.nix).
+      # via Cloudflare over the nylon exit instead (see dnsmasq.nix).
       dhcpV4Config.UseDNS = false;
       dhcpV6Config.UseDNS = false;
       ipv6AcceptRAConfig.UseDNS = false;
