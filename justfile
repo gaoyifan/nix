@@ -10,7 +10,13 @@ default:
     #!/usr/bin/env bash
     set -euo pipefail
     echo "Pulling latest repository changes..."
-    git pull --recurse-submodules
+    if ! git pull --recurse-submodules; then
+        if [ -e /etc/NIXOS ]; then
+            echo "git pull failed on NixOS; continuing with the current worktree." >&2
+        else
+            exit 1
+        fi
+    fi
     {{ self_just }} ensure-nix
     {{ self_just }} trust-flake-config
     source <({{ self_just }} _emit_nix_env)
@@ -18,11 +24,12 @@ default:
         echo "Detected macOS, applying nix-darwin configuration..."
         {{ self_just }} darwin
     else
-        echo "Detected Linux, applying home-manager configuration..."
-        {{ self_just }} home
         if [ -e /etc/NIXOS ]; then
-            echo "Detected NixOS, skipping system-manager configuration."
+            echo "Detected NixOS, applying NixOS configuration..."
+            {{ self_just }} nixos
         else
+            echo "Detected Linux, applying home-manager configuration..."
+            {{ self_just }} home
             echo "Detected non-NixOS Linux, applying system-manager configuration..."
             {{ self_just }} system
         fi
@@ -102,6 +109,28 @@ _emit_flake_ref:
 _write_username:
     #!/usr/bin/env bash
     printf '"%s"\n' "$(whoami)" > username.nix
+
+# Switch NixOS configuration
+[group('config')]
+nixos hostname='':
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ "$(uname)" = "Darwin" ]; then
+        echo "Refusing to run NixOS switch on macOS. Use 'just darwin' instead." >&2
+        exit 1
+    fi
+    if [ ! -e /etc/NIXOS ]; then
+        echo "Refusing to run NixOS switch on non-NixOS Linux. Use 'just system' instead." >&2
+        exit 1
+    fi
+    source <({{ self_just }} _emit_nix_env)
+    source <({{ self_just }} _emit_flake_ref)
+    {{ self_just }} _write_username
+    flake="$FLAKE_REF"
+    if [ -n "{{ hostname }}" ]; then
+        flake="$FLAKE_REF#{{ hostname }}"
+    fi
+    sudo nixos-rebuild switch --flake "$flake" --option eval-cache false
 
 # Switch home-manager configuration
 [group('config')]
@@ -226,13 +255,11 @@ deploy-somo-minisforum:
     target="somo-minisforum"
     host="$(nix eval --accept-flake-config "$FLAKE_REF#deploy.nodes.$target.hostname" --raw)"
     remote_dir="/home/yifan/nix"
-    ssh "root@$host" "install -d -m 755 '$remote_dir'"
-    rsync -az --delete \
-        --exclude='.git' \
+    ssh "root@$host" "install -d -o yifan -g users -m 755 '$remote_dir'"
+    rsync -az --delete --delete-excluded --chown=yifan:users \
         --exclude='result' \
         ./ "root@$host:$remote_dir/"
     ssh "root@$host" \
         "set -euo pipefail
-        nixos-rebuild switch --flake '$remote_dir#$target' \
-            --option substituters 'https://mirrors.ustc.edu.cn/nix-channels/store https://mirror.sjtu.edu.cn/nix-channels/store https://nix-cache.yfgao.net?priority=50 https://cache.nixos.org?priority=100'
-        chown -R yifan:users '$remote_dir'"
+        nixos-rebuild switch --flake 'path:$remote_dir#$target' \
+            --option substituters 'https://mirrors.ustc.edu.cn/nix-channels/store https://mirror.sjtu.edu.cn/nix-channels/store https://nix-cache.yfgao.net?priority=50 https://cache.nixos.org?priority=100'"

@@ -133,6 +133,11 @@
       };
     username = import ./username.nix;
     homeManagerBackupExtension = "backup-$(date +%Y%m%d-%H%M%S)";
+    mkHomeManagerBackupCommand = pkgs:
+      pkgs.writeShellScript "home-manager-backup" ''
+        target="$1"
+        [ -n "$target" ] && mv "$target" "$target.${homeManagerBackupExtension}"
+      '';
     darwinHosts = [
       "Yifans-MacBook-Air-2022"
       "YifansMacStudio"
@@ -155,18 +160,18 @@
             }
             ./nixos/common
             home-manager.nixosModules.home-manager
-            {
+            ({pkgs, ...}: {
               home-manager = {
                 useGlobalPkgs = true;
                 useUserPackages = true;
+                backupCommand = mkHomeManagerBackupCommand pkgs;
                 extraSpecialArgs = {inherit inputs;};
                 users.${username} = {pkgs, ...}: {
                   imports = [./home-manager];
                   home.packages = [home-manager.packages.${pkgs.stdenv.hostPlatform.system}.default];
-                  services.mutagen.dotfileSync.enable = false;
                 };
               };
-            }
+            })
           ]
           ++ hostModules;
       };
@@ -307,10 +312,7 @@
               home-manager = {
                 useGlobalPkgs = true; # Use system nixpkgs instead of standalone
                 useUserPackages = true; # Install to /etc/profiles instead of ~/.nix-profile
-                backupCommand = pkgs.writeShellScript "home-manager-backup" ''
-                  target="$1"
-                  [ -n "$target" ] && mv "$target" "$target.${homeManagerBackupExtension}"
-                '';
+                backupCommand = mkHomeManagerBackupCommand pkgs;
                 extraSpecialArgs = {inherit inputs;};
                 users.${username} = import ./home-manager;
               };
