@@ -4,12 +4,39 @@
 #   br-somo: 100.65.3.0/24
 # DHCP clients register under *.somo.gaof.net, so hostnames resolve via
 # dig @100.65.2.254 <name>.somo.gaof.net.
+#
+# Upstream resolution goes through diverge (gaoyifan/diverge-rs, modeled on
+# the el2 instance): CN domains are answered by AliDNS over plain UDP, and
+# anything resolving outside chnroutes goes to Cloudflare DoH, so poisoned
+# answers for blocked domains (e.g. www.youtube.com) never reach clients.
+# The DoH connection itself rides the host's default overseas egress (the
+# nylon Tokyo exit, see wlt.nix), which keeps it reachable and clean.
 {
   config,
+  inputs,
   lib,
+  pkgs,
   ...
 }: let
   lanDomain = "somo.gaof.net";
+
+  divergeListen = "127.0.0.1:1054";
+
+  divergeConf = pkgs.writeText "diverge.conf" ''
+    [global]
+    listen = ${divergeListen}
+
+    [CN]
+    addresses = 223.5.5.5 223.6.6.6
+    protocol = udp
+    port = 53
+    ips = chnroutes.txt
+
+    [X]
+    addresses = 1.1.1.1 1.0.0.1
+    protocol = https
+    tls_dns_name = cloudflare-dns.com
+  '';
 
   # Static DHCP leases come from the (secret) VM definitions: any VM with a
   # `staticLease` attribute gets a MAC-bound reservation and a DNS name.
@@ -19,6 +46,17 @@
     (name: vm: "${vm.devices.eth0.hwaddr},${vm.staticLease},${name}")
     (lib.filterAttrs (_: vm: vm ? staticLease) vms);
 in {
+  # docker with host networking and no netfilter management, same as the wlt
+  # containers (see wlt.nix).
+  virtualisation.oci-containers.containers.diverge = {
+    image = "ghcr.io/gaoyifan/diverge-rs:master";
+    volumes = [
+      "${inputs.chnroutes2}/chnroutes.txt:/chnroutes.txt:ro"
+      "${divergeConf}:/diverge.conf:ro"
+    ];
+    extraOptions = ["--network=host"];
+  };
+
   services.dnsmasq = {
     enable = true;
     # The host itself keeps using systemd-resolved (upstream DHCP DNS);
@@ -30,10 +68,10 @@ in {
       bind-dynamic = true;
       interface = ["br-gnet" "br-somo"];
 
-      # Mainland-reachable public resolvers (AliDNS, DNSPod); ignore
+      # All queries go to the local diverge splitter; ignore
       # /etc/resolv.conf, which points at resolved's stub.
       no-resolv = true;
-      server = ["223.5.5.5" "119.29.29.29"];
+      server = ["127.0.0.1#1054"];
 
       # DHCP hostnames live under the LAN domain and never leak upstream.
       domain = lanDomain;
