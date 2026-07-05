@@ -26,10 +26,35 @@
   hardware.enableRedistributableFirmware = true;
 
   environment.systemPackages = with pkgs; [
-    dnsutils # dig, for debugging the AdGuard Home resolver
+    # Utilities from the NixOS installer base profile, useful for installing or
+    # repairing the system.
+    ccrypt
+    cryptsetup
+    ddrescue
     efibootmgr
+    efivar
+    fuse
+    fuse3
+    gptfdisk
+    hdparm
+    jq
+    ms-sys
+    nvme-cli
+    parted
     pciutils
+    screen
+    sdparm
+    smartmontools
+    socat
+    sshfs-fuse
+    tcpdump
+    unzip
     usbutils
+    vim
+    zip
+
+    dnsutils # dig, for debugging the AdGuard Home resolver
+    tsshd # launched by tssh --udp over the initial SSH connection
   ];
 
   # This host cannot reach cache.nixos.org reliably: use Chinese mirrors
