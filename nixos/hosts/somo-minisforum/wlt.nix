@@ -11,6 +11,7 @@
 {
   inputs,
   pkgs,
+  username,
   ...
 }: let
   image = "ghcr.io/gaoyifan/wlt:main";
@@ -25,6 +26,7 @@
 
   configD = "/var/lib/wlt/config.d";
   persistDir = "/var/lib/wlt/persist";
+  sshDir = "/var/lib/wlt/ssh";
   snapshotFile = "${persistDir}/wlt_src2mark.conf";
 
   # nftables CN destination sets, same upstream lists as el2 uses:
@@ -103,6 +105,8 @@
   };
 in {
   virtualisation.docker.enable = true;
+  # Manage docker without sudo.
+  users.users.${username}.extraGroups = ["docker"];
   # Containers run with host networking only: no default bridge (docker0) and
   # no dockerd netfilter management, so nftables owns the ruleset alone.
   virtualisation.docker.daemon.settings = {
@@ -138,12 +142,22 @@ in {
           cmd = ["uv" "run" "wlt-persist"];
           volumes = commonContainer.volumes ++ ["${persistDir}:/etc/nftables"];
         };
+      # SSH TUI for outlet selection (ssh -p 2222 <host>), same image and
+      # config as the portal; the host key persists across restarts.
+      wlt-ssh =
+        commonContainer
+        // {
+          cmd = ["uv" "run" "wlt-ssh"];
+          volumes = commonContainer.volumes ++ ["${sshDir}:/data"];
+          environment.SSH_HOST_KEY = "/data/ssh_host_key";
+        };
     };
   };
 
   systemd.tmpfiles.rules = [
     "d ${configD} 0755 root root -"
     "d ${persistDir} 0755 root root -"
+    "d ${sshDir} 0700 root root -"
     # The ruleset includes the snapshot, so it must exist before nftables
     # loads (wlt-persist overwrites it every 5 minutes).
     "f ${snapshotFile} 0644 root root -"
@@ -161,7 +175,7 @@ in {
   };
 
   # All packet filtering on this host is declared in nix (docker runs with
-  # iptables/bridge disabled, incus only attaches to the unmanaged br0,
+  # iptables/bridge disabled, incus only attaches to the unmanaged bridges,
   # tailscale runs with netfilter-mode=off), so flush the whole ruleset on
   # reload to keep kernel state exactly consistent with this configuration.
   networking.nftables.flushRuleset = true;
@@ -188,6 +202,27 @@ in {
         ip daddr != @cn meta mark set ip saddr map @src2mark meta mark set mark & 0xff
         ip6 daddr @cn6    meta mark set ip6 saddr map @src2mark6 meta mark set mark >> 8
         ip6 daddr != @cn6 meta mark set ip6 saddr map @src2mark6 meta mark set mark & 0xff
+        # Default overseas egress for LAN clients without an explicit
+        # selection: IPv4 via "JP Tokyo | ALVIDI" (0x42), IPv6 via "JP Tokyo
+        # | Cloudflare WARP" (0x44); marks from nylon.toml / nylon.batch. CN
+        # destinations keep mark 0 and leave via the WAN uplink. Only the
+        # LAN bridges: WAN return traffic and forwarded tailnet flows (exit
+        # node users) keep their current path.
+        iifname { "br-gnet", "br-somo" } ip daddr != @cn meta mark 0 meta mark set 0x42
+        iifname { "br-gnet", "br-somo" } ip6 daddr != @cn6 meta mark 0 meta mark set 0x44
+      }
+
+      # Host-originated traffic gets the same overseas defaults. `type route`
+      # re-runs the routing decision after the mark changes. Exemptions:
+      # anything already marked (tailscale sockets carry 0x80000) and nylon's
+      # own UDP transport (sport 6622), which must reach its peers via the
+      # real uplink or the MPLS default would loop through itself.
+      chain output {
+        type route hook output priority mangle; policy accept;
+        meta mark != 0 return
+        udp sport 6622 return
+        ip daddr != @cn meta mark set 0x42
+        ip6 daddr != @cn6 meta mark set 0x44
       }
 
       # MPLS-encapped exits shrink the path MTU below the LAN's; clamp
@@ -195,6 +230,25 @@ in {
       chain forward {
         type filter hook forward priority filter; policy accept;
         tcp flags syn tcp option maxseg size set rt mtu
+      }
+
+      # The forward clamp above uses rt mtu, which reports the nylon0 device
+      # MTU (1420) and misses the 8-byte MPLS label stack, so nylon-bound
+      # TCP still negotiates segments 8 bytes too large. For forwarded flows
+      # that only costs a PMTU round trip, but for host-originated flows the
+      # kernel's local packet-too-big creates a PMTU exception in the main
+      # table (route lookups for exceptions ignore the fwmark), which
+      # defeats the suppress_prefixlength guard and flips the live flow
+      # back to enp3s0, breaking the NAT'd connection with a peer RST.
+      # Clamp both directions of nylon traffic to the real effective MTU:
+      # 1352 = 1420 (nylon0) - 8 (two MPLS labels) - 60 (IPv6+TCP headers).
+      chain postrouting {
+        type filter hook postrouting priority mangle; policy accept;
+        oifname "nylon0" tcp flags syn tcp option maxseg size > 1352 tcp option maxseg size set 1352
+      }
+      chain prerouting-mss {
+        type filter hook prerouting priority mangle; policy accept;
+        iifname "nylon0" tcp flags syn tcp option maxseg size > 1352 tcp option maxseg size set 1352
       }
     '';
   };
