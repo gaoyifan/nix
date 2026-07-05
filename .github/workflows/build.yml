@@ -81,6 +81,7 @@ jobs:
             .#packages.${{ matrix.system }}.codex
             .#packages.${{ matrix.system }}.cursor-agent
             .#packages.${{ matrix.system }}.difftastic
+            .#packages.${{ matrix.system }}.mcat
           )
 
           nix build --accept-flake-config --no-link --print-out-paths \
