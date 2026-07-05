@@ -12,6 +12,7 @@
     ./vms.nix
     ./dnsmasq.nix
     ./newapi.nix
+    ./localai-whisper.nix
     ./wifi-ap.nix
     ./tailscale.nix
     ./nylon.nix
