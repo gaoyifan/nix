@@ -37,12 +37,14 @@
     fuse3
     gptfdisk
     hdparm
+    iperf3
     jq
     mtr
     ms-sys
     nvme-cli
     parted
     pciutils
+    pv
     screen
     sdparm
     smartmontools
