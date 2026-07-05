@@ -8,6 +8,7 @@
     ./hardware-configuration.nix
     ./networking.nix
     ./virtualisation.nix
+    ./bees.nix
     ./ksm.nix
     ./vms.nix
     ./dnsmasq.nix
