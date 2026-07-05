@@ -18,6 +18,12 @@
 
   incus = "${config.virtualisation.incus.package}/bin/incus";
 
+  ksmQemuConf = ''
+    [object "mem0"]
+    share = "off"
+    merge = "on"
+  '';
+
   # `<get> <key>` / `<set> <key>=<value>`, only when the value differs.
   # Skipping no-op sets matters for keys that reject live updates (hwaddr,
   # shrinking limits.memory); escapeShellArg keeps multi-line values
@@ -39,12 +45,18 @@
     ${mkSetCommands "${incus} config device get ${name} ${dev}" "${incus} config device set ${name} ${dev}" opts}
   '';
 
-  mkVmCommands = name: vm: ''
+  mkVmCommands = name: vm: let
+    vmConfig =
+      vm.config
+      // lib.optionalAttrs (lib.hasPrefix "hermes-" name) {
+        "raw.qemu.conf" = ksmQemuConf;
+      };
+  in ''
     if ! ${incus} info ${name} >/dev/null 2>&1; then
       echo "Creating VM ${name} from ${imageRemote}:${vm.image}"
       ${incus} init ${imageRemote}:${vm.image} ${name} --vm
     fi
-    ${mkSetCommands "${incus} config get ${name}" "${incus} config set ${name}" vm.config}
+    ${mkSetCommands "${incus} config get ${name}" "${incus} config set ${name}" vmConfig}
     ${lib.concatStringsSep "\n" (lib.mapAttrsToList (mkDeviceCommands name) (vm.devices or {}))}
     if [ "$(${incus} list ${name} -c s -f csv)" != "RUNNING" ]; then
       ${incus} start ${name}
