@@ -9,7 +9,7 @@
     ./networking.nix
     ./virtualisation.nix
     ./vms.nix
-    ./adguard.nix
+    ./dnsmasq.nix
     ./wifi-ap.nix
     ./tailscale.nix
     ./nylon.nix
@@ -56,7 +56,7 @@
     vim
     zip
 
-    dnsutils # dig, for debugging the AdGuard Home resolver
+    dnsutils # dig, for debugging the dnsmasq resolver
     tsshd # launched by tssh --udp over the initial SSH connection
   ];
 

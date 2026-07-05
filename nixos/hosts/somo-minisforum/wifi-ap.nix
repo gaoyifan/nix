@@ -1,4 +1,4 @@
-# WiFi AP on the onboard MediaTek MT7921, bridged into br0.
+# WiFi AP on the onboard MediaTek MT7921, bridged into br-gnet.
 {config, ...}: {
   services.hostapd = {
     enable = true;
@@ -19,7 +19,7 @@
           wpaPasswordFile = passwordFile;
           saePasswordsFile = passwordFile;
         };
-        settings.bridge = "br0";
+        settings.bridge = "br-gnet";
       };
     };
   };
