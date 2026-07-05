@@ -57,10 +57,20 @@ in {
     extraOptions = ["--network=host"];
   };
 
+  # The host resolves through diverge too (the ISP resolvers from DHCP are
+  # poisoned); enp3s0's DHCP/RA DNS is ignored in networking.nix. LAN
+  # hostnames still resolve via dnsmasq on the br-gnet address.
+  services.resolved.domains = ["~."];
+  services.resolved.settings.Resolve.DNS = [divergeListen];
+  systemd.network.networks."40-br-gnet" = {
+    dns = ["100.65.2.254"];
+    domains = ["~${lanDomain}"];
+  };
+
   services.dnsmasq = {
     enable = true;
-    # The host itself keeps using systemd-resolved (upstream DHCP DNS);
-    # dnsmasq only serves the LAN bridges.
+    # The host uses resolved -> diverge directly; dnsmasq only serves the
+    # LAN bridges.
     resolveLocalQueries = false;
     settings = {
       # bind-dynamic (instead of bind-interfaces) tolerates the bridges
