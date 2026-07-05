@@ -234,5 +234,5 @@ deploy-somo-minisforum:
     ssh "root@$host" \
         "set -euo pipefail
         nixos-rebuild switch --flake '$remote_dir#$target' \
-            --option substituters 'https://mirrors.ustc.edu.cn/nix-channels/store https://mirror.sjtu.edu.cn/nix-channels/store'
+            --option substituters 'https://mirrors.ustc.edu.cn/nix-channels/store https://mirror.sjtu.edu.cn/nix-channels/store https://nix-cache.yfgao.net?priority=50 https://cache.nixos.org?priority=100'
         chown -R yifan:users '$remote_dir'"

@@ -58,14 +58,15 @@
     tsshd # launched by tssh --udp over the initial SSH connection
   ];
 
-  # This host cannot reach cache.nixos.org reliably: use Chinese mirrors
-  # instead (SJTU covers paths USTC's sync lags on), and keep the personal
-  # cache for custom overlay packages.
+  # This host cannot reach cache.nixos.org reliably: prefer Chinese mirrors
+  # instead (SJTU covers paths USTC's sync lags on), keep the personal cache
+  # for custom overlay packages, and leave cache.nixos.org as the last fallback.
   nix.settings = {
     substituters = lib.mkForce [
       "https://mirrors.ustc.edu.cn/nix-channels/store"
       "https://mirror.sjtu.edu.cn/nix-channels/store"
       "https://nix-cache.yfgao.net?priority=50"
+      "https://cache.nixos.org?priority=100"
     ];
     trusted-public-keys = [
       "nix-cache.yfgao.net-1:mSv/FykKK4oFZbX9JgD38D/me1+xJeAKsQ+STHiHVp4="
