@@ -1,4 +1,4 @@
-# Nylon MPLS exit over the enp4s0 uplink (中国移动, exit label 100, IPv4 only:
+# Nylon MPLS exit over the enp3s0 uplink (中国移动, exit label 100, IPv4 only:
 # host_vars exit_ipv6 is empty, so no selector routes v6 through this exit and
 # the datapath below only SNATs v4).
 #
@@ -13,13 +13,13 @@
 #
 # Datapath: nylon pops the outer node-id label (28) and writes the remaining
 # MPLS(100)+IP packet to nylon0; the kernel (mpls input enabled below) pops the
-# inner label via the static LSP and forwards out enp4s0. That MPLS forwarding
+# inner label via the static LSP and forwards out enp3s0. That MPLS forwarding
 # path bypasses netfilter nat/postrouting, so a plain masquerade never sees the
 # packet -- SNAT happens at tc clsact egress (act_ct) instead, committed to
 # conntrack so replies reverse-NAT on the normal ingress path.
 {pkgs, ...}: let
   exitLabel = 100;
-  wanIface = "enp4s0";
+  wanIface = "enp3s0";
   overlayV4 = "10.250.10.0/24";
 in {
   # tc act_ct tracks conntrack inline but never registers netfilter's inbound
@@ -62,6 +62,8 @@ in {
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
+      Restart = "on-failure";
+      RestartSec = "10s";
     };
     script = ''
       for _ in $(seq 30); do
@@ -78,11 +80,16 @@ in {
 
       # Static LSP: pop label ${toString exitLabel} and forward via the DHCP
       # default gateway (its MAC also routes IPv6, like the Debian L2 exits).
-      gw=$(ip -4 route show default dev ${wanIface} | awk '{print $3; exit}')
-      if [ -z "$gw" ]; then
-        echo "no IPv4 default gateway on ${wanIface}" >&2
+      gw=""
+      for _ in $(seq 60); do
+        gw=$(ip -4 route show default dev ${wanIface} | awk '{print $3; exit}')
+        [ -n "$gw" ] && break
+        sleep 1
+      done
+      [ -n "$gw" ] || {
+        echo "no IPv4 default gateway on ${wanIface} after wait" >&2
         exit 1
-      fi
+      }
       ip -f mpls route replace ${toString exitLabel} via inet "$gw" dev ${wanIface}
 
       # Egress SNAT for the popped packets (see header). The uplink is DHCP,
