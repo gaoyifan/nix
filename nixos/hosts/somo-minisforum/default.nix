@@ -38,6 +38,7 @@
     gptfdisk
     hdparm
     jq
+    mtr
     ms-sys
     nvme-cli
     parted
