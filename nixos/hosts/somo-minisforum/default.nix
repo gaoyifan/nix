@@ -10,6 +10,7 @@
     ./virtualisation.nix
     ./vms.nix
     ./adguard.nix
+    ./wifi-ap.nix
     ./tailscale.nix
     ./nylon.nix
     ./nylon-exit.nix
@@ -18,6 +19,7 @@
 
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
+  boot.kernelModules = ["mt7921e"];
 
   fileSystems."/".options = ["compress=zstd" "noatime"];
 
