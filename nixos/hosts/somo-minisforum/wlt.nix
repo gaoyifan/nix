@@ -9,6 +9,7 @@
 #     (/var/lib/wlt/config.d/nylon.toml) and MPLS policy routes
 #     (/opt/nylon.batch), both rendered from host_vars.
 {
+  config,
   inputs,
   pkgs,
   ...
@@ -22,6 +23,8 @@
 
   overlayV4 = "10.250.10.0/24";
   overlayV6 = "fd10:250:10::/64";
+
+  wgEl2 = config.services.secrets.nixos."somo-minisforum".wgEl2;
 
   configD = "/var/lib/wlt/config.d";
   persistDir = "/var/lib/wlt/persist";
@@ -210,17 +213,18 @@ in {
         iifname { "br-gnet", "br-somo" } ip6 daddr != @cn6 meta mark 0 meta mark set 0x44
       }
 
-      # Host-originated traffic gets the same overseas defaults. `type route`
-      # re-runs the routing decision after the mark changes. Exemptions:
-      # anything already marked (tailscale sockets carry 0x80000) and nylon's
-      # own UDP transport (sport 6622), which must reach its peers via the
-      # real uplink or the MPLS default would loop through itself.
+      # Host-originated IPv4 overseas traffic uses the dedicated WireGuard
+      # egress. Overseas IPv6 is disabled because that tunnel is IPv4-only.
+      # `type route` re-runs the routing decision after the mark changes.
+      # Exemptions: anything already marked (tailscale sockets carry 0x80000)
+      # and nylon's own UDP transport (sport 6622), which must reach its peers
+      # via the real uplink or the MPLS default would loop through itself.
       chain output {
         type route hook output priority mangle; policy accept;
         meta mark != 0 return
         udp sport 6622 return
-        ip daddr != @cn meta mark set 0x42
-        ip6 daddr != @cn6 meta mark set 0x44
+        ip daddr != @cn meta mark set ${wgEl2.mark}
+        ip6 daddr != @cn6 meta mark set 0xff
       }
 
       # MPLS-encapped exits shrink the path MTU below the LAN's; clamp TCP
@@ -265,6 +269,19 @@ in {
         type nat hook postrouting priority srcnat; policy accept;
         oifname "nylon0" ip saddr != ${overlayV4} masquerade
         oifname "nylon0" ip6 saddr != ${overlayV6} masquerade
+      }
+    '';
+  };
+
+  # Host-originated packets marked for the WireGuard egress may keep the
+  # source address chosen before the output-chain reroute. SNAT them to this
+  # node's tunnel address so the peer can return traffic.
+  networking.nftables.tables.wg-el2-nat = {
+    family = "ip";
+    content = ''
+      chain postrouting {
+        type nat hook postrouting priority srcnat; policy accept;
+        oifname "${wgEl2.interfaceName}" meta mark ${wgEl2.mark} masquerade
       }
     '';
   };
@@ -325,6 +342,7 @@ in {
       # fwmark rules (pref 10) that only carry default routes.
       rule pref 5 lookup main suppress_prefixlength 0
       rule pref 6 lookup 52 suppress_prefixlength 0
+      rule -4 pref 7 fwmark ${wgEl2.mark}/0xffffffff lookup ${wgEl2.routeTable}
 
       # "禁用 IPv6" outlet: final fwmark 0xff sends v6 to an unreachable table.
       ip -6 route replace unreachable default table 5255

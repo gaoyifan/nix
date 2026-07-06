@@ -18,6 +18,7 @@
     ./tailscale.nix
     ./nylon.nix
     ./nylon-exit.nix
+    ./wg-el2.nix
     ./wlt.nix
   ];
 

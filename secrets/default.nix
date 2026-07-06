@@ -26,5 +26,16 @@ in {
       description = "Declarative Incus VM definitions for somo-minisforum.";
       internal = true;
     };
+
+    nixos."somo-minisforum".wgEl2 = lib.mkOption {
+      type = lib.types.attrs;
+      default =
+        import (secretsDir + "/nixos/somo-minisforum/wg-el2.nix")
+        // {
+          privateKeyFile = "${config.services.secrets.filesDir}/nixos/somo-minisforum/wg-el2-private-key";
+        };
+      description = "WireGuard EL2 egress configuration for somo-minisforum.";
+      internal = true;
+    };
   };
 }
