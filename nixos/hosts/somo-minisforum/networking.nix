@@ -80,9 +80,10 @@ in {
 
   systemd.network = {
     enable = true;
-    # The wlt/nylon policy-routing rules (wlt-routing service, /opt/nylon.batch)
-    # live outside networkd; without this, every networkd restart silently
-    # deletes them as "foreign".
+    # The wlt/nylon policy routes and rules (wlt-routing service,
+    # /opt/nylon.batch) live outside networkd; without this, every networkd
+    # restart silently deletes them as "foreign".
+    config.networkConfig.ManageForeignRoutes = false;
     config.networkConfig.ManageForeignRoutingPolicyRules = false;
     networks."10-enp3s0" = {
       matchConfig.Name = "enp3s0";
