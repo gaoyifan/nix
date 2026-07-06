@@ -24,6 +24,7 @@
   overlayV4 = "10.250.10.0/24";
   overlayV6 = "fd10:250:10::/64";
 
+  nylonUdpPort = 6622;
   wgEl2 = config.services.secrets.nixos."somo-minisforum".wgEl2;
 
   configD = "/var/lib/wlt/config.d";
@@ -217,12 +218,12 @@ in {
       # egress. Overseas IPv6 is disabled because that tunnel is IPv4-only.
       # `type route` re-runs the routing decision after the mark changes.
       # Exemptions: anything already marked (tailscale sockets carry 0x80000)
-      # and nylon's own UDP transport (sport 6622), which must reach its peers
-      # via the real uplink or the MPLS default would loop through itself.
+      # and nylon's own UDP transport, which must keep the default uplink
+      # route or the MPLS default would loop through itself.
       chain output {
         type route hook output priority mangle; policy accept;
         meta mark != 0 return
-        udp sport 6622 return
+        udp sport ${toString nylonUdpPort} return
         ip daddr != @cn meta mark set ${wgEl2.mark}
         ip6 daddr != @cn6 meta mark set 0xff
       }
