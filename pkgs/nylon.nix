@@ -9,8 +9,8 @@ pkgs.buildGoModule {
   src = pkgs.fetchFromGitHub {
     owner = "gaoyifan";
     repo = "nylon";
-    rev = "4323cf5add9d9f957926d6a4163eabaddb5edad9";
-    hash = "sha256-cK+z/WYU4/W6bpm0PJqrB/GWwCb8Kj2Nkqed9jjatP4=";
+    rev = "b7024c1600b1dac6c564565f33a3a18d9bb2f0be";
+    hash = "sha256-Q8qFgIH3/FJmDqW1X7ksKIwZIXNhWmcfI5ILomiH98o=";
   };
 
   vendorHash = "sha256-ORofvATncvfpjOZtoQK349tOyeaO2hmmfF3m1xlitvo=";
