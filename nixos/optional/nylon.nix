@@ -234,16 +234,16 @@ in {
           RemainAfterExit = true;
         };
         script = ''
-          for _ in $(seq 30); do
-            ip link show dev ${cfg.interfaceName} up >/dev/null 2>&1 && break
+          for _ in $(seq 60); do
+            ip -brief link show dev ${cfg.interfaceName} 2>/dev/null | grep -qw LOWER_UP && break
             sleep 1
           done
           if ! ip link show ${cfg.interfaceName} >/dev/null 2>&1; then
             echo "${cfg.interfaceName} absent; skipping Nylon route batches" >&2
             exit 0
           fi
-          if ! ip link show dev ${cfg.interfaceName} up >/dev/null 2>&1; then
-            echo "${cfg.interfaceName} not up; cannot apply Nylon route batches" >&2
+          if ! ip -brief link show dev ${cfg.interfaceName} | grep -qw LOWER_UP; then
+            echo "${cfg.interfaceName} not LOWER_UP; cannot apply Nylon route batches" >&2
             exit 1
           fi
 
