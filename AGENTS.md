@@ -23,7 +23,7 @@
 - Format with `nix fmt`; run `just fmt` before committing
 - Check `pkgs.stdenv.isDarwin` for platform-specific logic
 - Custom packages: add `pkgs/<name>.nix`, export from `pkgs/default.nix`, consume as `pkgs.<name>`
-- Keep dynamically loaded apps out of `home.packages`; expose them as flake apps and add a zsh alias that `nix run`s them on demand to shrink Home Manager closures.
+- Keep dynamically loaded apps out of `home.packages`; expose them as flake apps and add low-priority Home Manager wrappers that `nix run` them on demand without overriding existing same-name tools.
 - For forked packages in `pkgs/`, pin only commits from the fork's `main` branch.
 
 ## Commits

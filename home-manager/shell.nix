@@ -21,6 +21,45 @@
     install -Dm644 ${pkgs.mcat}/share/zsh/site-functions/_mcat \
       "$out/share/zsh/site-functions/_mcat"
   '';
+  dynamicCliRelBinDir = ".local/share/nix-lazy-apps/bin";
+  dynamicCliApps = {
+    agy = {};
+    copilot = {
+      args = ["--yolo"];
+    };
+    codex = {};
+    cursor-agent = {};
+    difft = {app = "difftastic";};
+    fd = {};
+    gh = {};
+    mcat = {};
+    yazi = {};
+  };
+  nixRunCacheOptions = [
+    "--option"
+    "extra-substituters"
+    "https://nix-cache.yfgao.net?priority=50"
+    "--option"
+    "extra-trusted-public-keys"
+    "nix-cache.yfgao.net-1:mSv/FykKK4oFZbX9JgD38D/me1+xJeAKsQ+STHiHVp4="
+  ];
+  mkDynamicCliWrapper = name: {
+    app ? name,
+    args ? [],
+  }: let
+    appArgs = lib.optionalString (args != []) " ${lib.escapeShellArgs args}";
+  in
+    pkgs.writeShellScript name ''
+      exec nix run ${lib.escapeShellArgs nixRunCacheOptions} "github:gaoyifan/nix#${app}" --${appArgs} "$@"
+    '';
+  dynamicCliWrapperFiles =
+    lib.mapAttrs' (
+      name: spec:
+        lib.nameValuePair "${dynamicCliRelBinDir}/${name}" {
+          source = mkDynamicCliWrapper name spec;
+        }
+    )
+    dynamicCliApps;
 in {
   # The home.packages option allows you to install Nix packages into your
   # environment.
@@ -29,6 +68,8 @@ in {
     dynamicCliCompletions
     zsh-completions
   ];
+
+  home.file = dynamicCliWrapperFiles;
 
   programs.powerline-go.enable = true;
 
@@ -178,6 +219,12 @@ in {
         eval "$(/opt/homebrew/bin/brew shellenv)"
       elif [ -e /home/linuxbrew/.linuxbrew/bin/brew ] && [[ ":$PATH:" != *":/home/linuxbrew/.linuxbrew/bin:"* ]]; then
         eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+      fi
+
+      # Keep lazy wrappers behind regular user and platform paths so existing
+      # same-name tools win by normal PATH lookup.
+      if [[ ":$PATH:" != *":${config.home.homeDirectory}/${dynamicCliRelBinDir}:"* ]]; then
+        export PATH="''${PATH:+$PATH:}${config.home.homeDirectory}/${dynamicCliRelBinDir}"
       fi
     '';
 
