@@ -81,16 +81,28 @@ in {
       };
     };
 
-    policyBatch = {
+    routeBatch = {
       enable = lib.mkOption {
         type = types.bool;
         default = true;
-        description = "Whether to run the rendered Nylon policy-route batch.";
+        description = "Whether to run rendered Nylon MPLS route batches.";
       };
-      file = lib.mkOption {
+      dir = lib.mkOption {
         type = types.str;
-        default = "/opt/nylon.batch";
-        description = "Executable policy batch rendered outside Nix.";
+        default = "/var/lib/nylon/policy-routing";
+        description = "Directory containing Nylon policy-routing batch fragments.";
+      };
+      ipv4File = lib.mkOption {
+        type = types.str;
+        default = "${cfg.routeBatch.dir}/routes4.batch";
+        defaultText = lib.literalExpression ''"${config.services.nylon.routeBatch.dir}/routes4.batch"'';
+        description = "IPv4 route batch rendered outside Nix.";
+      };
+      ipv6File = lib.mkOption {
+        type = types.str;
+        default = "${cfg.routeBatch.dir}/routes6.batch";
+        defaultText = lib.literalExpression ''"${config.services.nylon.routeBatch.dir}/routes6.batch"'';
+        description = "IPv6 route batch rendered outside Nix.";
       };
     };
 
@@ -158,9 +170,17 @@ in {
         pkgs.python3
       ];
 
-      systemd.tmpfiles.rules = [
-        "d ${cfg.configDir} 0700 root root -"
-      ];
+      systemd.tmpfiles.rules =
+        [
+          "d ${cfg.configDir} 0700 root root -"
+        ]
+        ++ lib.optionals cfg.routeBatch.enable [
+          "d ${cfg.routeBatch.dir} 0755 root root -"
+          "f ${cfg.routeBatch.dir}/routes4.batch 0644 root root -"
+          "f ${cfg.routeBatch.dir}/routes6.batch 0644 root root -"
+          "f ${cfg.routeBatch.dir}/rules4.batch 0644 root root -"
+          "f ${cfg.routeBatch.dir}/rules6.batch 0644 root root -"
+        ];
 
       systemd.services.nylon = {
         description = "Nylon mesh router";
@@ -196,13 +216,13 @@ in {
       };
     })
 
-    (lib.mkIf cfg.policyBatch.enable {
-      systemd.services.nylon-policy-batch = {
-        description = "Nylon policy-route batch";
-        wants = ["nylon.service"] ++ lib.optional config.services.wlt.enable "wlt-routing.service";
-        after = ["nylon.service"] ++ lib.optional config.services.wlt.enable "wlt-routing.service";
-        # A nylon restart recreates nylon0, dropping MPLS routes in the
-        # per-exit tables; PartOf makes that restart re-run this unit.
+    (lib.mkIf cfg.routeBatch.enable {
+      systemd.services.nylon-routes = {
+        description = "Nylon MPLS route batches";
+        wants = ["nylon.service" "network-online.target"];
+        after = ["nylon.service" "network-online.target"];
+        # A nylon restart recreates nylon0, dropping MPLS routes in the per-exit
+        # tables; PartOf makes that restart re-run this unit.
         partOf = ["nylon.service"];
         wantedBy = [
           "multi-user.target"
@@ -214,16 +234,20 @@ in {
           RemainAfterExit = true;
         };
         script = ''
-          if [ -x ${cfg.policyBatch.file} ]; then
-            for _ in $(seq 30); do
-              ip link show ${cfg.interfaceName} >/dev/null 2>&1 && break
-              sleep 1
-            done
-            if ip link show ${cfg.interfaceName} >/dev/null 2>&1; then
-              ${cfg.policyBatch.file}
-            else
-              echo "${cfg.interfaceName} absent; skipping ${cfg.policyBatch.file}" >&2
-            fi
+          for _ in $(seq 30); do
+            ip link show ${cfg.interfaceName} >/dev/null 2>&1 && break
+            sleep 1
+          done
+          if ! ip link show ${cfg.interfaceName} >/dev/null 2>&1; then
+            echo "${cfg.interfaceName} absent; skipping Nylon route batches" >&2
+            exit 0
+          fi
+
+          if [ -s ${cfg.routeBatch.ipv4File} ]; then
+            ip -4 -force -batch ${cfg.routeBatch.ipv4File}
+          fi
+          if [ -s ${cfg.routeBatch.ipv6File} ]; then
+            ip -6 -force -batch ${cfg.routeBatch.ipv6File}
           fi
         '';
       };

@@ -36,6 +36,7 @@ in {
   imports = [
     ../../optional/home-router.nix
     ../../optional/nylon.nix
+    ../../optional/policy-routing.nix
     ../../optional/wlt.nix
   ];
 
@@ -108,6 +109,43 @@ in {
     };
   };
 
+  networking.policyRouting = {
+    enable = true;
+
+    ipv4 = {
+      rules = [
+        # Local and tailnet routes must win before fwmark-selected default routes.
+        "pref 100 lookup main suppress_prefixlength 0"
+        "pref 110 lookup 52 suppress_prefixlength 0"
+
+        # SOMO host-originated overseas IPv4 via wg-el2.
+        "pref 200 fwmark ${wgEl2.mark}/0xffffffff lookup ${wgEl2.routeTable}"
+
+        "pref 32766 lookup main"
+        "pref 32767 lookup default"
+      ];
+      ruleFiles = [
+        "/var/lib/nylon/policy-routing/rules4.batch"
+      ];
+    };
+
+    ipv6 = {
+      rules = [
+        # Local and tailnet routes must win before fwmark-selected default routes.
+        "pref 100 lookup main suppress_prefixlength 0"
+        "pref 110 lookup 52 suppress_prefixlength 0"
+
+        # WLT IPv6 disable outlet.
+        "pref 300 fwmark 0xff/0xff lookup 5255"
+
+        "pref 32766 lookup main"
+      ];
+      ruleFiles = [
+        "/var/lib/nylon/policy-routing/rules6.batch"
+      ];
+    };
+  };
+
   virtualisation.oci-containers.containers.diverge = {
     image = "ghcr.io/gaoyifan/diverge-rs:master";
     volumes = [
@@ -168,9 +206,4 @@ in {
       }
     '';
   };
-
-  systemd.services.wlt-routing.script = lib.mkAfter ''
-    ip -4 rule del pref 7 fwmark ${wgEl2.mark}/0xffffffff lookup ${wgEl2.routeTable} 2>/dev/null || true
-    ip -4 rule add pref 7 fwmark ${wgEl2.mark}/0xffffffff lookup ${wgEl2.routeTable}
-  '';
 }

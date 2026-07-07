@@ -298,49 +298,17 @@ in {
       sed 's|include "${snapshotFile}"||' -i ruleset.conf
     '';
 
-    # Policy-routing skeleton for the WLT fwmark scheme. The Nylon module
-    # applies the rendered per-exit MPLS batch after this unit.
-    systemd.services.wlt-routing = {
-      description = "WLT policy routing for the fwmark scheme";
-      wants = ["nylon.service"];
-      after = ["nylon.service"];
-      # Keep WLT's base policy rules in step with the per-exit Nylon routes.
-      partOf = ["nylon.service"];
-      wantedBy = [
-        "multi-user.target"
-        "nylon.service"
-      ];
+    systemd.services.wlt-ipv6-disable-route = {
+      description = "WLT disabled IPv6 route table";
+      wantedBy = ["multi-user.target"];
       path = [pkgs.iproute2];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
       };
       script = ''
-        # Idempotent `ip rule` install: drop any previous instance, then add.
-        # Leading -4/-6 selects the family; without it the rule is dual-stack.
-        rule() {
-          case $1 in
-            -4 | -6)
-              local fam=$1
-              shift
-              ip "$fam" rule del "$@" 2>/dev/null || true
-              ip "$fam" rule add "$@"
-              ;;
-            *)
-              rule -4 "$@"
-              rule -6 "$@"
-              ;;
-          esac
-        }
-
-        # Local and tailscale (table 52) destinations must win over the
-        # fwmark rules (pref 10) that only carry default routes.
-        rule pref 5 lookup main suppress_prefixlength 0
-        rule pref 6 lookup 52 suppress_prefixlength 0
-
         # "禁用 IPv6" outlet: final fwmark 0xff sends v6 to an unreachable table.
         ip -6 route replace unreachable default table 5255
-        rule -6 pref 10 fwmark 0xff/0xff lookup 5255
       '';
     };
   };
