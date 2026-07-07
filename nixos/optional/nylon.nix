@@ -235,12 +235,16 @@ in {
         };
         script = ''
           for _ in $(seq 30); do
-            ip link show ${cfg.interfaceName} >/dev/null 2>&1 && break
+            ip link show dev ${cfg.interfaceName} up >/dev/null 2>&1 && break
             sleep 1
           done
           if ! ip link show ${cfg.interfaceName} >/dev/null 2>&1; then
             echo "${cfg.interfaceName} absent; skipping Nylon route batches" >&2
             exit 0
+          fi
+          if ! ip link show dev ${cfg.interfaceName} up >/dev/null 2>&1; then
+            echo "${cfg.interfaceName} not up; cannot apply Nylon route batches" >&2
+            exit 1
           fi
 
           if [ -s ${cfg.routeBatch.ipv4File} ]; then
