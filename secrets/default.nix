@@ -37,5 +37,12 @@ in {
       description = "WireGuard EL2 egress configuration for somo-minisforum.";
       internal = true;
     };
+
+    nixos.wlt.sshHostKeyFile = lib.mkOption {
+      type = lib.types.path;
+      default = secretsDir + "/nixos/wlt-ssh-host-key";
+      description = "Shared SSH host private key for the WLT selector service.";
+      internal = true;
+    };
   };
 }

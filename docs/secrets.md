@@ -36,6 +36,10 @@ The `secrets/default.nix` module checks for the presence of `secrets/files/.gitk
 
 Since CI only has access to `files-example/`, the binary cache will only ever contain derivations built with placeholder secrets. Real secrets never touch the cache.
 
+### Shared Host Keys
+
+- `nixos/wlt-ssh-host-key`: shared SSH host private key for the WLT selector service. Keep it host-agnostic so multiple gateways serving the same WLT domain present the same SSH host identity.
+
 ## Usage
 
 ### Initial Setup (new machine)
@@ -118,4 +122,3 @@ git add secrets/files secrets/files-example secrets/home.nix
 git commit -m "feat: add myapp secret"
 git push
 ```
-

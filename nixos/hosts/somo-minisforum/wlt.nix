@@ -14,7 +14,9 @@
   pkgs,
   ...
 }: let
-  image = "ghcr.io/gaoyifan/wlt:main";
+  # Rust rewrite at upstream d9cb7c7. Pin the multi-arch image index instead of
+  # tracking latest/main so rebuilds do not drift when upstream moves.
+  image = "ghcr.io/gaoyifan/wlt@sha256:0d6012bbb2d1c608217a445ba6889dec4a70d87291ed765db89de68a13b54ab5";
 
   # Shared portal addresses (wlt-ipv4/wlt-ipv6.gaof.net) bound on lo; LAN
   # clients reach them through this host because it is their default gateway.
@@ -26,10 +28,11 @@
 
   nylonUdpPort = 6622;
   wgEl2 = config.services.secrets.nixos."somo-minisforum".wgEl2;
+  wltSecrets = config.services.secrets.nixos.wlt;
 
   configD = "/var/lib/wlt/config.d";
   persistDir = "/var/lib/wlt/persist";
-  sshDir = "/var/lib/wlt/ssh";
+  sshHostKeyRuntime = "/run/wlt/ssh_host_key";
 
   # Mesh-wide nylon interface MTU (node.yaml `mtu`, rendered by Ansible from
   # nylon_default_mtu) and the worst-case TCP MSS through an MPLS exit.
@@ -63,10 +66,21 @@
   wltConfig = pkgs.writeText "wlt-config.toml" ''
     time_limits = [1, 4, 10, 24, 0] # 1小时, 4小时, 10小时, 24小时, 永久
 
-    [flask]
-    host = "::"
-    port = 80
-    debug = false
+    # Services are enabled by section presence in the Rust wlt binary.
+    [web]
+    # Bind explicitly to the lo portal addresses: this host runs no packet
+    # filter, so do not expose the portal on every interface.
+    listen = ["${portalV4}:80", "[${portalV6}]:80"]
+
+    # SSH TUI for outlet selection (ssh -p 2222 <host>); the host key persists
+    # across restarts.
+    [ssh]
+    listen = ["[::]:2222"]
+    host_key = "/data/ssh_host_key"
+
+    [persist]
+    path = "/etc/nftables/wlt_src2mark.conf"
+    interval = 300
 
     [nftables]
     family = "inet"
@@ -79,6 +93,7 @@
     # each); they resolve to the portal addresses bound on lo below.
     v4_host = "wlt-ipv4.gaof.net"
     v6_host = "wlt-ipv6.gaof.net"
+    cors_domain = "gaof.net"
 
     [[outlet_groups]]
     title = "国内出口"
@@ -99,18 +114,6 @@
     "默认" = 0x0
     "禁用 IPv6" = 0xff
   '';
-
-  commonContainer = {
-    inherit image;
-    volumes = [
-      "${wltConfig}:/app/config.toml:ro"
-      "${configD}:/app/config.d:ro"
-    ];
-    extraOptions = [
-      "--network=host"
-      "--cap-add=NET_ADMIN"
-    ];
-  };
 in {
   # Containers run with host networking only: podman is daemonless and its
   # netavark firewall driver only installs rules for bridged networks, so
@@ -120,46 +123,27 @@ in {
   virtualisation.oci-containers = {
     backend = "podman";
     containers = {
-      wlt =
-        commonContainer
-        // {
-          # Bind explicitly to the lo portal addresses: this host runs no
-          # packet filter, so do not expose the portal on every interface.
-          cmd = [
-            "uv"
-            "run"
-            "gunicorn"
-            "-c"
-            "python:wlt.web"
-            "-b"
-            "${portalV4}:80"
-            "-b"
-            "[${portalV6}]:80"
-            "wlt.web:app"
-          ];
-        };
-      wlt-persist =
-        commonContainer
-        // {
-          cmd = ["uv" "run" "wlt-persist"];
-          volumes = commonContainer.volumes ++ ["${persistDir}:/etc/nftables"];
-        };
-      # SSH TUI for outlet selection (ssh -p 2222 <host>), same image and
-      # config as the portal; the host key persists across restarts.
-      wlt-ssh =
-        commonContainer
-        // {
-          cmd = ["uv" "run" "wlt-ssh"];
-          volumes = commonContainer.volumes ++ ["${sshDir}:/data"];
-          environment.SSH_HOST_KEY = "/data/ssh_host_key";
-        };
+      wlt = {
+        inherit image;
+        volumes = [
+          "${wltConfig}:/app/config.toml:ro"
+          "${configD}:/app/config.d:ro"
+          "${persistDir}:/etc/nftables"
+          "${sshHostKeyRuntime}:/data/ssh_host_key:ro"
+        ];
+        extraOptions = [
+          "--network=host"
+          "--cap-add=NET_ADMIN"
+        ];
+      };
     };
   };
 
   systemd.tmpfiles.rules = [
     "d ${configD} 0755 root root -"
     "d ${persistDir} 0755 root root -"
-    "d ${sshDir} 0700 root root -"
+    "d /run/wlt 0700 root root -"
+    "C+ ${sshHostKeyRuntime} 0600 root root - ${wltSecrets.sshHostKeyFile}"
     # The ruleset includes the snapshot, so it must exist before nftables
     # loads (wlt-persist overwrites it every 5 minutes).
     "f ${snapshotFile} 0644 root root -"
