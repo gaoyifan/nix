@@ -39,6 +39,8 @@ Since CI only has access to `files-example/`, the binary cache will only ever co
 ### Shared Host Keys
 
 - `nixos/wlt-ssh-host-key`: shared SSH host private key for the WLT selector service. Keep it host-agnostic so multiple gateways serving the same WLT domain present the same SSH host identity.
+- `nixos/internal-ca.pem`, `nixos/internal-ca-key.pem`: internal CA certificate and private key for locally issued service certificates.
+- `nixos/wlt-server.pem`, `nixos/wlt-server-key.pem`: HTTPS server certificate and private key for WLT, signed by the internal CA. The server certificate should cover the public WLT aliases plus their split-horizon `wlt-ipv4.*` and `wlt-ipv6.*` API hosts.
 
 ## Usage
 

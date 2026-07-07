@@ -44,5 +44,35 @@ in {
       description = "Shared SSH host private key for the WLT selector service.";
       internal = true;
     };
+
+    nixos.internalCa = {
+      certFile = lib.mkOption {
+        type = lib.types.path;
+        default = secretsDir + "/nixos/internal-ca.pem";
+        description = "Internal CA certificate.";
+        internal = true;
+      };
+      keyFile = lib.mkOption {
+        type = lib.types.path;
+        default = secretsDir + "/nixos/internal-ca-key.pem";
+        description = "Internal CA private key.";
+        internal = true;
+      };
+    };
+
+    nixos.wlt.tls = {
+      certFile = lib.mkOption {
+        type = lib.types.path;
+        default = secretsDir + "/nixos/wlt-server.pem";
+        description = "WLT HTTPS server certificate signed by the internal CA.";
+        internal = true;
+      };
+      keyFile = lib.mkOption {
+        type = lib.types.path;
+        default = secretsDir + "/nixos/wlt-server-key.pem";
+        description = "WLT HTTPS server private key.";
+        internal = true;
+      };
+    };
   };
 }

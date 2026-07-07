@@ -19,6 +19,8 @@
   wltSecrets = config.services.secrets.nixos.wlt;
   runtimeDir = "/run/wlt";
   sshHostKeyRuntime = "${runtimeDir}/ssh_host_key";
+  tlsCertRuntime = "${runtimeDir}/tls/server.pem";
+  tlsKeyRuntime = "${runtimeDir}/tls/server-key.pem";
 
   snapshotFile = "${cfg.persistDir}/wlt_src2mark.conf";
 
@@ -33,6 +35,11 @@
     # Bind explicitly to the lo portal addresses: this host runs no packet
     # filter, so do not expose the portal on every interface.
     listen = ["${cfg.portal.ipv4Address}:80", "[${cfg.portal.ipv6Address}]:80"]
+
+    [web.https]
+    listen = ["${cfg.portal.ipv4Address}:443", "[${cfg.portal.ipv6Address}]:443"]
+    cert = "/data/tls/server.pem"
+    key = "/data/tls/server-key.pem"
 
     # SSH TUI for outlet selection (ssh -p 2222 <host>); the host key persists
     # across restarts.
@@ -81,9 +88,9 @@ in {
 
     image = lib.mkOption {
       type = lib.types.str;
-      # Rust rewrite at upstream d9cb7c7. Pin the multi-arch image index
+      # Rust rewrite at upstream 6acf14d. Pin the multi-arch image index
       # instead of tracking latest/main so rebuilds do not drift.
-      default = "ghcr.io/gaoyifan/wlt@sha256:0d6012bbb2d1c608217a445ba6889dec4a70d87291ed765db89de68a13b54ab5";
+      default = "ghcr.io/gaoyifan/wlt@sha256:f805f9ec0b5ffae8dddcfd9666707a6785ceccd204b485543928316b3f2dcf6d";
       description = "OCI image used for the WLT service.";
     };
 
@@ -163,6 +170,19 @@ in {
       default = wltSecrets.sshHostKeyFile;
       description = "Shared SSH host private key for WLT.";
     };
+
+    tls = {
+      certFile = lib.mkOption {
+        type = lib.types.path;
+        default = wltSecrets.tls.certFile;
+        description = "WLT HTTPS server certificate.";
+      };
+      keyFile = lib.mkOption {
+        type = lib.types.path;
+        default = wltSecrets.tls.keyFile;
+        description = "WLT HTTPS server private key.";
+      };
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -188,6 +208,8 @@ in {
           "${cfg.configD}:/app/config.d:ro"
           "${cfg.persistDir}:/etc/nftables"
           "${sshHostKeyRuntime}:/data/ssh_host_key:ro"
+          "${tlsCertRuntime}:/data/tls/server.pem:ro"
+          "${tlsKeyRuntime}:/data/tls/server-key.pem:ro"
         ];
         extraOptions = [
           "--network=host"
@@ -203,7 +225,10 @@ in {
         (pkgs.writeShellScript "wlt-install-runtime-secrets" ''
           set -euo pipefail
 
+          ${pkgs.coreutils}/bin/install -d -m 0700 ${runtimeDir}/tls
           ${pkgs.coreutils}/bin/install -m 0600 ${cfg.sshHostKeyFile} ${sshHostKeyRuntime}
+          ${pkgs.coreutils}/bin/install -m 0644 ${cfg.tls.certFile} ${tlsCertRuntime}
+          ${pkgs.coreutils}/bin/install -m 0600 ${cfg.tls.keyFile} ${tlsKeyRuntime}
         '')
       ];
     };
