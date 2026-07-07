@@ -11,15 +11,11 @@
     ./bees.nix
     ./ksm.nix
     ./vms.nix
-    ./dnsmasq.nix
     ./newapi.nix
     ./localai-whisper.nix
     ./wifi-ap.nix
     ./tailscale.nix
-    ./nylon.nix
-    ./nylon-exit.nix
     ./wg-el2.nix
-    ./wlt.nix
   ];
 
   boot.loader.systemd-boot.enable = true;

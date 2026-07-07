@@ -1,61 +1,134 @@
 # Network configuration for somo-minisforum.
 #
-# The host acts as a gateway for two independent LANs:
-#   WAN: enp3s0 (Realtek 2.5G, DHCP from the upstream LAN)
-#   br-gnet: enp4s0 VLAN 652 + wlp6s0 (hostapd AP), 100.65.2.0/24
-#   br-somo: enp4s0 untagged + Incus guests, 100.65.3.0/24
-#
-# enp4s0 is a trunk port: a VLAN device on a bridge port grabs tagged frames
-# before the bridge does, so untagged traffic lands in br-somo while VLAN 652
-# lands in br-gnet.
-#
-# IPv6: the host announces a ULA /64 per bridge via router advertisements, so
-# guests autoconfigure with SLAAC. DHCPPrefixDelegation additionally hands out
-# a global /64 per bridge whenever the upstream ever offers DHCPv6-PD (it does
-# not today).
-let
-  mkLanBridgeNetwork = name: hostV4: hostV6: ulaPrefix: {
-    matchConfig.Name = name;
-    address = [hostV4 hostV6];
-    networkConfig = {
-      DHCP = "no";
-      # Keep the bridge (and the services bound to it) up even when no cable
-      # or VM is attached.
-      ConfigureWithoutCarrier = true;
-      # This host is the router on these segments.
-      IPv6AcceptRA = false;
-      IPv6SendRA = true;
-      DHCPPrefixDelegation = true;
-    };
-    ipv6Prefixes = [{Prefix = ulaPrefix;}];
-    linkConfig.RequiredForOnline = "no";
-  };
+# WAN: enp3s0. LAN trunk: enp4s0 untagged to br-somo and VLAN 652 to br-gnet.
+{
+  config,
+  inputs,
+  lib,
+  pkgs,
+  ...
+}: let
+  lanDomain = "somo.gaof.net";
+  divergeListen = "127.0.0.1:1054";
+  wgEl2 = config.services.secrets.nixos."somo-minisforum".wgEl2;
+  vms = config.services.secrets.nixos."somo-minisforum".vms;
+  staticLeases =
+    lib.mapAttrsToList
+    (name: vm: "${vm.devices.eth0.hwaddr},${vm.staticLease},${name}")
+    (lib.filterAttrs (_: vm: vm ? staticLease) vms);
+
+  divergeConf = pkgs.writeText "diverge.conf" ''
+    [global]
+    listen = ${divergeListen}
+
+    [CN]
+    addresses = 223.5.5.5 223.6.6.6
+    protocol = udp
+    port = 53
+    ips = chnroutes.txt
+
+    [X]
+    addresses = 1.1.1.1 1.0.0.1
+    protocol = https
+    tls_dns_name = cloudflare-dns.com
+  '';
 in {
-  networking.hostName = "somo-minisforum";
-  networking.useDHCP = false;
-  networking.useNetworkd = true;
+  imports = [
+    ../../optional/home-router.nix
+    ../../optional/nylon.nix
+    ../../optional/wlt.nix
+  ];
 
-  # Skip the NixOS firewall abstraction and declare only the nftables rules
-  # we actually need (NAT for the VM LANs plus the br-somo isolation below).
-  networking.firewall.enable = false;
-  networking.nftables.enable = true;
-  # Masquerade the whole CGNAT block: it covers both LAN bridges
-  # (100.65.2.0/24, 100.65.3.0/24) and Tailscale peer addresses, which need
-  # SNAT when this node forwards their traffic as an exit node
-  # (netfilter-mode=off means tailscaled installs no NAT of its own).
-  networking.nftables.tables.nat = {
-    family = "ip";
-    content = ''
-      chain postrouting {
-        type nat hook postrouting priority srcnat; policy accept;
-        ip saddr 100.64.0.0/10 oifname "enp3s0" masquerade
-      }
-    '';
+  networking.hostName = "somo-minisforum";
+
+  networking.homeRouter = {
+    enable = true;
+
+    wan.interface = "enp3s0";
+
+    trunks.enp4s0 = {
+      untaggedBridge = "br-somo";
+      vlans."652".bridge = "br-gnet";
+    };
+
+    bridges = {
+      br-gnet = {
+        addresses = [
+          "100.65.2.254/24"
+          "fd9a:2d16:5c3e:2::254/64"
+        ];
+        ipv6.prefixes = ["fd9a:2d16:5c3e:2::/64"];
+      };
+
+      br-somo = {
+        addresses = [
+          "100.65.3.254/24"
+          "fd9a:2d16:5c3e:3::254/64"
+        ];
+        ipv6.prefixes = ["fd9a:2d16:5c3e:3::/64"];
+      };
+    };
+
+    nat.sourceSubnet = "100.64.0.0/10";
+
+    dnsmasq = {
+      domain = lanDomain;
+      servers = ["127.0.0.1#1054"];
+      dhcpRanges = [
+        "100.65.2.100,100.65.2.200,24h"
+        "100.65.3.100,100.65.3.200,24h"
+      ];
+      dhcpHosts = staticLeases;
+    };
   };
 
-  # Stateful isolation: br-somo guests must not reach the tailnet, but
-  # tailnet peers may still initiate connections into br-somo (the return
-  # traffic matches established/related). No other interface is filtered.
+  services.nylon = {
+    enable = true;
+    overlay = {
+      ipv4Subnet = "10.250.10.0/24";
+      ipv6Subnet = "fd10:250:10::/64";
+    };
+    exit = {
+      enable = true;
+      label = 100;
+    };
+  };
+
+  services.wlt = {
+    enable = true;
+    domain = "gaof.net";
+    # Default overseas egress for LAN clients without an explicit selection:
+    # IPv4 via "JP Tokyo | ALVIDI" (0x42), IPv6 via "JP Tokyo | Cloudflare
+    # WARP" (0x44); marks come from nylon.toml / nylon.batch. CN destinations
+    # keep mark 0 and leave via the WAN uplink. Only LAN bridges get these
+    # defaults: WAN return traffic and forwarded tailnet flows keep their path.
+    defaultOutletMark = {
+      ipv4 = "0x42";
+      ipv6 = "0x44";
+    };
+  };
+
+  virtualisation.oci-containers.containers.diverge = {
+    image = "ghcr.io/gaoyifan/diverge-rs:master";
+    volumes = [
+      "${inputs.chnroutes2}/chnroutes.txt:/chnroutes.txt:ro"
+      "${divergeConf}:/diverge.conf:ro"
+    ];
+    extraOptions = ["--network=host"];
+  };
+
+  services.resolved.settings.Resolve = {
+    DNS = ["1.1.1.1" "1.0.0.1"];
+    Domains = ["~."];
+  };
+
+  systemd.network.networks."40-br-gnet" = {
+    dns = ["100.65.2.254"];
+    domains = ["~${lanDomain}"];
+  };
+
+  # SOMO policy: br-somo guests must not initiate tailnet connections, while
+  # tailnet peers may still initiate connections into br-somo.
   networking.nftables.tables.filter = {
     family = "inet";
     content = ''
@@ -67,76 +140,37 @@ in {
     '';
   };
 
-  # Forward guest traffic between the LAN bridges and the WAN port.
-  # (Tailscale's useRoutingFeatures = "server" sets the same sysctls; keep
-  # them explicit so routing does not silently depend on the Tailscale
-  # module.)
-  boot.kernel.sysctl = {
-    "net.ipv4.conf.all.forwarding" = true;
-    "net.ipv6.conf.all.forwarding" = true;
+  # SOMO policy: host-originated IPv4 overseas traffic uses wg-el2; overseas
+  # IPv6 is disabled except echo requests for diagnostics.
+  networking.nftables.tables.somo-host-egress = {
+    family = "inet";
+    content = ''
+      include "${pkgs.nft-geo-sets}/set-cn.conf"
+      include "${pkgs.nft-geo-sets}/set-cn6.conf"
+
+      chain output {
+        type route hook output priority mangle; policy accept;
+        meta mark != 0 return
+        udp sport ${toString config.services.nylon.udpPort} return
+        ip daddr != @cn meta mark set ${wgEl2.mark}
+        ip6 daddr != @cn6 icmpv6 type echo-request return
+        ip6 daddr != @cn6 meta mark set 0xff
+      }
+    '';
   };
 
-  services.resolved.enable = true;
-
-  systemd.network = {
-    enable = true;
-    # The wlt/nylon policy routes and rules (wlt-routing service,
-    # /opt/nylon.batch) live outside networkd; without this, every networkd
-    # restart silently deletes them as "foreign".
-    config.networkConfig.ManageForeignRoutes = false;
-    config.networkConfig.ManageForeignRoutingPolicyRules = false;
-    networks."10-enp3s0" = {
-      matchConfig.Name = "enp3s0";
-      networkConfig = {
-        DHCP = "yes";
-        IPv6AcceptRA = true;
-      };
-      # The ISP resolvers handed out here are poisoned; the host resolves
-      # via Cloudflare over the nylon exit instead (see dnsmasq.nix).
-      dhcpV4Config.UseDNS = false;
-      dhcpV6Config.UseDNS = false;
-      ipv6AcceptRAConfig.UseDNS = false;
-      linkConfig.RequiredForOnline = "routable";
-    };
-
-    netdevs."20-br-gnet".netdevConfig = {
-      Kind = "bridge";
-      Name = "br-gnet";
-    };
-    netdevs."20-br-somo".netdevConfig = {
-      Kind = "bridge";
-      Name = "br-somo";
-    };
-    netdevs."25-enp4s0-vlan652" = {
-      netdevConfig = {
-        Kind = "vlan";
-        Name = "enp4s0.652";
-      };
-      vlanConfig.Id = 652;
-    };
-
-    networks."30-enp4s0" = {
-      matchConfig.Name = "enp4s0";
-      vlan = ["enp4s0.652"];
-      networkConfig.Bridge = "br-somo";
-      linkConfig.RequiredForOnline = "no";
-    };
-    networks."31-enp4s0-vlan652" = {
-      matchConfig.Name = "enp4s0.652";
-      networkConfig.Bridge = "br-gnet";
-      linkConfig.RequiredForOnline = "no";
-    };
-
-    # The host is the gateway on both bridges; dnsmasq serves DHCP/DNS.
-    networks."40-br-gnet" =
-      mkLanBridgeNetwork "br-gnet"
-      "100.65.2.254/24"
-      "fd9a:2d16:5c3e:2::254/64"
-      "fd9a:2d16:5c3e:2::/64";
-    networks."41-br-somo" =
-      mkLanBridgeNetwork "br-somo"
-      "100.65.3.254/24"
-      "fd9a:2d16:5c3e:3::254/64"
-      "fd9a:2d16:5c3e:3::/64";
+  networking.nftables.tables.wg-el2-nat = {
+    family = "ip";
+    content = ''
+      chain postrouting {
+        type nat hook postrouting priority srcnat; policy accept;
+        oifname "${wgEl2.interfaceName}" meta mark ${wgEl2.mark} masquerade
+      }
+    '';
   };
+
+  systemd.services.wlt-routing.script = lib.mkAfter ''
+    ip -4 rule del pref 7 fwmark ${wgEl2.mark}/0xffffffff lookup ${wgEl2.routeTable} 2>/dev/null || true
+    ip -4 rule add pref 7 fwmark ${wgEl2.mark}/0xffffffff lookup ${wgEl2.routeTable}
+  '';
 }

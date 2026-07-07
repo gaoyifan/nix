@@ -145,7 +145,12 @@
       "openclaw"
       "default"
     ];
-    overlay = final: prev: import ./pkgs prev;
+    customPackages = pkgs:
+      import ./pkgs pkgs
+      // {
+        nft-geo-sets = import ./pkgs/nft-geo-sets.nix {inherit pkgs inputs;};
+      };
+    overlay = _final: prev: customPackages prev;
     # NixOS host builder: shared nixpkgs setup, common modules, and
     # home-manager integration. Hosts only list their own modules.
     mkNixosHost = system: hostModules:
@@ -209,7 +214,7 @@
   in {
     # Custom packages: nix build .#lazyssh
     packages = forAllSystems (system: let
-      packages = import ./pkgs (pkgsFor system);
+      packages = customPackages (pkgsFor system);
     in
       packages
       // {
