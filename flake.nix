@@ -217,6 +217,7 @@
         cursor-agent = packages.cursor-cli;
         difftastic = (pkgsFor system).difftastic;
         fd = (pkgsFor system).fd;
+        gh = (pkgsFor system).gh;
         yazi = (pkgsFor system).yazi-unwrapped;
       }
       // nixpkgs.lib.optionalAttrs (!(nixpkgs.lib.hasSuffix "darwin" system)) {
@@ -242,6 +243,7 @@
           "cursor-cli"
           "difftastic"
           "fd"
+          "gh"
           "mcat"
           "yazi"
         ]
