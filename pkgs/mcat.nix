@@ -54,7 +54,7 @@ in
     inherit (mcat-unwrapped) version meta;
   }
   ''
-    mkdir -p "$out/bin"
-    ln -s "${mcat-unwrapped}/share" "$out/share"
+    mkdir -p "$out/bin" "$out/share"
+    cp -R "${mcat-unwrapped}/share/." "$out/share/"
     ln -s "${lib.getExe mcat-unwrapped}" "$out/bin/mcat"
   ''

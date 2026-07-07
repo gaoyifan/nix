@@ -11,11 +11,22 @@
     rev = "16a37c5f59243a68cd662a8cb70497cbcfaa10b2";
     hash = "sha256-vxGOr4jTAI0w4Y9Gz/1iEGT2YIq76DJiYIQ+vl4M7qA=";
   };
+  dynamicCliCompletions = pkgs.runCommand "dynamic-cli-completions" {} ''
+    install -Dm644 ${pkgs.fd}/share/zsh/site-functions/_fd \
+      "$out/share/zsh/site-functions/_fd"
+    install -Dm644 ${pkgs.gh}/share/zsh/site-functions/_gh \
+      "$out/share/zsh/site-functions/_gh"
+    install -Dm644 ${pkgs.yazi-unwrapped}/share/zsh/site-functions/_yazi \
+      "$out/share/zsh/site-functions/_yazi"
+    install -Dm644 ${pkgs.mcat}/share/zsh/site-functions/_mcat \
+      "$out/share/zsh/site-functions/_mcat"
+  '';
 in {
   # The home.packages option allows you to install Nix packages into your
   # environment.
   home.packages = with pkgs; [
     # Zsh completions
+    dynamicCliCompletions
     zsh-completions
   ];
 
