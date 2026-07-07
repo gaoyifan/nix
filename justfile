@@ -250,9 +250,15 @@ deploy target:
 deploy-somo-minisforum:
     #!/usr/bin/env bash
     set -euo pipefail
+    target="somo-minisforum"
+    local_hostname="$(hostname -s 2>/dev/null || hostname 2>/dev/null || true)"
+    if [ "$local_hostname" = "$target" ]; then
+        echo "Already on $target; running local NixOS switch..."
+        {{ self_just }} nixos
+        exit 0
+    fi
     source <({{ self_just }} _emit_nix_env)
     source <({{ self_just }} _emit_flake_ref)
-    target="somo-minisforum"
     host="$(nix eval --accept-flake-config "$FLAKE_REF#deploy.nodes.$target.hostname" --raw)"
     remote_dir="/home/yifan/nix"
     ssh "root@$host" "install -d -o yifan -g users -m 755 '$remote_dir'"
