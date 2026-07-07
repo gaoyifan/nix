@@ -67,6 +67,10 @@
     tsshd # launched by tssh --udp over the initial SSH connection
   ];
 
+  environment.interactiveShellInit = ''
+    export PATH="$HOME/.local/share/nix-lazy-apps/bin:$PATH"
+  '';
+
   # This host cannot reach cache.nixos.org reliably: prefer Chinese mirrors
   # instead (SJTU covers paths USTC's sync lags on), keep the personal cache
   # for custom overlay packages, and leave cache.nixos.org as the last fallback.
