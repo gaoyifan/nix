@@ -215,7 +215,8 @@ in {
       }
 
       # Host-originated IPv4 overseas traffic uses the dedicated WireGuard
-      # egress. Overseas IPv6 is disabled because that tunnel is IPv4-only.
+      # egress. Overseas IPv6 is disabled because that tunnel is IPv4-only,
+      # except echo requests for diagnostics, which may use the WAN uplink.
       # `type route` re-runs the routing decision after the mark changes.
       # Exemptions: anything already marked (tailscale sockets carry 0x80000)
       # and nylon's own UDP transport, which must keep the default uplink
@@ -225,6 +226,7 @@ in {
         meta mark != 0 return
         udp sport ${toString nylonUdpPort} return
         ip daddr != @cn meta mark set ${wgEl2.mark}
+        ip6 daddr != @cn6 icmpv6 type echo-request return
         ip6 daddr != @cn6 meta mark set 0xff
       }
 
