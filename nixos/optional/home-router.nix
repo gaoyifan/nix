@@ -200,6 +200,12 @@ in {
         default = [];
         description = "dnsmasq dhcp-host values.";
       };
+      extraInterfaces = lib.mkOption {
+        type = types.listOf types.str;
+        default = [];
+        example = ["tailscale0"];
+        description = "Additional interfaces on which dnsmasq should answer DNS queries.";
+      };
       extraSettings = lib.mkOption {
         type = types.attrs;
         default = {};
@@ -274,7 +280,7 @@ in {
         settings =
           {
             bind-dynamic = true;
-            interface = bridgeNames;
+            interface = bridgeNames ++ cfg.dnsmasq.extraInterfaces;
             no-resolv = true;
             server = cfg.dnsmasq.servers;
             domain = cfg.dnsmasq.domain;
