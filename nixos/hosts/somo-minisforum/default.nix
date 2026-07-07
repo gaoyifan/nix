@@ -21,6 +21,12 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
   boot.kernelModules = ["mt7921e"];
+  boot.kernelParams = [
+    "zswap.enabled=1"
+    "zswap.max_pool_percent=10"
+    "zswap.compressor=zstd"
+  ];
+  boot.kernel.sysctl."vm.swappiness" = 60;
 
   fileSystems."/".options = ["compress=zstd" "noatime"];
 
