@@ -3,6 +3,7 @@ nix_profile := "/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh"
 nix_bin_dir := "/nix/var/nix/profiles/default/bin"
 submodule_path := "secrets/files"
 home_manager_backup_extension := "backup-$(date +%Y%m%d-%H%M%S)"
+deploy_rebuild_substituters := "https://mirrors.ustc.edu.cn/nix-channels/store https://mirror.sjtu.edu.cn/nix-channels/store https://nix-cache.yfgao.net?priority=50 https://cache.nixos.org?priority=100"
 self_just := quote(just_executable()) + " --justfile " + quote(justfile()) + " --working-directory " + quote(justfile_directory()) + " --quiet"
 
 # Default recipe: pulls the latest code, then applies the appropriate configuration
@@ -243,22 +244,22 @@ deploy target:
     set -euo pipefail
     source <({{ self_just }} _emit_nix_env)
     source <({{ self_just }} _emit_flake_ref)
-    nix develop --accept-flake-config -c deploy .#{{ target }} --skip-checks
+    nix develop --accept-flake-config "$FLAKE_REF" -c deploy "$FLAKE_REF#{{ target }}" --skip-checks
 
-# Deploy somo-minisforum via target-side nixos-rebuild.
+# Deploy NixOS via target-side nixos-rebuild.
 [group('config')]
-deploy-somo-minisforum:
+deploy-rebuild target:
     #!/usr/bin/env bash
     set -euo pipefail
-    target="somo-minisforum"
     local_hostname="$(hostname -s 2>/dev/null || hostname 2>/dev/null || true)"
-    if [ "$local_hostname" = "$target" ]; then
-        echo "Already on $target; running local NixOS switch..."
-        {{ self_just }} nixos
-        exit 0
-    fi
     source <({{ self_just }} _emit_nix_env)
     source <({{ self_just }} _emit_flake_ref)
+    target="{{ target }}"
+    if [ "$local_hostname" = "$target" ]; then
+        echo "Already on $target; running local NixOS switch..."
+        {{ self_just }} nixos "$target"
+        exit 0
+    fi
     host="$(nix eval --accept-flake-config "$FLAKE_REF#deploy.nodes.$target.hostname" --raw)"
     remote_dir="/home/yifan/nix"
     ssh "root@$host" "install -d -o yifan -g users -m 755 '$remote_dir'"
@@ -268,4 +269,4 @@ deploy-somo-minisforum:
     ssh "root@$host" \
         "set -euo pipefail
         nixos-rebuild switch --accept-flake-config --flake 'path:$remote_dir#$target' \
-            --option substituters 'https://mirrors.ustc.edu.cn/nix-channels/store https://mirror.sjtu.edu.cn/nix-channels/store https://nix-cache.yfgao.net?priority=50 https://cache.nixos.org?priority=100'"
+            --option substituters '{{ deploy_rebuild_substituters }}'"

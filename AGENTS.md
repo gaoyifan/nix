@@ -15,6 +15,7 @@
 
 - `just` / `just darwin` / `just home` / `just system`: Apply configuration (auto-detects OS; `system` runs system-manager on non-NixOS Linux)
 - `just deploy <target>`: Deploy NixOS via deploy-rs
+- `just deploy-rebuild <target>`: Deploy NixOS via target-side `nixos-rebuild switch` with explicit substituters
 - `just fmt`: Format with `alejandra`
 - `just check`: Validate flake with `--no-build` (`--all-systems` on Linux, host system only on Darwin)
 

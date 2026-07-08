@@ -68,6 +68,9 @@ just check
 
 # Deploy a NixOS target through deploy-rs
 just deploy <target>
+
+# Deploy a NixOS target by running nixos-rebuild on the target host
+just deploy-rebuild <target>
 ```
 
 ## Flake Outputs
