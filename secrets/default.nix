@@ -22,8 +22,24 @@ in {
 
     nixos."somo-minisforum".vms = lib.mkOption {
       type = lib.types.attrs;
-      default = import (secretsDir + "/nixos/somo-minisforum/vms.nix");
+      default = import (secretsDir + "/nixos/somo-minisforum/vms.nix") {
+        hermes = config.services.secrets.nixos.hermes;
+      };
       description = "Declarative Incus VM definitions for somo-minisforum.";
+      internal = true;
+    };
+
+    nixos.hermes = lib.mkOption {
+      type = lib.types.attrs;
+      default = import (secretsDir + "/nixos/hermes.nix");
+      description = "Hermes operator VM inventory shared by SOMO services.";
+      internal = true;
+    };
+
+    nixos.internalSubstituters = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = import (secretsDir + "/nixos/internal-substituters.nix");
+      description = "Internal-only Nix substituters.";
       internal = true;
     };
 
@@ -35,6 +51,15 @@ in {
           privateKeyFile = "${config.services.secrets.filesDir}/nixos/somo-minisforum/wg-el2-private-key";
         };
       description = "WireGuard EL2 egress configuration for somo-minisforum.";
+      internal = true;
+    };
+
+    nixos."somo-gw".caddy = lib.mkOption {
+      type = lib.types.attrs;
+      default = import (secretsDir + "/nixos/somo-gw/caddy.nix") {
+        hermes = config.services.secrets.nixos.hermes;
+      };
+      description = "Caddy virtual hosts and private DNS delegates for somo-gw.";
       internal = true;
     };
 

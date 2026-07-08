@@ -80,6 +80,11 @@
       inputs.flake-compat.follows = "flake-compat";
       inputs.userborn.follows = "userborn";
     };
+
+    disko = {
+      url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = {
@@ -90,6 +95,7 @@
     nix-darwin,
     deploy-rs,
     system-manager,
+    disko,
     ...
   } @ inputs: let
     systems = [
@@ -187,6 +193,15 @@
         user = "root";
         path = deploy-rs.lib.${system}.activate.nixos nixosConfig;
         remoteBuild = true;
+      };
+    };
+    mkLocalBuildDeployNode = system: hostname: nixosConfig: {
+      inherit hostname;
+      sshUser = "root";
+      profiles.system = {
+        user = "root";
+        path = deploy-rs.lib.${system}.activate.nixos nixosConfig;
+        remoteBuild = false;
       };
     };
     mkLinuxSystemConfig = system: extraModules:
@@ -331,6 +346,10 @@
     # NixOS configurations
     nixosConfigurations = {
       somo-minisforum = mkNixosHost "x86_64-linux" [./nixos/hosts/somo-minisforum];
+      somo-gw = mkNixosHost "x86_64-linux" [
+        disko.nixosModules.disko
+        ./nixos/hosts/somo-gw
+      ];
     };
 
     # Linux system configuration for non-NixOS hosts.
@@ -348,6 +367,7 @@
 
     # deploy-rs configuration
     deploy.nodes.somo-minisforum = mkDeployNode "x86_64-linux" "somo-minisforum.ts.gaof.net" self.nixosConfigurations.somo-minisforum;
+    deploy.nodes.somo-gw = mkLocalBuildDeployNode "x86_64-linux" "115.29.195.35" self.nixosConfigurations.somo-gw;
     checks = builtins.mapAttrs (system: deployLib: deployLib.deployChecks self.deploy) deploy-rs.lib;
   };
 }

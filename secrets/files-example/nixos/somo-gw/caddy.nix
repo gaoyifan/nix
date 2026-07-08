@@ -1,0 +1,4 @@
+{hermes}: {
+  dnsDelegates = {};
+  virtualHosts = {};
+}
