@@ -160,6 +160,12 @@ in {
     DNS = ["1.1.1.1" "1.0.0.1"];
     Domains = ["~."];
   };
+  services.resolved.dnsDelegates.cjia = {
+    Delegate = {
+      DNS = ["100.65.1.254"];
+      Domains = ["cjia.gaof.net"];
+    };
+  };
 
   systemd.network.networks."40-br-gnet" = {
     dns = ["100.65.2.254"];
