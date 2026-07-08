@@ -54,12 +54,11 @@ in {
     enable = true;
     useRoutingFeatures = "server";
     openFirewall = false;
-    extraUpFlags = [
+    extraSetFlags = [
       "--accept-dns=false"
       "--accept-routes"
       "--advertise-exit-node"
       "--netfilter-mode=off"
-      "--ssh"
     ];
   };
 
