@@ -70,7 +70,13 @@ in {
       };
     };
 
-    nat.sourceSubnet = "100.64.0.0/10";
+    nat = {
+      ipv4SourceSubnet = "100.64.0.0/10";
+      ipv6SourceSubnets = [
+        "fd9a:2d16:5c3e:2::/64"
+        "fd9a:2d16:5c3e:3::/64"
+      ];
+    };
 
     dnsmasq = {
       domain = lanDomain;

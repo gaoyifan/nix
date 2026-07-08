@@ -8,6 +8,11 @@
 
   bridgeNames = lib.attrNames cfg.bridges;
   trunkNames = lib.attrNames cfg.trunks;
+  ipv6NatRules =
+    lib.concatMapStringsSep "\n" (ipv6SourceSubnet: ''
+      ip6 saddr ${ipv6SourceSubnet} oifname "${cfg.wan.interface}" masquerade
+    '')
+    cfg.nat.ipv6SourceSubnets;
 
   vlanDeviceName = trunkName: vlanKey: vlanCfg:
     if vlanCfg.name != null
@@ -168,11 +173,17 @@ in {
     };
 
     nat = {
-      sourceSubnet = lib.mkOption {
+      ipv4SourceSubnet = lib.mkOption {
         type = types.nullOr types.str;
         default = null;
         example = "192.168.0.0/24";
-        description = "Source subnet masqueraded through the WAN interface.";
+        description = "IPv4 source subnet masqueraded through the WAN interface.";
+      };
+      ipv6SourceSubnets = lib.mkOption {
+        type = types.listOf types.str;
+        default = [];
+        example = ["fd00::/64"];
+        description = "IPv6 source subnets masqueraded through the WAN interface.";
       };
     };
 
@@ -222,8 +233,8 @@ in {
           message = "networking.homeRouter.wan.interface must be set when networking.homeRouter is enabled.";
         }
         {
-          assertion = cfg.nat.sourceSubnet != null;
-          message = "networking.homeRouter.nat.sourceSubnet must be set when networking.homeRouter is enabled.";
+          assertion = cfg.nat.ipv4SourceSubnet != null;
+          message = "networking.homeRouter.nat.ipv4SourceSubnet must be set when networking.homeRouter is enabled.";
         }
         {
           assertion = cfg.dnsmasq.domain != null;
@@ -267,11 +278,23 @@ in {
         content = ''
           chain postrouting {
             type nat hook postrouting priority srcnat; policy accept;
-            ip saddr ${cfg.nat.sourceSubnet} oifname "${cfg.wan.interface}" masquerade
+            ip saddr ${cfg.nat.ipv4SourceSubnet} oifname "${cfg.wan.interface}" masquerade
           }
         '';
       };
     }
+
+    (lib.mkIf (cfg.nat.ipv6SourceSubnets != []) {
+      networking.nftables.tables.nat6 = {
+        family = "ip6";
+        content = ''
+          chain postrouting {
+            type nat hook postrouting priority srcnat; policy accept;
+            ${ipv6NatRules}
+          }
+        '';
+      };
+    })
 
     {
       services.dnsmasq = {
