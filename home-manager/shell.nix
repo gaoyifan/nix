@@ -24,6 +24,7 @@
   dynamicCliRelBinDir = ".local/share/nix-lazy-apps/bin";
   dynamicCliApps = {
     agy = {};
+    ansible = {};
     copilot = {
       args = ["--yolo"];
     };

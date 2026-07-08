@@ -233,6 +233,7 @@
     in
       packages
       // {
+        ansible = (pkgsFor system).ansible;
         copilot = packages.copilot-cli;
         cursor-agent = packages.cursor-cli;
         difftastic = (pkgsFor system).difftastic;
@@ -250,12 +251,16 @@
       packages = self.packages.${system};
       mkApp = name: {
         type = "app";
-        program = nixpkgs.lib.getExe packages.${name};
+        program =
+          if name == "ansible"
+          then nixpkgs.lib.getExe' packages.${name} "ansible"
+          else nixpkgs.lib.getExe packages.${name};
         meta = packages.${name}.meta;
       };
       cliApps =
         nixpkgs.lib.genAttrs [
           "agy"
+          "ansible"
           "codex"
           "copilot"
           "copilot-cli"
