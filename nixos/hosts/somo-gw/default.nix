@@ -48,6 +48,7 @@ in {
     dig
     htop
     tcpdump
+    tsshd
   ];
 
   services.tailscale = {
