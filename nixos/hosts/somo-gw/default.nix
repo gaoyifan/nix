@@ -45,10 +45,7 @@ in {
   };
 
   environment.systemPackages = with pkgs; [
-    dig
     htop
-    tcpdump
-    tsshd
   ];
 
   services.tailscale = {

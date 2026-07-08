@@ -1,10 +1,7 @@
 # somo-minisforum - Minisforum mini PC, always-on Incus (KVM) host.
-{
-  lib,
-  pkgs,
-  ...
-}: {
+{lib, ...}: {
   imports = [
+    ../../optional/bare-metal.nix
     ./hardware-configuration.nix
     ./networking.nix
     ./virtualisation.nix
@@ -31,41 +28,6 @@
   fileSystems."/".options = ["compress=zstd" "noatime"];
 
   hardware.enableRedistributableFirmware = true;
-
-  environment.systemPackages = with pkgs; [
-    # Utilities from the NixOS installer base profile, useful for installing or
-    # repairing the system.
-    ccrypt
-    cryptsetup
-    ddrescue
-    efibootmgr
-    efivar
-    fuse
-    fuse3
-    gptfdisk
-    hdparm
-    iperf3
-    jq
-    mtr
-    ms-sys
-    nvme-cli
-    parted
-    pciutils
-    pv
-    screen
-    sdparm
-    smartmontools
-    socat
-    sshfs-fuse
-    tcpdump
-    unzip
-    usbutils
-    vim
-    zip
-
-    dnsutils # dig, for debugging the dnsmasq resolver
-    tsshd # launched by tssh --udp over the initial SSH connection
-  ];
 
   environment.interactiveShellInit = ''
     export PATH="$HOME/.local/share/nix-lazy-apps/bin:$PATH"

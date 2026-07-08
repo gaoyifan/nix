@@ -1,4 +1,4 @@
-# Core system defaults shared by all hosts.
+# Core system defaults shared by all NixOS hosts.
 {
   lib,
   pkgs,
@@ -11,10 +11,25 @@
 
   environment.systemPackages = with pkgs; [
     btop
+    ccrypt
     curl
+    dnsutils
+    fuse
+    fuse3
     git
+    iperf3
+    jq
+    mtr
+    pv
+    screen
+    socat
+    sshfs-fuse
     tmux
+    tcpdump
+    tsshd
+    unzip
     vim
     wget
+    zip
   ];
 }
