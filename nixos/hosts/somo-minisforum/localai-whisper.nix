@@ -20,6 +20,13 @@
     - filename: ggml-large-v3.bin
       uri: https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin
   '';
+
+  hermesWhisperModelConfig = pkgs.writeText "localai-hermes-whisper.yaml" ''
+    name: localai-whisper
+    backend: whisper
+    parameters:
+      model: ggml-large-v3.bin
+  '';
 in {
   virtualisation.oci-containers.containers.localai-whisper = {
     image = "docker.io/localai/localai:latest-gpu-vulkan";
@@ -29,9 +36,10 @@ in {
       "${dataDir}:/data"
       "${uploadsDir}:/tmp/localai/upload"
       "${whisperModelConfig}:/models/whisper-1.yaml:ro"
+      "${hermesWhisperModelConfig}:/models/localai-whisper.yaml:ro"
     ];
     environment = {
-      LOCALAI_ADDRESS = "127.0.0.1:8080";
+      LOCALAI_ADDRESS = "100.65.3.254:8080";
       LOCALAI_MODELS_PATH = "/models";
       LOCALAI_BACKENDS_PATH = "/backends";
       LOCALAI_UPLOAD_PATH = "/tmp/localai/upload";
@@ -43,6 +51,7 @@ in {
     };
     extraOptions = [
       "--network=host"
+      "--no-healthcheck"
       "--device=/dev/dri"
       "--group-add=26"
       "--group-add=303"
@@ -73,6 +82,22 @@ in {
         -v ${backendsDir}:/backends \
         docker.io/localai/localai:latest-gpu-vulkan \
         backends install localai@vulkan-whisper
+    '')
+  ];
+
+  systemd.services.podman-localai-whisper.serviceConfig.ExecStartPost = lib.mkAfter [
+    (pkgs.writeShellScript "localai-whisper-wait-ready" ''
+      set -euo pipefail
+
+      for _ in $(seq 1 60); do
+        if ${pkgs.curl}/bin/curl -fsS http://100.65.3.254:8080/readyz >/dev/null; then
+          exit 0
+        fi
+        sleep 1
+      done
+
+      echo "LocalAI Whisper did not become ready on 100.65.3.254:8080" >&2
+      exit 1
     '')
   ];
 }
