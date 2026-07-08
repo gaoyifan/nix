@@ -9,7 +9,7 @@
     ./ksm.nix
     ./vms.nix
     ./newapi.nix
-    ./localai-whisper.nix
+    ./whisper-server.nix
     ./wifi-ap.nix
     ./tailscale.nix
     ./wg-el2.nix
