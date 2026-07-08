@@ -31,6 +31,8 @@
 
 Use conventional subjects: `feat(scope):`, `fix:`, `refactor:`, `chore:`, `docs:`, `ci:`, `style:`
 
+Do not push commits or tags unless the user explicitly asks you to push.
+
 ## Testing
 
 Before Nix evaluation or switch, run `git add -N <filename>.nix` for new `.nix` files.
