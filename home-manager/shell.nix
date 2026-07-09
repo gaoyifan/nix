@@ -34,6 +34,7 @@
     fd = {};
     gh = {};
     mcat = {};
+    ruby = {};
     yazi = {};
   };
   nixRunCacheOptions = [

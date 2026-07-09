@@ -242,6 +242,7 @@
         difftastic = pkgs.difftastic;
         fd = pkgs.fd;
         gh = pkgs.gh;
+        ruby = pkgs.ruby;
         yazi = pkgs.yazi-unwrapped;
       }
       // nixpkgs.lib.optionalAttrs (!(nixpkgs.lib.hasSuffix "darwin" system)) {
@@ -270,6 +271,7 @@
           "fd"
           "gh"
           "mcat"
+          "ruby"
           "yazi"
         ]
         mkApp;
