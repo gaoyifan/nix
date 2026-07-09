@@ -31,8 +31,6 @@ in {
     preStart = ''
       set -euo pipefail
 
-      mkdir -p ${lib.escapeShellArg modelsDir} ${lib.escapeShellArg tmpDir}
-
       if [ ! -s ${lib.escapeShellArg modelPath} ]; then
         if [ -s /tmp/whisper-models/${lib.escapeShellArg modelName} ]; then
           install -m 0644 /tmp/whisper-models/${lib.escapeShellArg modelName} ${lib.escapeShellArg modelPath}
