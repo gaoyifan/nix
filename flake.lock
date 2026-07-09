@@ -1,5 +1,29 @@
 {
   "nodes": {
+    "auto-pause-cemu": {
+      "inputs": {
+        "nix-darwin": [
+          "nix-darwin"
+        ],
+        "nixpkgs": [
+          "nixpkgs-darwin"
+        ],
+        "systems": "systems"
+      },
+      "locked": {
+        "lastModified": 1783626008,
+        "narHash": "sha256-Mh4QFB9s/dSfRvrweyU9fw/GkU7sNIYMXASdI2q88qo=",
+        "owner": "gaoyifan",
+        "repo": "auto-pause-cemu",
+        "rev": "a4a0edc71b30644842e64952971a6e1c86b82815",
+        "type": "github"
+      },
+      "original": {
+        "owner": "gaoyifan",
+        "repo": "auto-pause-cemu",
+        "type": "github"
+      }
+    },
     "china-operator-ip": {
       "flake": false,
       "locked": {
@@ -261,6 +285,7 @@
     },
     "root": {
       "inputs": {
+        "auto-pause-cemu": "auto-pause-cemu",
         "china-operator-ip": "china-operator-ip",
         "chnroutes2": "chnroutes2",
         "deploy-rs": "deploy-rs",
@@ -272,7 +297,7 @@
         "nixpkgs": "nixpkgs",
         "nixpkgs-darwin": "nixpkgs-darwin",
         "system-manager": "system-manager",
-        "systems": "systems",
+        "systems": "systems_2",
         "userborn": "userborn",
         "witr": "witr"
       }
@@ -304,6 +329,21 @@
       }
     },
     "systems": {
+      "locked": {
+        "lastModified": 1689347925,
+        "narHash": "sha256-ozenz5bFe1UUqOn7f60HRmgc01BgTGIKZ4Xl+HbocGQ=",
+        "owner": "nix-systems",
+        "repo": "default-darwin",
+        "rev": "2235d7e6cc29ae99878133c95e9fe5e157661ffb",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-systems",
+        "repo": "default-darwin",
+        "type": "github"
+      }
+    },
+    "systems_2": {
       "locked": {
         "lastModified": 1681028828,
         "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",

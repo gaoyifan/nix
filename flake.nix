@@ -47,6 +47,12 @@
       inputs.nixpkgs.follows = "nixpkgs-darwin";
     };
 
+    auto-pause-cemu = {
+      url = "github:gaoyifan/auto-pause-cemu";
+      inputs.nix-darwin.follows = "nix-darwin";
+      inputs.nixpkgs.follows = "nixpkgs-darwin";
+    };
+
     witr = {
       url = "github:pranshuparmar/witr";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -338,6 +344,7 @@
               nixpkgs.config.allowUnfree = true;
             }
             ./darwin/configuration.nix
+            ./darwin/auto-pause-cemu.nix
 
             # Integrate home-manager as a darwin module
             home-manager.darwinModules.home-manager
