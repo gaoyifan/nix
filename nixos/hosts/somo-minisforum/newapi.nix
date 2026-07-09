@@ -8,7 +8,7 @@
 # tokens; everything lives under /var/lib/new-api.
 {...}: {
   virtualisation.oci-containers.containers.new-api = {
-    image = "docker.io/calciumion/new-api:latest";
+    image = "docker.io/calciumion/new-api:v1.0.0-rc.20";
     volumes = ["/var/lib/new-api:/data"];
     environment.TZ = "Asia/Shanghai";
     # Host networking, same as the other containers on this host (wlt,
