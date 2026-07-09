@@ -23,6 +23,9 @@
     [object "mem0"]
     share = "off"
     merge = "on"
+
+    [device "qemu_balloon"]
+    free-page-reporting = "on"
   '';
   vmSpec =
     lib.mapAttrs (_: vm: {
