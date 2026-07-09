@@ -71,6 +71,7 @@ in {
       ];
       path = [
         pkgs.coreutils
+        pkgs.gnused
         pkgs.iproute2
       ];
       serviceConfig = {
@@ -78,22 +79,17 @@ in {
         RemainAfterExit = true;
       };
       script = ''
-        install -d -m 0755 /run/policy-routing
-
         {
           echo 'rule flush'
           cat ${ipv4Rules}
           ${mkAppendRuleFiles cfg.ipv4.ruleFiles}
-        } > /run/policy-routing/ipv4.batch
+        } | ip -4 -force -batch -
 
         {
           echo 'rule flush'
           cat ${ipv6Rules}
           ${mkAppendRuleFiles cfg.ipv6.ruleFiles}
-        } > /run/policy-routing/ipv6.batch
-
-        ip -4 -force -batch /run/policy-routing/ipv4.batch
-        ip -6 -force -batch /run/policy-routing/ipv6.batch
+        } | ip -6 -force -batch -
       '';
     };
 
