@@ -229,17 +229,20 @@
   in {
     # Custom packages: nix build .#lazyssh
     packages = forAllSystems (system: let
-      packages = customPackages (pkgsFor system);
+      pkgs = pkgsFor system;
+      packages = customPackages pkgs;
     in
       packages
       // {
-        ansible = (pkgsFor system).ansible;
+        ansible = pkgs.ansible.overrideAttrs (old: {
+          meta = (old.meta or {}) // {mainProgram = "ansible";};
+        });
         copilot = packages.copilot-cli;
         cursor-agent = packages.cursor-cli;
-        difftastic = (pkgsFor system).difftastic;
-        fd = (pkgsFor system).fd;
-        gh = (pkgsFor system).gh;
-        yazi = (pkgsFor system).yazi-unwrapped;
+        difftastic = pkgs.difftastic;
+        fd = pkgs.fd;
+        gh = pkgs.gh;
+        yazi = pkgs.yazi-unwrapped;
       }
       // nixpkgs.lib.optionalAttrs (!(nixpkgs.lib.hasSuffix "darwin" system)) {
         system-manager = system-manager.packages.${system}.default;
@@ -251,10 +254,7 @@
       packages = self.packages.${system};
       mkApp = name: {
         type = "app";
-        program =
-          if name == "ansible"
-          then nixpkgs.lib.getExe' packages.${name} "ansible"
-          else nixpkgs.lib.getExe packages.${name};
+        program = nixpkgs.lib.getExe packages.${name};
         meta = packages.${name}.meta;
       };
       cliApps =
