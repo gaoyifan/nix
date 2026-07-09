@@ -15,7 +15,7 @@
     npages_min=64
     npages_max=1250
     sleep_millisecs_for_16gib=100
-    threshold_percent=20
+    threshold_percent=30
     threshold_const_kib=2048
     npages=0
 
