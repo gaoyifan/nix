@@ -11,11 +11,11 @@
         "systems": "systems"
       },
       "locked": {
-        "lastModified": 1783627037,
-        "narHash": "sha256-gJeUDrAA2WpwRA6hOHiqifpw67DM/qwkst8Ziyr+Gak=",
+        "lastModified": 1783627318,
+        "narHash": "sha256-EUP35Sjz1nlhsJMoDFTmvAoMdxmutlZ0WItfyHRQjpQ=",
         "owner": "gaoyifan",
         "repo": "auto-pause-cemu",
-        "rev": "6ddc574aa1d1b52ec825ae45752c7ff8df8f204f",
+        "rev": "871ee2f831a4a7b02e2bf652001ba76cfa05337e",
         "type": "github"
       },
       "original": {
