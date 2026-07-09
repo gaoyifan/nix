@@ -43,8 +43,13 @@
     export VM_SPEC=${vmSpecFile}
     exec ${pkgs.ruby}/bin/ruby ${./incus-apply-declarative-vms.rb} "$@"
   '';
+
+  dropVmCaches = pkgs.writeShellScriptBin "incus-drop-vm-caches-on-low-memory" ''
+    export INCUS=${lib.escapeShellArg incus}
+    exec ${pkgs.ruby}/bin/ruby ${./incus-drop-vm-caches-on-low-memory.rb}
+  '';
 in {
-  environment.systemPackages = [applyDeclarativeVms];
+  environment.systemPackages = [applyDeclarativeVms dropVmCaches];
 
   systemd.services.incus-declarative-vms = {
     description = "Create and configure declarative Incus VMs";
@@ -62,5 +67,25 @@ in {
     script = ''
       ${applyDeclarativeVms}/bin/incus-apply-declarative-vms --no-restart
     '';
+  };
+
+  systemd.services.incus-drop-vm-caches-on-low-memory = {
+    description = "Drop Incus VM guest caches when host memory is low";
+    wants = ["incus.service"];
+    after = ["incus.service"];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${dropVmCaches}/bin/incus-drop-vm-caches-on-low-memory";
+    };
+  };
+
+  systemd.timers.incus-drop-vm-caches-on-low-memory = {
+    description = "Check host memory pressure for Incus VM cache reclaim";
+    wantedBy = ["timers.target"];
+    timerConfig = {
+      OnBootSec = "1min";
+      OnUnitActiveSec = "1min";
+      AccuracySec = "10s";
+    };
   };
 }
