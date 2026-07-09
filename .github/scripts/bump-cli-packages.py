@@ -51,9 +51,9 @@ PACKAGES = {
         "tag_pattern": r"^rust-v[0-9]+\.[0-9]+\.[0-9]+$",
         "version_from_tag": lambda tag: tag.removeprefix("rust-v"),
         "assets": {
-            "x86_64-linux": "codex-x86_64-unknown-linux-musl.tar.gz",
-            "aarch64-linux": "codex-aarch64-unknown-linux-musl.tar.gz",
-            "aarch64-darwin": "codex-aarch64-apple-darwin.tar.gz",
+            "x86_64-linux": "codex-package-x86_64-unknown-linux-musl.tar.gz",
+            "aarch64-linux": "codex-package-aarch64-unknown-linux-musl.tar.gz",
+            "aarch64-darwin": "codex-package-aarch64-apple-darwin.tar.gz",
         },
         "url": lambda version, asset: f"https://github.com/openai/codex/releases/download/rust-v{version}/{asset}",
     },
