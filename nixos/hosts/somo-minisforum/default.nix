@@ -5,6 +5,7 @@
     ./hardware-configuration.nix
     ./networking.nix
     ./virtualisation.nix
+    ./graphics.nix
     ./bees.nix
     ./ksm.nix
     ./vms.nix
