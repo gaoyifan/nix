@@ -237,6 +237,9 @@
         ansible = pkgs.ansible.overrideAttrs (old: {
           meta = (old.meta or {}) // {mainProgram = "ansible";};
         });
+        ansible-playbook = pkgs.ansible.overrideAttrs (old: {
+          meta = (old.meta or {}) // {mainProgram = "ansible-playbook";};
+        });
         copilot = packages.copilot-cli;
         cursor-agent = packages.cursor-cli;
         difftastic = pkgs.difftastic;
@@ -262,6 +265,7 @@
         nixpkgs.lib.genAttrs [
           "agy"
           "ansible"
+          "ansible-playbook"
           "codex"
           "copilot"
           "copilot-cli"

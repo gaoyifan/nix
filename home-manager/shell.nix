@@ -25,6 +25,7 @@
   dynamicCliApps = {
     agy = {};
     ansible = {};
+    ansible-playbook = {};
     copilot = {
       args = ["--yolo"];
     };
