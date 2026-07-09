@@ -114,10 +114,8 @@
     "ramonvermeulen/whosthere/whosthere" # See who's on your network
 
     # AI Tools
-    "antigravity"
     "chatgpt"
     "chatgpt-atlas"
-    "codex"
     "codex-app"
     "lm-studio" # Local LLM runner
     "openclaw"
