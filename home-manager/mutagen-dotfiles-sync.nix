@@ -25,31 +25,32 @@
     scanMode = "accelerated";
     compression = "deflate";
   });
+  mutagenDataEnv = ''
+    export MUTAGEN_DATA_DIRECTORY=${mutagenDataDir}
+  '';
+  mutagenSshEnv =
+    mutagenDataEnv
+    + ''
+      export MUTAGEN_SSH_PATH=${sshWrapper}/bin
+      unset SSH_AUTH_SOCK SSH_AGENT_PID
+    '';
+  mkSshWrapper = name:
+    pkgs.writeShellScriptBin name ''
+      if [ -f ${lib.escapeShellArg identityFile} ]; then
+        exec env -u SSH_AUTH_SOCK -u SSH_AGENT_PID ${pkgs.openssh}/bin/${name} \
+          -o IdentityAgent=none \
+          -o IdentitiesOnly=yes \
+          -o IdentityFile=${lib.escapeShellArg identityFile} \
+          "$@"
+      fi
+
+      exec ${pkgs.openssh}/bin/${name} "$@"
+    '';
   sshWrapper = pkgs.symlinkJoin {
     name = "mutagen-dotfiles-ssh-wrapper";
     paths = [
-      (pkgs.writeShellScriptBin "ssh" ''
-        if [ -f ${lib.escapeShellArg identityFile} ]; then
-          exec env -u SSH_AUTH_SOCK -u SSH_AGENT_PID ${pkgs.openssh}/bin/ssh \
-            -o IdentityAgent=none \
-            -o IdentitiesOnly=yes \
-            -o IdentityFile=${lib.escapeShellArg identityFile} \
-            "$@"
-        fi
-
-        exec ${pkgs.openssh}/bin/ssh "$@"
-      '')
-      (pkgs.writeShellScriptBin "scp" ''
-        if [ -f ${lib.escapeShellArg identityFile} ]; then
-          exec env -u SSH_AUTH_SOCK -u SSH_AGENT_PID ${pkgs.openssh}/bin/scp \
-            -o IdentityAgent=none \
-            -o IdentitiesOnly=yes \
-            -o IdentityFile=${lib.escapeShellArg identityFile} \
-            "$@"
-        fi
-
-        exec ${pkgs.openssh}/bin/scp "$@"
-      '')
+      (mkSshWrapper "ssh")
+      (mkSshWrapper "scp")
     ];
   };
   reconcileScript = pkgs.writeShellApplication {
@@ -61,9 +62,7 @@
     ];
     text = ''
       set -euo pipefail
-      export MUTAGEN_DATA_DIRECTORY=${mutagenDataDir}
-      export MUTAGEN_SSH_PATH=${sshWrapper}/bin
-      unset SSH_AUTH_SOCK SSH_AGENT_PID
+      ${mutagenSshEnv}
 
       session_name="syncd-dotfiles"
       service_selector="managed==true,service==syncd-dotfiles"
@@ -131,7 +130,7 @@
     runtimeInputs = [pkgs.mutagen];
     text = ''
       set -euo pipefail
-      export MUTAGEN_DATA_DIRECTORY=${mutagenDataDir}
+      ${mutagenDataEnv}
 
       selector="managed==true,service==syncd-dotfiles"
       exec mutagen sync list --label-selector "$selector" -l
@@ -145,7 +144,7 @@
     ];
     text = ''
       set -euo pipefail
-      export MUTAGEN_DATA_DIRECTORY=${mutagenDataDir}
+      ${mutagenDataEnv}
 
       selector="managed==true,service==syncd-dotfiles"
       mutagen sync terminate --label-selector "$selector" >/dev/null 2>&1 || true
@@ -162,9 +161,7 @@
     ];
     text = ''
       set -euo pipefail
-      export MUTAGEN_DATA_DIRECTORY=${mutagenDataDir}
-      export MUTAGEN_SSH_PATH=${sshWrapper}/bin
-      unset SSH_AUTH_SOCK SSH_AGENT_PID
+      ${mutagenSshEnv}
 
       session_name="syncd-dotfiles"
 
