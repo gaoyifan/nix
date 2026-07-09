@@ -9,6 +9,7 @@
     ./bees.nix
     ./ksm.nix
     ./vms.nix
+    ./apt-cacher-ng.nix
     ./newapi.nix
     ./whisper-server.nix
     ./wifi-ap.nix
