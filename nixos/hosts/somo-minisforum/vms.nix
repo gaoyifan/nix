@@ -45,18 +45,12 @@
     ${mkSetCommands "${incus} config device get ${name} ${dev}" "${incus} config device set ${name} ${dev}" opts}
   '';
 
-  mkVmCommands = name: vm: let
-    vmConfig =
-      vm.config
-      // lib.optionalAttrs (lib.hasPrefix "hermes-" name) {
-        "raw.qemu.conf" = ksmQemuConf;
-      };
-  in ''
+  mkVmCommands = name: vm: ''
     if ! ${incus} info ${name} >/dev/null 2>&1; then
       echo "Creating VM ${name} from ${imageRemote}:${vm.image}"
       ${incus} init ${imageRemote}:${vm.image} ${name} --vm
     fi
-    ${mkSetCommands "${incus} config get ${name}" "${incus} config set ${name}" vmConfig}
+    ${mkSetCommands "${incus} config get ${name}" "${incus} config set ${name}" (vm.config // {"raw.qemu.conf" = ksmQemuConf;})}
     ${lib.concatStringsSep "\n" (lib.mapAttrsToList (mkDeviceCommands name) (vm.devices or {}))}
     if [ "$(${incus} list ${name} -c s -f csv)" != "RUNNING" ]; then
       ${incus} start ${name}
