@@ -26,6 +26,7 @@
 - Custom packages: add `pkgs/<name>.nix`, export from `pkgs/default.nix`, consume as `pkgs.<name>`
 - Keep dynamically loaded apps out of `home.packages`; expose them as flake apps and add low-priority Home Manager wrappers that `nix run` them on demand without overriding existing same-name tools.
 - For forked packages in `pkgs/`, pin only commits from the fork's `main` branch.
+- Prefer Nix-native ways to reduce glue code. Check the documentation first if unsure about a Nix option.
 
 ## Commits
 
