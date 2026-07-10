@@ -162,6 +162,7 @@
       // {
         nft-geo-sets = import ./pkgs/nft-geo-sets.nix {inherit pkgs inputs;};
       };
+    cliApps = import ./cli-apps.nix {lib = nixpkgs.lib;};
     overlay = _final: prev: customPackages prev;
     # NixOS host builder: shared nixpkgs setup, common modules, and
     # home-manager integration. Hosts only list their own modules.
@@ -236,57 +237,17 @@
     # Custom packages: nix build .#lazyssh
     packages = forAllSystems (system: let
       pkgs = pkgsFor system;
-      packages = customPackages pkgs;
     in
-      packages
-      // {
-        ansible = pkgs.ansible.overrideAttrs (old: {
-          meta = (old.meta or {}) // {mainProgram = "ansible";};
-        });
-        ansible-playbook = pkgs.ansible.overrideAttrs (old: {
-          meta = (old.meta or {}) // {mainProgram = "ansible-playbook";};
-        });
-        copilot = packages.copilot-cli;
-        cursor-agent = packages.cursor-cli;
-        difftastic = pkgs.difftastic;
-        fd = pkgs.fd;
-        gh = pkgs.gh;
-        ruby = pkgs.ruby;
-        yazi = pkgs.yazi-unwrapped;
-      }
+      (cliApps.mkPackages {
+        inherit pkgs;
+        customPackages = customPackages pkgs;
+      })
       // nixpkgs.lib.optionalAttrs (!(nixpkgs.lib.hasSuffix "darwin" system)) {
         system-manager = system-manager.packages.${system}.default;
       });
 
     # On-demand CLI apps used by lazy Home Manager wrappers to keep closures small.
-    # Every app name maps to the same-named flake package.
-    apps = forAllSystems (system: let
-      packages = self.packages.${system};
-      mkApp = name: {
-        type = "app";
-        program = nixpkgs.lib.getExe packages.${name};
-        meta = packages.${name}.meta;
-      };
-      cliApps =
-        nixpkgs.lib.genAttrs [
-          "agy"
-          "ansible"
-          "ansible-playbook"
-          "codex"
-          "copilot"
-          "copilot-cli"
-          "cursor-agent"
-          "cursor-cli"
-          "difftastic"
-          "fd"
-          "gh"
-          "mcat"
-          "ruby"
-          "yazi"
-        ]
-        mkApp;
-    in
-      cliApps);
+    apps = forAllSystems (system: cliApps.mkApps self.packages.${system});
 
     # nix fmt
     formatter = forAllSystems (system: (nixpkgsForSystem system).legacyPackages.${system}.alejandra);

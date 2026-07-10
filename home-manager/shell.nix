@@ -5,74 +5,24 @@
   ...
 }: let
   hasAtuinSecrets = config.services.secrets.atuin.available;
+  cliApps = import ../cli-apps.nix {inherit lib;};
+  dynamicCli = cliApps.mkHomeManager pkgs;
   iterm2-shell-integration = pkgs.fetchFromGitHub {
     owner = "gnachman";
     repo = "iTerm2-shell-integration";
     rev = "16a37c5f59243a68cd662a8cb70497cbcfaa10b2";
     hash = "sha256-vxGOr4jTAI0w4Y9Gz/1iEGT2YIq76DJiYIQ+vl4M7qA=";
   };
-  dynamicCliCompletions = pkgs.runCommand "dynamic-cli-completions" {} ''
-    install -Dm644 ${pkgs.fd}/share/zsh/site-functions/_fd \
-      "$out/share/zsh/site-functions/_fd"
-    install -Dm644 ${pkgs.gh}/share/zsh/site-functions/_gh \
-      "$out/share/zsh/site-functions/_gh"
-    install -Dm644 ${pkgs.yazi-unwrapped}/share/zsh/site-functions/_yazi \
-      "$out/share/zsh/site-functions/_yazi"
-    install -Dm644 ${pkgs.mcat}/share/zsh/site-functions/_mcat \
-      "$out/share/zsh/site-functions/_mcat"
-  '';
-  dynamicCliRelBinDir = ".local/share/nix-lazy-apps/bin";
-  dynamicCliApps = {
-    agy = {};
-    ansible = {};
-    ansible-playbook = {};
-    copilot = {
-      args = ["--yolo"];
-    };
-    codex = {};
-    cursor-agent = {};
-    difft = {app = "difftastic";};
-    fd = {};
-    gh = {};
-    mcat = {};
-    ruby = {};
-    yazi = {};
-  };
-  nixRunCacheOptions = [
-    "--option"
-    "extra-substituters"
-    "https://nix-cache.yfgao.net?priority=50"
-    "--option"
-    "extra-trusted-public-keys"
-    "nix-cache.yfgao.net-1:mSv/FykKK4oFZbX9JgD38D/me1+xJeAKsQ+STHiHVp4="
-  ];
-  mkDynamicCliWrapper = name: {
-    app ? name,
-    args ? [],
-  }: let
-    appArgs = lib.optionalString (args != []) " ${lib.escapeShellArgs args}";
-  in
-    pkgs.writeShellScript name ''
-      exec nix run ${lib.escapeShellArgs nixRunCacheOptions} "github:gaoyifan/nix#${app}" --${appArgs} "$@"
-    '';
-  dynamicCliWrapperFiles =
-    lib.mapAttrs' (
-      name: spec:
-        lib.nameValuePair "${dynamicCliRelBinDir}/${name}" {
-          source = mkDynamicCliWrapper name spec;
-        }
-    )
-    dynamicCliApps;
 in {
   # The home.packages option allows you to install Nix packages into your
   # environment.
   home.packages = with pkgs; [
     # Zsh completions
-    dynamicCliCompletions
+    dynamicCli.completions
     zsh-completions
   ];
 
-  home.file = dynamicCliWrapperFiles;
+  home.file = dynamicCli.wrapperFiles;
 
   programs.powerline-go.enable = true;
 
@@ -226,8 +176,8 @@ in {
 
       # Keep lazy wrappers behind regular user and platform paths so existing
       # same-name tools win by normal PATH lookup.
-      if [[ ":$PATH:" != *":${config.home.homeDirectory}/${dynamicCliRelBinDir}:"* ]]; then
-        export PATH="''${PATH:+$PATH:}${config.home.homeDirectory}/${dynamicCliRelBinDir}"
+      if [[ ":$PATH:" != *":${config.home.homeDirectory}/${dynamicCli.relBinDir}:"* ]]; then
+        export PATH="''${PATH:+$PATH:}${config.home.homeDirectory}/${dynamicCli.relBinDir}"
       fi
     '';
 
