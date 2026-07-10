@@ -33,6 +33,8 @@ Use conventional subjects: `feat(scope):`, `fix:`, `refactor:`, `chore:`, `docs:
 
 Do not push commits or tags unless the user explicitly asks you to push.
 
+When an explicitly requested push is rejected because the remote branch is ahead, run `git pull --rebase`, resolve any conflicts, rerun affected checks, and retry the push without asking for confirmation again.
+
 ## Testing
 
 Before Nix evaluation or switch, run `git add -N <filename>.nix` for new `.nix` files.
