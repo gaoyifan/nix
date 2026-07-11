@@ -192,6 +192,11 @@ in {
 
     initContent = pkgs.lib.mkMerge [
       (pkgs.lib.mkBefore ''
+        ${lib.optionalString pkgs.stdenv.isDarwin ''
+          # Keep the prompt hostname independent of DHCP and reverse DNS.
+          HOST="$(/usr/sbin/scutil --get LocalHostName 2>/dev/null || hostname -s)"
+        ''}
+
         # Nix single-user mode on Linux
         if [ -e ~/.nix-profile/etc/profile.d/nix.sh ]; then
           source ~/.nix-profile/etc/profile.d/nix.sh
