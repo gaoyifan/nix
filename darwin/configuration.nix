@@ -44,6 +44,7 @@ in {
     just # Command runner
     nil # Nix language server
     bun # Fast JavaScript package manager
+    tsshd # UDP-based SSH server with roaming support
   ];
 
   system = {
