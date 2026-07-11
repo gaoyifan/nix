@@ -120,6 +120,7 @@ in {
     (lib.mkIf config.services.mutagen.dotfileSync.enable {
       ".agent".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.agent";
       ".codex/auth.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.codex/auth.json";
+      ".codex/AGENTS.md".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.codex/AGENTS.md";
       ".codex/config.toml".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.codex/config.toml";
       ".codex/skills".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.codex/skills";
       ".config/opencode".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.config/opencode";
