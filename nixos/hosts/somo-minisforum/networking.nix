@@ -186,6 +186,7 @@ in {
       chain forward {
         type filter hook forward priority filter; policy accept;
         iifname "br-somo" oifname "tailscale0" ct state established,related accept
+        iifname "br-somo" oifname "tailscale0" ip daddr 100.65.1.63 tcp dport 8178 accept
         iifname "br-somo" oifname "tailscale0" drop
       }
     '';
