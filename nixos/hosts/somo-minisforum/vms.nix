@@ -30,7 +30,14 @@
   vmSpec =
     lib.mapAttrs (_: vm: {
       inherit (vm) image;
-      config = vm.config // {"raw.qemu.conf" = qemuConf;};
+      config =
+        vm.config
+        // {
+          # The reconciler must apply stopped-only settings before starting
+          # VMs, so it is the sole owner of their startup lifecycle.
+          "boot.autostart" = "false";
+          "raw.qemu.conf" = qemuConf;
+        };
       devices = vm.devices or {};
     })
     vms;
