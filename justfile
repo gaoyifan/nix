@@ -11,12 +11,16 @@ default:
     #!/usr/bin/env bash
     set -euo pipefail
     echo "Pulling latest repository changes..."
+    old_head="$(git rev-parse HEAD)"
     if ! git pull --recurse-submodules; then
         if [ -e /etc/NIXOS ]; then
             echo "git pull failed on NixOS; continuing with the current worktree." >&2
         else
             exit 1
         fi
+    elif [ "$old_head" != "$(git rev-parse HEAD)" ]; then
+        echo "Repository updated; restarting just with the latest justfile..."
+        exec {{ self_just }}
     fi
     {{ self_just }} ensure-nix
     {{ self_just }} trust-flake-config
