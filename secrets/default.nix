@@ -38,8 +38,11 @@ in {
 
     nixos.internalSubstituters = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = import (secretsDir + "/nixos/internal-substituters.nix");
-      description = "Internal-only Nix substituters.";
+      default =
+        (import (secretsDir + "/nixos/internal-substituters.nix") {
+          hostname = config.networking.hostName;
+        }).substituters;
+      description = "Internal-only Nix substituters enabled for this host.";
       internal = true;
     };
 

@@ -17,8 +17,6 @@ in {
   networking.hostName = "somo-gw";
   networking.useDHCP = lib.mkDefault true;
 
-  nix.settings.substituters = lib.mkBefore config.services.secrets.nixos.internalSubstituters;
-
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi = {
     canTouchEfiVariables = true;

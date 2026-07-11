@@ -52,16 +52,58 @@ ensure-nix:
 trust-flake-config:
     #!/usr/bin/env bash
     set -euo pipefail
+    local_hostname="$(hostname -s)"
+    secrets_dir="secrets/files-example"
+    if [ -f "{{ submodule_path }}/.gitkeep" ] || [ -f "{{ submodule_path }}/.git" ]; then
+        secrets_dir="{{ submodule_path }}"
+    fi
+    private_substituters="$(
+        INTERNAL_SUBSTITUTER_HOSTNAME="$local_hostname" \
+            nix eval --impure --raw --file "$secrets_dir/nixos/internal-substituters.nix" \
+                --apply 'configure: builtins.concatStringsSep " " (configure { hostname = builtins.getEnv "INTERNAL_SUBSTITUTER_HOSTNAME"; }).substituters'
+    )"
     mkdir -p ~/.local/share/nix
     printf '%s\n' '{"substituters":{"https://cache.nixos.org https://nix-cache.yfgao.net?priority=50":true},"trusted-public-keys":{"cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-cache.yfgao.net-1:mSv/FykKK4oFZbX9JgD38D/me1+xJeAKsQ+STHiHVp4=":true}}' > ~/.local/share/nix/trusted-settings.json
     if [ -w /etc/nix/nix.custom.conf ] || command -v sudo >/dev/null 2>&1; then
+        additions=()
+        nix_config_changed=false
         if ! grep -q 'nix-cache.yfgao.net' /etc/nix/nix.custom.conf 2>/dev/null; then
-            {
-                echo ''
-                echo '# yifan nix binary cache'
-                echo 'extra-substituters = https://nix-cache.yfgao.net?priority=50'
-                echo 'extra-trusted-public-keys = nix-cache.yfgao.net-1:mSv/FykKK4oFZbX9JgD38D/me1+xJeAKsQ+STHiHVp4='
-            } | sudo tee -a /etc/nix/nix.custom.conf >/dev/null
+            additions+=(
+                ''
+                '# yifan nix binary cache'
+                'extra-substituters = https://nix-cache.yfgao.net?priority=50'
+                'extra-trusted-public-keys = nix-cache.yfgao.net-1:mSv/FykKK4oFZbX9JgD38D/me1+xJeAKsQ+STHiHVp4='
+            )
+        fi
+        private_cache_current=false
+        if grep -Fqx '# private Nix binary cache' /etc/nix/nix.custom.conf 2>/dev/null; then
+            if [ -n "$private_substituters" ] \
+                && grep -Fqx "extra-substituters = $private_substituters" /etc/nix/nix.custom.conf; then
+                private_cache_current=true
+            else
+                filtered_config="$(mktemp)"
+                sudo awk '
+                    skip_private_cache { skip_private_cache = 0; next }
+                    $0 == "# private Nix binary cache" { skip_private_cache = 1; next }
+                    { print }
+                ' /etc/nix/nix.custom.conf > "$filtered_config"
+                sudo tee /etc/nix/nix.custom.conf < "$filtered_config" >/dev/null
+                rm "$filtered_config"
+                nix_config_changed=true
+            fi
+        fi
+        if [ -n "$private_substituters" ] && ! "$private_cache_current"; then
+            additions+=(
+                ''
+                '# private Nix binary cache'
+                "extra-substituters = $private_substituters"
+            )
+        fi
+        if [ "${#additions[@]}" -gt 0 ]; then
+            printf '%s\n' "${additions[@]}" | sudo tee -a /etc/nix/nix.custom.conf >/dev/null
+            nix_config_changed=true
+        fi
+        if "$nix_config_changed"; then
             if [ "$(uname)" = "Darwin" ]; then
                 sudo launchctl kickstart -k system/systems.determinate.nix-daemon || true
             else
