@@ -17,6 +17,23 @@
 
   vms = config.services.secrets.nixos."somo-minisforum".vms;
 
+  nicHostName = vm: let
+    mac = lib.replaceStrings [":"] [""] vm.devices.eth0.hwaddr;
+  in "inc${builtins.substring 2 10 mac}";
+
+  declaredVms =
+    lib.mapAttrs
+    (_: vm:
+      vm
+      // {
+        devices =
+          vm.devices
+          // {
+            eth0 = vm.devices.eth0 // {host_name = nicHostName vm;};
+          };
+      })
+    vms;
+
   incus = "${config.virtualisation.incus.package}/bin/incus";
 
   qemuConf = ''
@@ -40,7 +57,7 @@
         };
       devices = vm.devices or {};
     })
-    vms;
+    declaredVms;
   vmSpecFile = pkgs.writeText "incus-vms.json" (builtins.toJSON vmSpec);
 
   applyDeclarativeVms = pkgs.writeShellScriptBin "incus-apply-declarative-vms" ''
@@ -57,6 +74,19 @@
   '';
 in {
   environment.systemPackages = [applyDeclarativeVms dropVmCaches];
+
+  systemd.network.networks =
+    lib.mapAttrs'
+    (name: vm:
+      lib.nameValuePair "10-incus-${name}" {
+        matchConfig.Name = nicHostName vm;
+        networkConfig = {
+          Bridge = vm.devices.eth0.parent;
+          LinkLocalAddressing = false;
+        };
+        linkConfig.RequiredForOnline = "no";
+      })
+    declaredVms;
 
   systemd.services.incus-declarative-vms = {
     description = "Create and configure declarative Incus VMs";
