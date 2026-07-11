@@ -297,28 +297,30 @@
               then "yifansmacstudio"
               else "default";
           };
-          modules = [
-            # Apply overlay and allow unfree packages
-            {
-              nixpkgs.hostPlatform = "aarch64-darwin";
-              nixpkgs.overlays = [overlay];
-              nixpkgs.config.allowUnfree = true;
-            }
-            ./darwin/configuration.nix
-            ./darwin/auto-pause-cemu.nix
+          modules =
+            [
+              # Apply overlay and allow unfree packages
+              {
+                nixpkgs.hostPlatform = "aarch64-darwin";
+                nixpkgs.overlays = [overlay];
+                nixpkgs.config.allowUnfree = true;
+              }
+              ./darwin/configuration.nix
+              ./darwin/auto-pause-cemu.nix
 
-            # Integrate home-manager as a darwin module
-            home-manager.darwinModules.home-manager
-            ({pkgs, ...}: {
-              home-manager = {
-                useGlobalPkgs = true; # Use system nixpkgs instead of standalone
-                useUserPackages = true; # Install to /etc/profiles instead of ~/.nix-profile
-                backupCommand = mkHomeManagerBackupCommand pkgs;
-                extraSpecialArgs = {inherit inputs;};
-                users.${username} = import ./home-manager;
-              };
-            })
-          ];
+              # Integrate home-manager as a darwin module
+              home-manager.darwinModules.home-manager
+              ({pkgs, ...}: {
+                home-manager = {
+                  useGlobalPkgs = true; # Use system nixpkgs instead of standalone
+                  useUserPackages = true; # Install to /etc/profiles instead of ~/.nix-profile
+                  backupCommand = mkHomeManagerBackupCommand pkgs;
+                  extraSpecialArgs = {inherit inputs;};
+                  users.${username} = import ./home-manager;
+                };
+              })
+            ]
+            ++ nixpkgs.lib.optional (hostname == "YifansMacStudio") ./darwin/whisper-server.nix;
         }
     );
 
