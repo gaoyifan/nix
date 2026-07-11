@@ -7,6 +7,10 @@
     ForeGround: 1
     ReportPage: acng-report.html
 
+    # Let APT follow mirror load-balancer redirects so each response is cached
+    # under its final mirror hostname instead of the original volatile URL.
+    RedirMax: 0
+
     # Skip weekly expiration until another 500 MiB has been cached.
     ExStartTradeOff: 500m
   '';
