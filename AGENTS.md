@@ -19,6 +19,11 @@
 - `just fmt`: Format with `alejandra`
 - `just check`: Validate flake with `--no-build` (`--all-systems` on Linux, host system only on Darwin)
 
+## Remote Commands
+
+- Before using SSH, verify the target hostname, FQDN, and addresses are not local; run local targets directly, using `sudo` when needed.
+- Avoid nested escaped shell strings across SSH, containers, or VMs. Pass complex scripts through standard input with a quoted heredoc at each boundary.
+
 ## Coding Style
 
 - Format with `nix fmt`; run `just fmt` before committing
