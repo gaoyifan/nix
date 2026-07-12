@@ -1,33 +1,45 @@
 {lib}: let
-  appSpecs = {
-    agy = {};
-    ansible = {};
-    ansible-playbook = {};
-    codex = {};
-    copilot = {wrapperArgs = ["--yolo"];};
-    copilot-cli = {enableWrapper = false;};
-    cursor-agent = {};
-    cursor-cli = {enableWrapper = false;};
-    difftastic = {wrapperName = "difft";};
-    fd = {};
-    gh = {};
-    mcat = {};
-    ruby = {};
-    yazi = {};
-  };
+  ansibleCommands = [
+    "ansible"
+    "ansible-config"
+    "ansible-console"
+    "ansible-doc"
+    "ansible-galaxy"
+    "ansible-inventory"
+    "ansible-playbook"
+    "ansible-pull"
+    "ansible-test"
+    "ansible-vault"
+  ];
+  appSpecs =
+    {
+      agy = {};
+      codex = {};
+      copilot = {wrapperArgs = ["--yolo"];};
+      copilot-cli = {enableWrapper = false;};
+      cursor-agent = {};
+      cursor-cli = {enableWrapper = false;};
+      difftastic = {wrapperName = "difft";};
+      fd = {};
+      gh = {};
+      mcat = {};
+      ruby = {};
+      yazi = {};
+    }
+    // lib.genAttrs ansibleCommands (_: {});
 in {
   mkPackages = {
     pkgs,
     customPackages,
   }:
     customPackages
+    // lib.genAttrs ansibleCommands (
+      mainProgram:
+        pkgs.ansible.overrideAttrs (old: {
+          meta = (old.meta or {}) // {inherit mainProgram;};
+        })
+    )
     // {
-      ansible = pkgs.ansible.overrideAttrs (old: {
-        meta = (old.meta or {}) // {mainProgram = "ansible";};
-      });
-      ansible-playbook = pkgs.ansible.overrideAttrs (old: {
-        meta = (old.meta or {}) // {mainProgram = "ansible-playbook";};
-      });
       copilot = customPackages.copilot-cli;
       cursor-agent = customPackages.cursor-cli;
       difftastic = pkgs.difftastic;
