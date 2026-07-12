@@ -80,7 +80,10 @@ in {
 
     dnsmasq = {
       domain = lanDomain;
-      servers = ["127.0.0.1#1054"];
+      servers = [
+        "/cjia.gaof.net/100.65.1.254"
+        "127.0.0.1#1054"
+      ];
       extraInterfaces = ["tailscale0"];
       dhcpRanges = [
         "100.65.2.100,100.65.2.200,24h"
