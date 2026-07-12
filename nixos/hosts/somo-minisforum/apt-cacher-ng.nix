@@ -54,23 +54,7 @@ in {
   };
 
   # Let Debian's auto-apt-proxy discover the cache without a fixed proxy URL.
-  # Publish only on the two guest LANs and only over IPv4, matching the proxy's
-  # BindAddress configuration above.
-  services.avahi = {
-    enable = true;
-    allowInterfaces = ["br-gnet" "br-somo"];
-    ipv6 = false;
-    nssmdns4 = true;
-    publish = {
-      enable = true;
-      addresses = true;
-    };
-    extraServiceFiles.apt-cacher-ng = "${pkgs.apt-cacher-ng}/etc/avahi/services/apt-cacher-ng.service";
-  };
-
-  # Avahi owns mDNS on this host. A second responder from systemd-resolved
-  # would bind the same UDP port and makes discovery unreliable.
-  services.resolved.settings.Resolve.MulticastDNS = false;
+  services.avahi.extraServiceFiles.apt-cacher-ng = "${pkgs.apt-cacher-ng}/etc/avahi/services/apt-cacher-ng.service";
 
   # home-router.nix disables the conventional NixOS firewall, so restrict the
   # proxy at the nftables input hook. In particular, do not expose it through

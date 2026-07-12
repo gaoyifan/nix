@@ -253,7 +253,19 @@ in {
         "net.ipv6.conf.all.forwarding" = true;
       };
 
-      services.resolved.enable = true;
+      # Avahi owns mDNS on the LAN bridges and reflects discovery between
+      # them. Keep systemd-resolved from binding a second mDNS responder.
+      services.avahi = {
+        enable = true;
+        allowInterfaces = bridgeNames;
+        ipv6 = false;
+        reflector = true;
+        publish = {
+          enable = true;
+          addresses = true;
+        };
+      };
+      services.resolved.settings.Resolve.MulticastDNS = false;
 
       systemd.network = {
         enable = true;
