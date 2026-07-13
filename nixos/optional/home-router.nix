@@ -1,13 +1,32 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }: let
   cfg = config.networking.homeRouter;
+  monitoringCfg = cfg.monitoring;
   types = lib.types;
 
   bridgeNames = lib.attrNames cfg.bridges;
   trunkNames = lib.attrNames cfg.trunks;
+  routerInterfaceNames = lib.optional (cfg.wan.interface != null) cfg.wan.interface ++ bridgeNames;
+  grafanaInputInterfaces = ["lo"] ++ bridgeNames ++ monitoringCfg.grafana.extraInterfaces;
+  grafanaInputInterfaceSet = lib.concatMapStringsSep ", " (interface: ''"${interface}"'') grafanaInputInterfaces;
+  overviewDashboard = pkgs.writeTextDir "home-router-overview.json" (
+    builtins.replaceStrings
+    ["__HOME_ROUTER_INTERFACES__"]
+    [
+      (lib.concatStringsSep "," routerInterfaceNames)
+    ]
+    (builtins.readFile ./home-router-overview.json)
+  );
+  publicEgressDashboard = pkgs.writeTextDir "home-router-public-egress.json" (
+    builtins.replaceStrings
+    ["__WAN_INTERFACE__"]
+    [(toString cfg.wan.interface)]
+    (builtins.readFile ./home-router-public-egress.json)
+  );
   ipv6NatRules =
     lib.concatMapStringsSep "\n" (ipv6SourceSubnet: ''
       ip6 saddr ${ipv6SourceSubnet} oifname "${cfg.wan.interface}" masquerade
@@ -223,6 +242,24 @@ in {
         description = "Additional settings merged into services.dnsmasq.settings.";
       };
     };
+
+    monitoring = {
+      enable = lib.mkEnableOption "home router monitoring";
+
+      grafana = {
+        port = lib.mkOption {
+          type = types.port;
+          default = 3000;
+          description = "Port on which Grafana listens.";
+        };
+
+        extraInterfaces = lib.mkOption {
+          type = types.listOf types.str;
+          default = [];
+          description = "Additional trusted interfaces allowed to access Grafana.";
+        };
+      };
+    };
   };
 
   config = lib.mkIf cfg.enable (lib.mkMerge [
@@ -340,5 +377,106 @@ in {
         '';
       };
     }
+
+    (lib.mkIf monitoringCfg.enable {
+      services.prometheus = {
+        enable = true;
+        listenAddress = "127.0.0.1";
+        retentionTime = lib.mkDefault "90d";
+        globalConfig.scrape_interval = "15s";
+        scrapeConfigs = [
+          {
+            job_name = "node";
+            static_configs = [
+              {
+                targets = ["127.0.0.1:${toString config.services.prometheus.exporters.node.port}"];
+              }
+            ];
+          }
+          {
+            job_name = "ping";
+            static_configs = [
+              {
+                targets = ["127.0.0.1:${toString config.services.prometheus.exporters.ping.port}"];
+              }
+            ];
+          }
+        ];
+      };
+
+      services.prometheus.exporters = {
+        node = {
+          enable = true;
+          listenAddress = "127.0.0.1";
+        };
+        ping = {
+          enable = true;
+          listenAddress = "127.0.0.1";
+          settings = {
+            targets = lib.mkDefault [
+              "223.5.5.5"
+              "119.29.29.29"
+              "180.76.76.76"
+              "1.1.1.1"
+              "8.8.8.8"
+              "2400:3200::1"
+              "2606:4700:4700::1111"
+              "2001:4860:4860::8888"
+            ];
+            ping.fw-mark = lib.mkDefault 65536;
+          };
+        };
+      };
+
+      services.grafana = {
+        enable = true;
+        settings = {
+          server.http_addr = "";
+          server.http_port = monitoringCfg.grafana.port;
+          auth.disable_login_form = true;
+          "auth.anonymous".enabled = true;
+          "auth.basic".enabled = false;
+          # This read-only instance stores no datasource credentials or other
+          # encrypted secrets, but Grafana still requires a stable secret key.
+          security.secret_key = "SW2YcwTIb9zpOOhoPsMm";
+        };
+        provision = {
+          enable = true;
+          datasources.settings = {
+            datasources = [
+              {
+                name = "Prometheus";
+                uid = "home-router-prometheus";
+                type = "prometheus";
+                url = "http://127.0.0.1:${toString config.services.prometheus.port}";
+              }
+            ];
+          };
+          dashboards.settings = {
+            providers = [
+              {
+                name = "home-router-overview";
+                options.path = overviewDashboard;
+              }
+              {
+                name = "home-router-public-egress";
+                options.path = publicEgressDashboard;
+              }
+            ];
+          };
+        };
+      };
+
+      networking.nftables.tables.home-router-monitoring = {
+        family = "inet";
+        content = ''
+          chain input {
+            type filter hook input priority filter; policy accept;
+            iifname { ${grafanaInputInterfaceSet} } tcp dport ${toString config.services.grafana.settings.server.http_port} accept
+            tcp dport ${toString config.services.grafana.settings.server.http_port} drop
+          }
+        '';
+      };
+    })
   ]);
 }

@@ -45,6 +45,14 @@ in {
   networking.homeRouter = {
     enable = true;
 
+    monitoring = {
+      enable = true;
+      grafana = {
+        port = 3001;
+        extraInterfaces = ["tailscale0"];
+      };
+    };
+
     wan.interface = "enp3s0";
 
     trunks.enp4s0 = {
