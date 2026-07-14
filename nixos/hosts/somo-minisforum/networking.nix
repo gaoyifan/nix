@@ -1,6 +1,7 @@
 # Network configuration for somo-minisforum.
 #
-# WAN: enp3s0. LAN trunk: enp4s0 untagged to br-somo and VLAN 652 to br-gnet.
+# WAN: enp3s0. Backup WAN: iOS USB tethering as ios-wan.
+# LAN trunk: enp4s0 untagged to br-somo and VLAN 652 to br-gnet.
 {
   config,
   inputs,
@@ -41,6 +42,26 @@ in {
   ];
 
   networking.hostName = "somo-minisforum";
+
+  services.usbmuxd.enable = true;
+
+  systemd.network.links."10-ios-wan" = {
+    matchConfig.Driver = "ipheth";
+    linkConfig.Name = "ios-wan";
+  };
+
+  systemd.network.networks."11-ios-wan" = {
+    matchConfig.Name = "ios-wan";
+    networkConfig = {
+      DHCP = "ipv4";
+      IPv6AcceptRA = false;
+    };
+    dhcpV4Config = {
+      RouteMetric = 512;
+      UseDNS = false;
+    };
+    linkConfig.RequiredForOnline = "no";
+  };
 
   networking.homeRouter = {
     enable = true;
@@ -228,6 +249,16 @@ in {
       chain postrouting {
         type nat hook postrouting priority srcnat; policy accept;
         oifname "${wgEl2.interfaceName}" meta mark ${wgEl2.mark} masquerade
+      }
+    '';
+  };
+
+  networking.nftables.tables.ios-wan-nat = {
+    family = "ip";
+    content = ''
+      chain postrouting {
+        type nat hook postrouting priority srcnat; policy accept;
+        ip saddr 100.64.0.0/10 oifname "ios-wan" masquerade
       }
     '';
   };
