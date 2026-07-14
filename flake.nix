@@ -326,6 +326,7 @@
 
     # NixOS configurations
     nixosConfigurations = {
+      nix-cache = mkNixosHost "x86_64-linux" [./nixos/hosts/nix-cache];
       somo-minisforum = mkNixosHost "x86_64-linux" [./nixos/hosts/somo-minisforum];
       somo-gw = mkNixosHost "x86_64-linux" [
         disko.nixosModules.disko
@@ -347,6 +348,7 @@
     );
 
     # deploy-rs configuration
+    deploy.nodes.nix-cache = mkLocalBuildDeployNode "x86_64-linux" "100.64.1.25" self.nixosConfigurations.nix-cache;
     deploy.nodes.somo-minisforum = mkDeployNode "x86_64-linux" "somo-minisforum.ts.gaof.net" self.nixosConfigurations.somo-minisforum;
     deploy.nodes.somo-gw = mkLocalBuildDeployNode "x86_64-linux" "115.29.195.35" self.nixosConfigurations.somo-gw;
     checks = builtins.mapAttrs (system: deployLib: deployLib.deployChecks self.deploy) deploy-rs.lib;
