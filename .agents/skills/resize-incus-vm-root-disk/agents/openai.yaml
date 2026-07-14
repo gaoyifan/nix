@@ -1,0 +1,4 @@
+interface:
+  display_name: "Resize Incus KVM Root Disk"
+  short_description: "Resize Incus KVM root disks and verify growth"
+  default_prompt: "Use $resize-incus-vm-root-disk to resize an Incus KVM root disk and verify it."
