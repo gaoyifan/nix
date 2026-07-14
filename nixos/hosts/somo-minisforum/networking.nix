@@ -63,6 +63,16 @@ in {
     linkConfig.RequiredForOnline = "no";
   };
 
+  # Guest traffic has its own fail-closed table: the default route follows
+  # enp3s0's DHCP gateway, but never falls through to ios-wan.
+  systemd.network.config.routeTables.guest = 6504;
+  systemd.network.networks."10-enp3s0".routes = [
+    {
+      Gateway = "_dhcp4";
+      Table = 6504;
+    }
+  ];
+
   networking.homeRouter = {
     enable = true;
 
@@ -79,6 +89,7 @@ in {
     trunks.enp4s0 = {
       untaggedBridge = "br-somo";
       vlans."652".bridge = "br-gnet";
+      vlans."654".bridge = "br-guest";
     };
 
     bridges = {
@@ -88,6 +99,11 @@ in {
           "fd9a:2d16:5c3e:2::254/64"
         ];
         ipv6.prefixes = ["fd9a:2d16:5c3e:2::/64"];
+      };
+
+      br-guest = {
+        addresses = ["100.65.4.254/24"];
+        ipv6.enable = false;
       };
 
       br-somo = {
@@ -117,10 +133,17 @@ in {
       dhcpRanges = [
         "100.65.2.100,100.65.2.200,24h"
         "100.65.3.100,100.65.3.200,24h"
+        "set:guest,100.65.4.100,100.65.4.200,24h"
       ];
       dhcpHosts = staticLeases;
+      extraSettings.dhcp-option = [
+        "tag:guest,option:dns-server,223.5.5.5,223.6.6.6"
+      ];
     };
   };
+
+  # Do not reflect internal service discovery into the guest network.
+  services.avahi.allowInterfaces = lib.mkForce ["br-gnet" "br-somo"];
 
   services.nylon = {
     enable = true;
@@ -137,6 +160,7 @@ in {
   services.wlt = {
     enable = true;
     domain = "gaof.net";
+    lanInterfaces = ["br-gnet" "br-somo"];
     # Default overseas egress for LAN clients without an explicit selection:
     # IPv4 via "JP Tokyo | ALVIDI" (0x42), IPv6 via "JP Tokyo | Cloudflare
     # WARP" (0x44); marks come from nylon.toml / nylon.batch. CN destinations
@@ -153,6 +177,11 @@ in {
 
     ipv4 = {
       rules = [
+        # Route guests through enp3s0's DHCP gateway before consulting any
+        # internal or marked routes. Fail closed when that route is absent.
+        "pref 90 from 100.65.4.0/24 lookup 6504"
+        "pref 91 from 100.65.4.0/24 unreachable"
+
         # Local and tailnet routes must win before fwmark-selected default routes.
         "pref 100 lookup main suppress_prefixlength 0"
         "pref 110 lookup 52 suppress_prefixlength 0"
@@ -211,15 +240,24 @@ in {
   };
 
   # SOMO policy: br-somo guests must not initiate tailnet connections, while
-  # tailnet peers may still initiate connections into br-somo.
+  # tailnet peers may still initiate connections into br-somo. The guest LAN
+  # may use DHCP on the host and forward IPv4 only through enp3s0.
   networking.nftables.tables.filter = {
     family = "inet";
     content = ''
+      chain input {
+        type filter hook input priority filter; policy accept;
+        iifname "br-guest" udp dport 67 accept
+        iifname "br-guest" drop
+      }
+
       chain forward {
         type filter hook forward priority filter; policy accept;
         iifname "br-somo" oifname "tailscale0" ct state established,related accept
         iifname "br-somo" oifname "tailscale0" ip daddr 100.65.1.63 tcp dport 8178 accept
         iifname "br-somo" oifname "tailscale0" drop
+        iifname "br-guest" meta nfproto ipv4 oifname "enp3s0" accept
+        iifname "br-guest" drop
       }
     '';
   };

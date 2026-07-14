@@ -53,8 +53,8 @@
       DHCP = "no";
       ConfigureWithoutCarrier = true;
       IPv6AcceptRA = false;
-      IPv6SendRA = true;
-      DHCPPrefixDelegation = true;
+      IPv6SendRA = bridgeCfg.ipv6.enable;
+      DHCPPrefixDelegation = bridgeCfg.ipv6.enable;
     };
     ipv6Prefixes = map (prefix: {Prefix = prefix;}) bridgeCfg.ipv6.prefixes;
     linkConfig.RequiredForOnline = "no";
@@ -144,6 +144,11 @@ in {
             description = "Addresses assigned to this LAN bridge.";
           };
           ipv6 = {
+            enable = lib.mkOption {
+              type = types.bool;
+              default = true;
+              description = "Whether to announce IPv6 configuration on this bridge.";
+            };
             prefixes = lib.mkOption {
               type = types.listOf types.str;
               default = [];
