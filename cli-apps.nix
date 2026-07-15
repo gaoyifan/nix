@@ -23,6 +23,7 @@
       fd = {};
       gh = {};
       mcat = {};
+      playwright-cli = {};
       ruby = {};
       tokei = {};
       yazi = {};

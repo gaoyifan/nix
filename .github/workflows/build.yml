@@ -82,6 +82,7 @@ jobs:
             .#packages.${{ matrix.system }}.cursor-agent
             .#packages.${{ matrix.system }}.difftastic
             .#packages.${{ matrix.system }}.mcat
+            .#packages.${{ matrix.system }}.playwright-cli
           )
 
           nix build --accept-flake-config --no-link --print-out-paths \

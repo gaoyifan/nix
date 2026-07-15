@@ -8,6 +8,7 @@ pkgs:
   copilot-cli = import ./copilot-cli.nix {inherit pkgs;};
   codex = import ./codex.nix {inherit pkgs;};
   cursor-cli = import ./cursor-cli.nix {inherit pkgs;};
+  playwright-cli = import ./playwright-cli.nix {inherit pkgs;};
   tssh = import ./tssh.nix {inherit pkgs;};
   htop = import ./htop.nix {inherit pkgs;};
   whisper-large-v3-turbo = import ./whisper-large-v3-turbo.nix {inherit pkgs;};
