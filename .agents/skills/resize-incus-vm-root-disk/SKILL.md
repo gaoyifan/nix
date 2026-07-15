@@ -1,11 +1,11 @@
 ---
 name: resize-incus-vm-root-disk
-description: Resize the root disk of an Incus KVM virtual machine and verify that the guest filesystem grew. Use when an Incus KVM VM needs more root-disk capacity.
+description: Expand the root disk of a declaratively managed Incus KVM virtual machine and verify that the guest filesystem grew. Use when an Incus KVM VM needs more root-disk capacity.
 ---
 
 # Resize an Incus KVM root disk
 
-The Debian guests in this project grow their root partition and ext4 filesystem during boot.
+The Debian guests grow their root partition and ext4 filesystem during boot. Only expand disks; Incus block volumes cannot shrink. Update the declaration before the runtime configuration to avoid drift.
 
 1. Check the current capacity and host free space:
 
@@ -16,10 +16,13 @@ The Debian guests in this project grow their root partition and ext4 filesystem 
    df -h /var/lib/incus
    ```
 
-2. Set an explicit target such as `500GiB`, then restart the VM:
+2. Locate the VM's declarative definition, set `devices.root.size`, then apply the configuration:
 
    ```sh
-   incus config device set <vm> root size=<target>
+   just fmt
+   just check
+   just
+   incus config device get <vm> root size
    incus restart <vm> --timeout 120
    ```
 
