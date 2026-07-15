@@ -92,13 +92,5 @@ in {
         } | ip -6 -force -batch -
       '';
     };
-
-    system.activationScripts.policyRouting = ''
-      case "''${NIXOS_ACTION:-}" in
-        switch | test)
-          echo policy-routing.service >> /run/nixos/activation-restart-list
-          ;;
-      esac
-    '';
   };
 }
