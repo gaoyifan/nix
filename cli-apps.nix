@@ -24,6 +24,7 @@
       gh = {};
       mcat = {};
       ruby = {};
+      tokei = {};
       yazi = {};
     }
     // lib.genAttrs ansibleCommands (_: {});
@@ -46,6 +47,7 @@ in {
       fd = pkgs.fd;
       gh = pkgs.gh;
       ruby = pkgs.ruby;
+      tokei = pkgs.tokei;
       yazi = pkgs.yazi-unwrapped;
     };
 
