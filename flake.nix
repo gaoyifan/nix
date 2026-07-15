@@ -134,6 +134,16 @@
       "nfs2"
       "oracle"
     ];
+    tailscaleUserspaceHosts = [
+      "debian20"
+      "debian21"
+      "debian22"
+      "debian23-hermes"
+      "debian40"
+      "debian41"
+      "debian42"
+    ];
+    systemManagerHosts = nixpkgs.lib.unique (resticBackupHosts ++ tailscaleUserspaceHosts);
     nixpkgsForSystem = system:
       if nixpkgs.lib.hasSuffix "darwin" system
       then nixpkgs-darwin
@@ -218,6 +228,7 @@
         modules =
           [
             ./system-manager/restic.nix
+            ./system-manager/tailscale.nix
             # system-manager imports NixOS nginx without the full NixOS module
             # list. This nixpkgs pin's nginx still references security.dhparams;
             # drop this once the pin has nginx sslDhparam removed or system-manager
@@ -341,10 +352,17 @@
         {
           default = mkLinuxSystemConfig system [];
         }
-        // nixpkgs.lib.genAttrs resticBackupHosts (_host:
-          mkLinuxSystemConfig system [
-            {services.resticBackup.enable = true;}
-          ])
+        // nixpkgs.lib.genAttrs systemManagerHosts (
+          host:
+            mkLinuxSystemConfig system (
+              nixpkgs.lib.optional (builtins.elem host resticBackupHosts) {
+                services.resticBackup.enable = true;
+              }
+              ++ nixpkgs.lib.optional (builtins.elem host tailscaleUserspaceHosts) {
+                services.tailscale.interfaceName = "userspace-networking";
+              }
+            )
+        )
     );
 
     # deploy-rs configuration
