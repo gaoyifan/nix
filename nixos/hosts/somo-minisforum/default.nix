@@ -39,6 +39,7 @@
   # instead (SJTU covers paths USTC's sync lags on), keep the personal cache
   # for custom overlay packages, and leave cache.nixos.org as the last fallback.
   nix.settings = {
+    max-jobs = 16;
     substituters = lib.mkForce [
       "https://mirrors.ustc.edu.cn/nix-channels/store"
       "https://mirror.sjtu.edu.cn/nix-channels/store"
