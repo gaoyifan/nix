@@ -1,6 +1,6 @@
 # Network configuration for somo-minisforum.
 #
-# WAN: enp3s0. USB tethering WAN: iOS ipheth or RNDIS as usb-wan.
+# WAN: enp3s0. USB tethering WANs: iOS ipheth or RNDIS interfaces.
 # LAN trunk: enp4s0 untagged to br-somo and VLAN 652 to br-gnet.
 {
   config,
@@ -11,6 +11,7 @@
 }: let
   lanDomain = "somo.gaof.net";
   divergeListen = "127.0.0.1:1054";
+  usbWanGroup = 6505;
   wgEl2 = config.services.secrets.nixos."somo-minisforum".wgEl2;
   vms = config.services.secrets.nixos."somo-minisforum".vms;
   hermesMicrovms = config.services.secrets.nixos."somo-minisforum".hermesMicrovms;
@@ -49,13 +50,8 @@ in {
 
   services.usbmuxd.enable = true;
 
-  systemd.network.links."10-usb-wan" = {
-    matchConfig.Driver = "ipheth rndis_host";
-    linkConfig.Name = "usb-wan";
-  };
-
   systemd.network.networks."11-usb-wan" = {
-    matchConfig.Name = "usb-wan";
+    matchConfig.Driver = "ipheth rndis_host";
     networkConfig = {
       DHCP = "ipv4";
       IPv6AcceptRA = false;
@@ -64,11 +60,14 @@ in {
       RouteMetric = 512;
       UseDNS = false;
     };
-    linkConfig.RequiredForOnline = "no";
+    linkConfig = {
+      Group = usbWanGroup;
+      RequiredForOnline = "no";
+    };
   };
 
   # Guest traffic has its own fail-closed table: the default route follows
-  # enp3s0's DHCP gateway, but never falls through to usb-wan.
+  # enp3s0's DHCP gateway, but never falls through to USB tethering.
   systemd.network.config.routeTables.guest = 6504;
   systemd.network.networks."10-enp3s0".routes = [
     {
@@ -300,7 +299,7 @@ in {
     content = ''
       chain postrouting {
         type nat hook postrouting priority srcnat; policy accept;
-        ip saddr 100.64.0.0/10 oifname "usb-wan" masquerade
+        ip saddr 100.64.0.0/10 oifgroup ${toString usbWanGroup} masquerade
       }
     '';
   };
