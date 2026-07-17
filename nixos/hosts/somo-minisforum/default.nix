@@ -1,7 +1,12 @@
 # somo-minisforum - Minisforum mini PC, always-on Incus (KVM) host.
-{lib, ...}: {
+{
+  config,
+  lib,
+  ...
+}: {
   imports = [
     ../../optional/bare-metal.nix
+    ../../optional/hermes-microvm.nix
     ./hardware-configuration.nix
     ./networking.nix
     ./virtualisation.nix
@@ -9,7 +14,6 @@
     ./bees.nix
     ./ksm.nix
     ./vms.nix
-    ./hermes-microvms.nix
     ./apt-cacher-ng.nix
     ./newapi.nix
     ./whisper-server.nix
@@ -17,6 +21,11 @@
     ./tailscale.nix
     ./wg-el2.nix
   ];
+
+  services.hermes-microvm = {
+    enable = true;
+    vms = config.services.secrets.nixos."somo-minisforum".hermesMicrovms;
+  };
 
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;

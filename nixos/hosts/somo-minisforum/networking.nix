@@ -14,7 +14,7 @@
   usbWanGroup = 6505;
   wgEl2 = config.services.secrets.nixos."somo-minisforum".wgEl2;
   vms = config.services.secrets.nixos."somo-minisforum".vms;
-  hermesMicrovms = config.services.secrets.nixos."somo-minisforum".hermesMicrovms;
+  hermesMicrovms = config.services.hermes-microvm.vms;
   staticLeases =
     lib.mapAttrsToList
     (name: vm: "${vm.devices.eth0.hwaddr},${vm.staticLease},${name}")
