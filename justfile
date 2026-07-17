@@ -265,6 +265,13 @@ fmt:
     source <({{ self_just }} _emit_nix_env)
     nix fmt .
 
+# Push this repository and any submodule commits it references
+[group('dev')]
+push:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    git push --recurse-submodules=on-demand
+
 # Check flake
 [group('dev')]
 check:
