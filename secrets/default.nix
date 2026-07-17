@@ -64,6 +64,17 @@ in {
       internal = true;
     };
 
+    nixos."somo-nanopi-r4s".wgEl2 = lib.mkOption {
+      type = lib.types.attrs;
+      default =
+        import (secretsDir + "/nixos/somo-nanopi-r4s/wg-el2.nix")
+        // {
+          privateKeyFile = "${config.services.secrets.filesDir}/nixos/somo-nanopi-r4s/wg-el2-private-key";
+        };
+      description = "WireGuard EL2 egress configuration for somo-nanopi-r4s.";
+      internal = true;
+    };
+
     nixos."somo-gw".caddy = lib.mkOption {
       type = lib.types.attrs;
       default = import (secretsDir + "/nixos/somo-gw/caddy.nix") {

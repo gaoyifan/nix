@@ -22,5 +22,6 @@
 // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
   cloud-hypervisor = import ./cloud-hypervisor.nix {inherit pkgs;};
   jip = import ./jip.nix {inherit pkgs;};
+  nanopi-r4s-uboot = import ./nanopi-r4s-uboot.nix {inherit pkgs;};
   nylon = import ./nylon.nix {inherit pkgs;};
 }

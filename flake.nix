@@ -275,6 +275,9 @@
       })
       // nixpkgs.lib.optionalAttrs (!(nixpkgs.lib.hasSuffix "darwin" system)) {
         system-manager = system-manager.packages.${system}.default;
+      }
+      // nixpkgs.lib.optionalAttrs (system == "aarch64-linux") {
+        somo-nanopi-r4s-image = self.nixosConfigurations.somo-nanopi-r4s.config.system.build.sdImage;
       });
 
     # On-demand CLI apps used by lazy Home Manager wrappers to keep closures small.
@@ -359,6 +362,7 @@
     nixosConfigurations = {
       nix-cache = mkNixosHost "x86_64-linux" [./nixos/hosts/nix-cache];
       somo-minisforum = mkNixosHost "x86_64-linux" [./nixos/hosts/somo-minisforum];
+      somo-nanopi-r4s = mkNixosHost "aarch64-linux" [./nixos/hosts/somo-nanopi-r4s];
       somo-gw = mkNixosHost "x86_64-linux" [
         disko.nixosModules.disko
         ./nixos/hosts/somo-gw
@@ -388,6 +392,7 @@
     # deploy-rs configuration
     deploy.nodes.nix-cache = mkLocalBuildDeployNode "x86_64-linux" "100.64.1.25" self.nixosConfigurations.nix-cache;
     deploy.nodes.somo-minisforum = mkDeployNode "x86_64-linux" "somo-minisforum.ts.gaof.net" self.nixosConfigurations.somo-minisforum;
+    deploy.nodes.somo-nanopi-r4s = mkDeployNode "aarch64-linux" "somo-nanopi-r4s.ts.gaof.net" self.nixosConfigurations.somo-nanopi-r4s;
     deploy.nodes.somo-gw = mkLocalBuildDeployNode "x86_64-linux" "115.29.195.35" self.nixosConfigurations.somo-gw;
     checks = builtins.mapAttrs (system: deployLib: deployLib.deployChecks self.deploy) deploy-rs.lib;
   };

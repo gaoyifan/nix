@@ -1,6 +1,6 @@
 {
   interfaceName = "wg-el2";
-  ips = ["192.0.2.58/32"];
+  ips = ["192.0.2.60/24"];
   mtu = 1392;
   routeTable = "5110";
   mark = "0x100";
