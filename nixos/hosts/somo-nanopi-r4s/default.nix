@@ -15,6 +15,7 @@
 
   boot = {
     consoleLogLevel = lib.mkDefault 7;
+    initrd.kernelModules = ["rtc-rk808"];
     kernelPackages = pkgs.linuxPackages_latest;
     kernelParams = [
       "cma=32M"
@@ -55,6 +56,7 @@
   nix.settings = {
     max-jobs = 2;
     substituters = lib.mkForce [
+      "http://nix-cache.lib.ustc.edu.cn:8501"
       "https://mirrors.ustc.edu.cn/nix-channels/store"
       "https://mirror.sjtu.edu.cn/nix-channels/store"
       "https://nix-cache.yfgao.net?priority=50"
