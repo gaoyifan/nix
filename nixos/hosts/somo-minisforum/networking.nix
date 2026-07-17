@@ -1,6 +1,6 @@
 # Network configuration for somo-minisforum.
 #
-# WAN: enp3s0. Backup WAN: iOS USB tethering as ios-wan.
+# WAN: enp3s0. USB tethering WAN: iOS ipheth or RNDIS as usb-wan.
 # LAN trunk: enp4s0 untagged to br-somo and VLAN 652 to br-gnet.
 {
   config,
@@ -45,13 +45,13 @@ in {
 
   services.usbmuxd.enable = true;
 
-  systemd.network.links."10-ios-wan" = {
-    matchConfig.Driver = "ipheth";
-    linkConfig.Name = "ios-wan";
+  systemd.network.links."10-usb-wan" = {
+    matchConfig.Driver = "ipheth rndis_host";
+    linkConfig.Name = "usb-wan";
   };
 
-  systemd.network.networks."11-ios-wan" = {
-    matchConfig.Name = "ios-wan";
+  systemd.network.networks."11-usb-wan" = {
+    matchConfig.Name = "usb-wan";
     networkConfig = {
       DHCP = "ipv4";
       IPv6AcceptRA = false;
@@ -64,7 +64,7 @@ in {
   };
 
   # Guest traffic has its own fail-closed table: the default route follows
-  # enp3s0's DHCP gateway, but never falls through to ios-wan.
+  # enp3s0's DHCP gateway, but never falls through to usb-wan.
   systemd.network.config.routeTables.guest = 6504;
   systemd.network.networks."10-enp3s0".routes = [
     {
@@ -291,12 +291,12 @@ in {
     '';
   };
 
-  networking.nftables.tables.ios-wan-nat = {
+  networking.nftables.tables.usb-wan-nat = {
     family = "ip";
     content = ''
       chain postrouting {
         type nat hook postrouting priority srcnat; policy accept;
-        ip saddr 100.64.0.0/10 oifname "ios-wan" masquerade
+        ip saddr 100.64.0.0/10 oifname "usb-wan" masquerade
       }
     '';
   };
