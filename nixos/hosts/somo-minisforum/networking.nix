@@ -13,10 +13,14 @@
   divergeListen = "127.0.0.1:1054";
   wgEl2 = config.services.secrets.nixos."somo-minisforum".wgEl2;
   vms = config.services.secrets.nixos."somo-minisforum".vms;
+  hermesMicrovms = config.services.secrets.nixos."somo-minisforum".hermesMicrovms;
   staticLeases =
     lib.mapAttrsToList
     (name: vm: "${vm.devices.eth0.hwaddr},${vm.staticLease},${name}")
-    (lib.filterAttrs (_: vm: vm ? staticLease) vms);
+    (lib.filterAttrs (_: vm: vm ? staticLease) vms)
+    ++ lib.mapAttrsToList
+    (name: vm: "${vm.macAddress},${vm.staticLease},${name}")
+    hermesMicrovms;
 
   divergeConf = pkgs.writeText "diverge.conf" ''
     [global]

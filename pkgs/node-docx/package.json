@@ -1,0 +1,9 @@
+{
+  "name": "hermes-node-docx-runtime",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": {
+    "docx": "9.7.1",
+    "pptxgenjs": "4.0.1"
+  }
+}

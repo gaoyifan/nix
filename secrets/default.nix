@@ -29,6 +29,13 @@ in {
       internal = true;
     };
 
+    nixos."somo-minisforum".hermesMicrovms = lib.mkOption {
+      type = lib.types.attrs;
+      default = import (secretsDir + "/nixos/somo-minisforum/hermes-microvms.nix");
+      description = "Declarative Hermes MicroVM definitions for somo-minisforum.";
+      internal = true;
+    };
+
     nixos.hermes = lib.mkOption {
       type = lib.types.attrs;
       default = import (secretsDir + "/nixos/hermes.nix");

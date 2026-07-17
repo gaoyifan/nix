@@ -1,0 +1,8 @@
+name: newapi-codex
+version: 1.0.0
+description: "gpt-image-2 via the Codex Responses image_generation tool, proxied through New API (NEWAPI_BASE_URL / NEWAPI_API_KEY)."
+author: yifan
+kind: backend
+requires_env:
+  - NEWAPI_BASE_URL
+  - NEWAPI_API_KEY

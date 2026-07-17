@@ -91,6 +91,26 @@
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    microvm = {
+      url = "github:microvm-nix/microvm.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    hermes-agent = {
+      url = "github:NousResearch/hermes-agent";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    lark-cli-src = {
+      url = "github:larksuite/cli";
+      flake = false;
+    };
+
+    anthropic-skills = {
+      url = "github:anthropics/skills";
+      flake = false;
+    };
   };
 
   outputs = {
@@ -168,7 +188,7 @@
       "default"
     ];
     customPackages = pkgs:
-      import ./pkgs pkgs
+      import ./pkgs {inherit pkgs inputs;}
       // {
         nft-geo-sets = import ./pkgs/nft-geo-sets.nix {inherit pkgs inputs;};
       };
