@@ -8,11 +8,11 @@
       countryCode = "CN";
       # VHT/HE 80 MHz still needs the HT40 secondary-channel definition.
       wifi4.capabilities = ["HT40+"];
-      # hostapd does not infer VHT receive limits from the hardware. Without
-      # these fields, HE clients use much smaller MPDU/A-MPDU aggregates for
+      # hostapd does not infer the VHT receive A-MPDU limit from the hardware.
+      # Without this field, HE clients use much smaller aggregates for
       # client-to-AP traffic, severely reducing uplink throughput.
       wifi5 = {
-        capabilities = ["MAX-MPDU-11454" "MAX-A-MPDU-LEN-EXP7"];
+        capabilities = ["MAX-A-MPDU-LEN-EXP7"];
         operatingChannelWidth = "80";
       };
       wifi6 = {
