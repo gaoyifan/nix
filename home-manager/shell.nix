@@ -7,6 +7,12 @@
   hasAtuinSecrets = config.services.secrets.atuin.available;
   cliApps = import ../cli-apps.nix {inherit lib;};
   dynamicCli = cliApps.mkHomeManager pkgs;
+  zsh-codex-mode = pkgs.fetchFromGitHub {
+    owner = "gaoyifan";
+    repo = "zsh-codex-mode";
+    rev = "7542c77acdec5d3ae982f520b4697abc89aabae2";
+    hash = "sha256-kulTCf0fDGpF/4lIbJAAn6a8ggNAB+UYzykkFOsKwxQ=";
+  };
   iterm2-shell-integration = pkgs.fetchFromGitHub {
     owner = "gnachman";
     repo = "iTerm2-shell-integration";
@@ -20,6 +26,7 @@ in {
     # Zsh completions
     dynamicCli.completions
     zsh-completions
+    jq
   ];
 
   home.file = dynamicCli.wrapperFiles;
@@ -137,6 +144,11 @@ in {
     syntaxHighlighting.enable = true;
 
     plugins = [
+      {
+        name = "zsh-codex-mode";
+        src = zsh-codex-mode;
+        file = "zsh-codex-mode.plugin.zsh";
+      }
       {
         name = "vi-mode";
         src = pkgs.zsh-vi-mode;
