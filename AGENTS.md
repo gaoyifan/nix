@@ -35,6 +35,8 @@
 
 ## Commits
 
+Do not create commits unless the user explicitly asks for a commit.
+
 Use conventional subjects: `feat(scope):`, `fix:`, `refactor:`, `chore:`, `docs:`, `ci:`, `style:`
 
 Do not push commits or tags unless the user explicitly asks you to push.
