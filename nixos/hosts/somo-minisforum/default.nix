@@ -37,6 +37,11 @@
   ];
   boot.kernel.sysctl."vm.swappiness" = 60;
 
+  boot.kernel.sysfs.kernel.mm.transparent_hugepage = {
+    shmem_enabled = "advise";
+    defrag = "never";
+  };
+
   fileSystems."/".options = ["compress=zstd" "noatime"];
 
   hardware.enableRedistributableFirmware = true;

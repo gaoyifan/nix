@@ -298,7 +298,13 @@ in {
               engine = {
                 runtime = "runsc";
                 runtimes.runsc = ["${pkgs.gvisor}/bin/runsc"];
-                runtimes_flags.runsc = ["platform=kvm"];
+                runtimes_flags.runsc = [
+                  "platform=kvm"
+                  "overlay2=root:self,size=8g"
+                  "oci-seccomp=true"
+                  "watchdog-action=panic"
+                  "kvm-use-cpu-nums=true"
+                ];
               };
               containers = {
                 env = ["NEWAPI_API_KEY"];
