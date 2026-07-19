@@ -290,6 +290,15 @@ check:
         nix flake check --accept-flake-config --all-systems --no-build
     fi
 
+# Build the NanoPi R4S SD image
+[group('config')]
+build-nanopi-image:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source <({{ self_just }} _emit_nix_env)
+    source <({{ self_just }} _emit_flake_ref)
+    nix build --accept-flake-config "$FLAKE_REF#packages.aarch64-linux.somo-nanopi-r4s-image"
+
 # Deploy NixOS configuration to remote host
 [group('config')]
 deploy target:
