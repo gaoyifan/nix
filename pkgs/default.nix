@@ -21,6 +21,8 @@
 }
 // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
   jip = import ./jip.nix {inherit pkgs;};
-  nanopi-r4s-uboot = import ./nanopi-r4s-uboot.nix {inherit pkgs;};
   nylon = import ./nylon.nix {inherit pkgs;};
+}
+// pkgs.lib.optionalAttrs (pkgs.stdenv.hostPlatform.system == "aarch64-linux") {
+  nanopi-r4s-uboot = import ./nanopi-r4s-uboot.nix {inherit pkgs;};
 }
