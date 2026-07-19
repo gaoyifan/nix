@@ -31,6 +31,7 @@
   boot.loader.efi.canTouchEfiVariables = true;
   boot.kernelModules = ["mt7921e"];
   boot.kernelParams = [
+    "nosmt"
     "zswap.enabled=1"
     "zswap.max_pool_percent=10"
     "zswap.compressor=zstd"
