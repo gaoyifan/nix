@@ -6,8 +6,20 @@
       band = "5g";
       channel = 149;
       countryCode = "CN";
-      wifi4.capabilities = ["HT40+" "SHORT-GI-20" "SHORT-GI-40"];
-      wifi5.operatingChannelWidth = "80";
+      # VHT/HE 80 MHz still needs the HT40 secondary-channel definition.
+      wifi4.capabilities = ["HT40+"];
+      # hostapd does not infer VHT receive limits from the hardware. Without
+      # these fields, HE clients use much smaller MPDU/A-MPDU aggregates for
+      # client-to-AP traffic, severely reducing uplink throughput.
+      wifi5 = {
+        capabilities = ["MAX-MPDU-11454" "MAX-A-MPDU-LEN-EXP7"];
+        operatingChannelWidth = "80";
+      };
+      wifi6 = {
+        enable = true;
+        operatingChannelWidth = "80";
+      };
+      settings.he_oper_centr_freq_seg0_idx = 155;
       settings.vht_oper_centr_freq_seg0_idx = 155;
 
       networks.wlp6s0 = {
