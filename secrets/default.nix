@@ -29,10 +29,10 @@ in {
       internal = true;
     };
 
-    nixos."somo-minisforum".hermesMicrovms = lib.mkOption {
+    nixos."somo-minisforum".hermesNspawn = lib.mkOption {
       type = lib.types.attrs;
-      default = import (secretsDir + "/nixos/somo-minisforum/hermes-microvms.nix");
-      description = "Declarative Hermes MicroVM definitions for somo-minisforum.";
+      default = import (secretsDir + "/nixos/somo-minisforum/hermes-nspawn.nix");
+      description = "Declarative Hermes nspawn container definitions for somo-minisforum.";
       internal = true;
     };
 

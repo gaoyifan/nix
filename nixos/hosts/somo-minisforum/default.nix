@@ -6,7 +6,7 @@
 }: {
   imports = [
     ../../optional/bare-metal.nix
-    ../../optional/hermes-microvm.nix
+    ../../optional/hermes-nspawn.nix
     ./hardware-configuration.nix
     ./networking.nix
     ./virtualisation.nix
@@ -22,9 +22,9 @@
     ./wg-el2.nix
   ];
 
-  services.hermes-microvm = {
+  services.hermes-nspawn = {
     enable = true;
-    vms = config.services.secrets.nixos."somo-minisforum".hermesMicrovms;
+    containers = config.services.secrets.nixos."somo-minisforum".hermesNspawn;
   };
 
   boot.loader.systemd-boot.enable = true;

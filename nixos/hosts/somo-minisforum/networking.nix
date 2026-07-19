@@ -14,14 +14,14 @@
   usbWanGroup = 6505;
   wgEl2 = config.services.secrets.nixos."somo-minisforum".wgEl2;
   vms = config.services.secrets.nixos."somo-minisforum".vms;
-  hermesMicrovms = config.services.hermes-microvm.vms;
+  hermesContainers = config.services.hermes-nspawn.containers;
   staticLeases =
     lib.mapAttrsToList
     (name: vm: "${vm.devices.eth0.hwaddr},${vm.staticLease},${name}")
     (lib.filterAttrs (_: vm: vm ? staticLease) vms)
     ++ lib.mapAttrsToList
     (name: vm: "${vm.macAddress},${vm.staticLease},${name}")
-    hermesMicrovms;
+    hermesContainers;
 
   divergeConf = pkgs.writeText "diverge.conf" ''
     [global]

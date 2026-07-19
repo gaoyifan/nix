@@ -5,40 +5,27 @@
   pkgs,
   ...
 }: let
-  cfg = config.services.hermes-microvm;
+  cfg = config.services.hermes-nspawn;
+  hostPkgs = pkgs;
   newApiBaseUrl = "http://somo-minisforum.ts.gaof.net:3000/v1";
-  secretImage = vmName: "/run/${vmName}-secrets.img";
+  secretDirectory = containerName: "/run/${containerName}-secrets";
 in {
-  imports = [inputs.microvm.nixosModules.host];
-
-  options.services.hermes-microvm = {
-    enable = lib.mkEnableOption "Hermes MicroVMs";
-    vms = lib.mkOption {
+  options.services.hermes-nspawn = {
+    enable = lib.mkEnableOption "Hermes nspawn containers";
+    containers = lib.mkOption {
       type = lib.types.attrs;
-      description = "Hermes MicroVM definitions.";
+      description = "Hermes nspawn container definitions.";
     };
   };
 
   config = lib.mkIf cfg.enable {
-    systemd.network.networks = lib.mapAttrs' (_: vm:
-      lib.nameValuePair "35-${vm.tapName}" {
-        matchConfig.Name = vm.tapName;
-        networkConfig = {
-          Bridge = vm.bridge;
-          LinkLocalAddressing = false;
-        };
-        linkConfig.RequiredForOnline = "no";
-      })
-    cfg.vms;
-
     systemd.services = lib.mkMerge (
-      lib.mapAttrsToList (vmName: vm: {
-        "${vmName}-secrets" = {
-          description = "Prepare secrets for ${vmName}";
-          before = ["microvm@${vmName}.service"];
+      lib.mapAttrsToList (containerName: container: {
+        "${containerName}-secrets" = {
+          description = "Prepare secrets for ${containerName}";
+          before = ["container@${containerName}.service"];
           path = [
             pkgs.coreutils
-            pkgs.e2fsprogs
             pkgs.openssl
           ];
           serviceConfig = {
@@ -48,39 +35,39 @@ in {
           script = ''
             set -euo pipefail
 
-            newapi_token="$(tr -d '\r\n' < ${vm.newApiTokenFile})"
+            newapi_token="$(tr -d '\r\n' < ${container.newApiTokenFile})"
             exa_api_key="$(tr -d '\r\n' < /var/lib/hermes/exa_api_key)"
             lark_app_id="$(tr -d '\r\n' < /var/lib/hermes/lark_app_id)"
             lark_app_secret="$(tr -d '\r\n' < /var/lib/hermes/lark_app_secret)"
 
             if [[ -z "$newapi_token" ]]; then
-              echo "${vmName}: New API token is empty" >&2
+              echo "${containerName}: New API token is empty" >&2
               exit 1
             fi
             if [[ -z "$exa_api_key" || -z "$lark_app_id" || -z "$lark_app_secret" ]]; then
-              echo "${vmName}: Exa or Lark credentials are empty" >&2
+              echo "${containerName}: Exa or Lark credentials are empty" >&2
               exit 1
             fi
 
             install -d -o root -g root -m 0700 /var/lib/hermes/dashboard
-            if [[ ! -s /var/lib/hermes/dashboard/${vmName}.pass ]]; then
-              openssl rand -base64 24 > /var/lib/hermes/dashboard/${vmName}.pass
-              chmod 0600 /var/lib/hermes/dashboard/${vmName}.pass
+            if [[ ! -s /var/lib/hermes/dashboard/${containerName}.pass ]]; then
+              openssl rand -base64 24 > /var/lib/hermes/dashboard/${containerName}.pass
+              chmod 0600 /var/lib/hermes/dashboard/${containerName}.pass
             fi
-            if [[ ! -s /var/lib/hermes/dashboard/${vmName}.secret ]]; then
-              openssl rand -hex 32 > /var/lib/hermes/dashboard/${vmName}.secret
-              chmod 0600 /var/lib/hermes/dashboard/${vmName}.secret
+            if [[ ! -s /var/lib/hermes/dashboard/${containerName}.secret ]]; then
+              openssl rand -hex 32 > /var/lib/hermes/dashboard/${containerName}.secret
+              chmod 0600 /var/lib/hermes/dashboard/${containerName}.secret
             fi
 
-            dashboard_password="$(tr -d '\r\n' < /var/lib/hermes/dashboard/${vmName}.pass)"
-            dashboard_secret="$(tr -d '\r\n' < /var/lib/hermes/dashboard/${vmName}.secret)"
+            dashboard_password="$(tr -d '\r\n' < /var/lib/hermes/dashboard/${containerName}.pass)"
+            dashboard_secret="$(tr -d '\r\n' < /var/lib/hermes/dashboard/${containerName}.secret)"
 
-            secrets_dir="$(mktemp -d)"
-            image_tmp=${secretImage vmName}.tmp
+            secrets_dir=${secretDirectory containerName}
+            env_tmp="$secrets_dir/.env.tmp"
             install -d -o root -g 1000 -m 0750 "$secrets_dir"
-            trap 'rm -rf "$secrets_dir" "$image_tmp"' EXIT
+            trap 'rm -f "$env_tmp"' EXIT
 
-            install -o root -g 1000 -m 0640 /dev/null "$secrets_dir/.env"
+            install -o root -g 1000 -m 0640 /dev/null "$env_tmp"
             printf '%s\n' \
               'NEWAPI_BASE_URL=${newApiBaseUrl}' \
               "NEWAPI_API_KEY=$newapi_token" \
@@ -90,27 +77,42 @@ in {
               "HERMES_DASHBOARD_BASIC_AUTH_SECRET=$dashboard_secret" \
               "LARK_APP_ID=$lark_app_id" \
               "LARK_APP_SECRET=$lark_app_secret" \
-              > "$secrets_dir/.env"
-
-            truncate -s 16M "$image_tmp"
-            mkfs.ext4 -q -F -L hermes-secrets -d "$secrets_dir" "$image_tmp"
-            chown microvm:kvm "$image_tmp"
-            chmod 0600 "$image_tmp"
-            mv -f "$image_tmp" ${secretImage vmName}
+              > "$env_tmp"
+            mv -f "$env_tmp" "$secrets_dir/.env"
           '';
         };
-        "microvm@${vmName}" = {
-          requires = ["${vmName}-secrets.service"];
-          after = ["${vmName}-secrets.service"];
-          restartTriggers = [vm.newApiTokenFile];
-          serviceConfig.TimeoutStartSec = "15min";
+        "container@${containerName}" = {
+          requires = ["${containerName}-secrets.service"];
+          after = ["${containerName}-secrets.service"];
+          restartTriggers = [container.newApiTokenFile];
         };
       })
-      cfg.vms
+      cfg.containers
     );
 
-    microvm.vms =
-      lib.mapAttrs (vmName: vm: {
+    containers =
+      lib.mapAttrs (containerName: container: {
+        autoStart = true;
+        privateNetwork = true;
+        hostBridge = container.bridge;
+        localMacAddress = container.macAddress;
+        timeoutStartSec = "15min";
+        allowedDevices = [
+          {
+            node = "/dev/kvm";
+            modifier = "rwm";
+          }
+        ];
+        bindMounts = {
+          "/dev/kvm" = {
+            hostPath = "/dev/kvm";
+            isReadOnly = false;
+          };
+          "/etc/hermes" = {
+            hostPath = secretDirectory containerName;
+            isReadOnly = true;
+          };
+        };
         config = {
           config,
           lib,
@@ -143,13 +145,13 @@ in {
             ]);
           newApiCodexPlugin = pkgs.runCommand "newapi-codex" {} ''
             mkdir -p $out
-            cp -r ${./hermes-microvm/newapi-codex}/. $out/
+            cp -r ${./hermes-nspawn/newapi-codex}/. $out/
           '';
           managedSkills = pkgs.runCommand "hermes-managed-skills" {} ''
             mkdir -p $out
             cp -rL ${inputs.anthropic-skills}/skills/{docx,xlsx,pdf,pptx} $out/
             cp -rL ${inputs.lark-cli-src}/skills/lark-* $out/
-            cp -rL ${./hermes-microvm/skills/local-whisper-transcription} $out/local-whisper-transcription
+            cp -rL ${./hermes-nspawn/skills/local-whisper-transcription} $out/local-whisper-transcription
           '';
           nixConfig = pkgs.writeTextDir "etc/nix/nix.conf" ''
             build-users-group =
@@ -246,64 +248,23 @@ in {
             config = terminalImageConfig;
           };
           terminalImageRef = "${terminalImageName}:${terminalImage.imageTag}";
+          dockerVolumes = [
+            "${managedSkills}:${managedSkills}:ro"
+            "/var/lib/hermes/.lark-cli:/root/.lark-cli:idmap=uids=1000-0-1;gids=1000-0-1"
+            "/var/lib/hermes/.local/share/lark-cli:/root/.local/share/lark-cli:idmap=uids=1000-0-1;gids=1000-0-1"
+          ];
         in {
           imports = [inputs.hermes-agent.nixosModules.default];
 
-          networking.hostName = vmName;
+          nixpkgs.pkgs = hostPkgs;
+
+          networking.hostName = containerName;
+          networking.useHostResolvConf = false;
+          networking.interfaces.eth0.useDHCP = true;
           networking.firewall.allowedTCPPorts = [
             22
             9119
           ];
-
-          microvm = {
-            hypervisor = "cloud-hypervisor";
-            vcpu = 6;
-            mem = 4096;
-            hotplugMem = 4096;
-            hotpluggedMem = 4096;
-            balloon = true;
-            registerWithMachined = true;
-            vsock.cid = vm.vsockCid;
-            writableStoreOverlay = "/nix/.rw-store";
-            interfaces = [
-              {
-                type = "tap";
-                id = vm.tapName;
-                mac = vm.macAddress;
-              }
-            ];
-            volumes = [
-              {
-                image = "${vmName}-podman.img";
-                mountPoint = "/var/lib/containers";
-                size = 65536;
-                label = "hermes-podman";
-              }
-              {
-                image = "${vmName}-state.img";
-                mountPoint = "/var/lib/hermes";
-                size = 16384;
-                label = "hermes-state";
-              }
-              {
-                image = secretImage vmName;
-                serial = "hermes-secrets";
-                mountPoint = null;
-                size = 16;
-                autoCreate = false;
-                readOnly = true;
-              }
-            ];
-          };
-
-          fileSystems."/var/lib/hermes".neededForBoot = true;
-          fileSystems."/var/lib/containers".neededForBoot = true;
-          fileSystems."/etc/hermes" = {
-            device = "/dev/disk/by-id/virtio-hermes-secrets";
-            fsType = "ext4";
-            options = ["ro"];
-            neededForBoot = true;
-          };
 
           nix.settings.experimental-features = ["nix-command" "flakes"];
           time.timeZone = "Asia/Singapore";
@@ -331,10 +292,19 @@ in {
             fi
           '';
           security.sudo.wheelNeedsPassword = false;
-          virtualisation.podman.enable = true;
-          virtualisation.containers.containersConf.settings.containers = {
-            env = ["NEWAPI_API_KEY"];
-            netns = "host";
+          virtualisation = {
+            podman.enable = true;
+            containers.containersConf.settings = {
+              engine = {
+                runtime = "runsc";
+                runtimes.runsc = ["${pkgs.gvisor}/bin/runsc"];
+                runtimes_flags.runsc = ["platform=kvm"];
+              };
+              containers = {
+                env = ["NEWAPI_API_KEY"];
+                netns = "host";
+              };
+            };
           };
 
           systemd.tmpfiles.rules = [
@@ -405,12 +375,13 @@ in {
                 };
               };
               compression.threshold = 0.95;
+              auxiliary.title_generation.model = "gpt-5.6-luna";
               agent.system_prompt = ''
                 Never run machine-learning model inference inside the Podman terminal environment. Use external APIs for inference.
 
                 Prefer delegating programming tasks to the Codex CLI through the codex skill.
 
-                Terminal commands run inside a Podman container that shares the MicroVM's host network namespace. /workspace and /root are persistent for the task; other container filesystem changes may disappear when the container is replaced. The container does not run systemd, so manage processes directly rather than using systemctl.
+                Terminal commands run inside a Podman container isolated by gVisor's KVM platform. /workspace and /root are persistent for the task; other container filesystem changes may disappear when the container is replaced. The container does not run systemd, so manage processes directly rather than using systemctl.
               '';
               web.backend = "exa";
               stt.enabled = false;
@@ -443,12 +414,9 @@ in {
                 container_disk = 0;
                 container_memory = 8192;
                 cwd = "/workspace";
+                docker_extra_args = [];
                 docker_image = terminalImageRef;
-                docker_volumes = [
-                  "${managedSkills}:${managedSkills}:ro"
-                  "/var/lib/hermes/.lark-cli:/root/.lark-cli:idmap=uids=1000-0-1;gids=1000-0-1"
-                  "/var/lib/hermes/.local/share/lark-cli:/root/.local/share/lark-cli:idmap=uids=1000-0-1;gids=1000-0-1"
-                ];
+                docker_volumes = dockerVolumes;
               };
             };
           };
@@ -604,6 +572,6 @@ in {
           system.stateVersion = "26.05";
         };
       })
-      cfg.vms;
+      cfg.containers;
   };
 }
