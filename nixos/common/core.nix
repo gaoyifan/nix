@@ -14,6 +14,7 @@
     ccrypt
     curl
     dnsutils
+    ethtool
     fuse
     fuse3
     git
