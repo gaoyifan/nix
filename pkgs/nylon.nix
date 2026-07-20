@@ -1,7 +1,7 @@
 {pkgs}:
 pkgs.buildGoModule {
   pname = "nylon";
-  version = "0-unstable-2026-07-19-e31a8e0";
+  version = "0-unstable-2026-07-20-6617194";
 
   # Fork of encodeous/nylon; per repo convention, pin only commits from the
   # fork's main branch. This is the fleet-wide reviewed commit deployed by
@@ -9,11 +9,11 @@ pkgs.buildGoModule {
   src = pkgs.fetchFromGitHub {
     owner = "gaoyifan";
     repo = "nylon";
-    rev = "e31a8e0f57e0d7b2620a8d040eb1f00924f79743";
-    hash = "sha256-kci06yC97H4PolbdFi4pUI+z9JkNcIQKMmaAqt0xnXY=";
+    rev = "661719496f9484436f7f50ea1557feac04d1a6e4";
+    hash = "sha256-XBoJTy7fzfJKSvFq0iqp9QCAUeZ/FVo7FFPnV9G7nig=";
   };
 
-  vendorHash = "sha256-ORofvATncvfpjOZtoQK349tOyeaO2hmmfF3m1xlitvo=";
+  vendorHash = "sha256-8lkcp/dyyONveEfikQaOSC53qHkwaCidgXgcFt06Bxs=";
 
   subPackages = ["."];
 
