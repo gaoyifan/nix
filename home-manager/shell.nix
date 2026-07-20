@@ -110,7 +110,6 @@ in {
       set -g set-titles-string "(T) #{pane_title}"
       set -g window-status-format "#[fg=white,bold]#I.#[default]#{=16:pane_title}#F"
       set -g window-status-current-format "#[fg=white,bold]#I.#[default,bg=white]#{=16:pane_title}#[default]#F"
-      bind -n C-x setw synchronize-panes
     '';
   };
 
