@@ -10,7 +10,7 @@
   zsh-codex-mode = pkgs.fetchFromGitHub {
     owner = "gaoyifan";
     repo = "zsh-codex-mode";
-    rev = "58662c4fe595b38ef8db073b3940e6939fa36b96";
+    rev = "632f1318628f1f30493db3ff68de872337fdc641";
     hash = "sha256-CEjTHZDgIYjXRpkTQ4gR/Co4YIhSDuGFq1ydODNgQ50=";
   };
   iterm2-shell-integration = pkgs.fetchFromGitHub {
