@@ -24,6 +24,10 @@
       name = "lucasgelfond/zerobrew";
       trusted = true;
     }
+    {
+      name = "stablyai/orca";
+      trusted = true;
+    }
   ];
 
   brews = [
@@ -119,6 +123,7 @@
     "lm-studio" # Local LLM runner
     "openclaw"
     "opencode-desktop"
+    "stablyai/orca/orca"
     "typeless"
 
     # Development
