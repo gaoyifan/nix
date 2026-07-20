@@ -10,8 +10,8 @@
   zsh-codex-mode = pkgs.fetchFromGitHub {
     owner = "gaoyifan";
     repo = "zsh-codex-mode";
-    rev = "7542c77acdec5d3ae982f520b4697abc89aabae2";
-    hash = "sha256-kulTCf0fDGpF/4lIbJAAn6a8ggNAB+UYzykkFOsKwxQ=";
+    rev = "58662c4fe595b38ef8db073b3940e6939fa36b96";
+    hash = "sha256-CEjTHZDgIYjXRpkTQ4gR/Co4YIhSDuGFq1ydODNgQ50=";
   };
   iterm2-shell-integration = pkgs.fetchFromGitHub {
     owner = "gnachman";
@@ -142,6 +142,7 @@ in {
     };
 
     syntaxHighlighting.enable = true;
+    localVariables.ZSH_CODEX_MODE_MCP = "disabled";
 
     plugins = [
       {
