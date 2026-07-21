@@ -10,6 +10,7 @@
   newApiBaseUrl = "http://somo-minisforum.ts.gaof.net:3000/v1";
   secretDirectory = containerName: "/run/${containerName}-secrets";
   telegramBotApi = cfg.telegramBotApi;
+  telegramBotApiBaseUrl = "http://${cfg.listenAddress}";
 in {
   imports = [./hermes-nspawn/telegram-bot-api.nix];
 
@@ -18,6 +19,20 @@ in {
     containers = lib.mkOption {
       type = lib.types.attrs;
       description = "Hermes nspawn container definitions.";
+    };
+    listenAddress = lib.mkOption {
+      type = lib.types.str;
+      default = "198.18.255.254";
+      description = "Address on which services shared with Hermes containers listen.";
+    };
+    aptProxyAddress = lib.mkOption {
+      type = lib.types.str;
+      default = "198.18.255.254";
+      description = "Address of the APT proxy used by Hermes terminal containers.";
+    };
+    allowedInterfaces = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      description = "Interfaces allowed to reach services shared with Hermes containers.";
     };
   };
 
@@ -124,7 +139,8 @@ in {
           };
         };
         specialArgs = {
-          inherit containerName hostPkgs inputs newApiBaseUrl telegramBotApi;
+          inherit containerName hostPkgs inputs newApiBaseUrl telegramBotApi telegramBotApiBaseUrl;
+          inherit (cfg) aptProxyAddress;
         };
         config = ./hermes-nspawn/guest.nix;
       })

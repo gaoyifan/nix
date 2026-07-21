@@ -1,4 +1,5 @@
 {
+  aptProxyAddress,
   lib,
   managedSkills,
   newApiBaseUrl,
@@ -75,7 +76,7 @@
     pkgs.yt-dlp
   ];
   aptProxy = pkgs.writeTextDir "etc/apt/apt.conf.d/01proxy" ''
-    Acquire::http::Proxy "http://100.65.2.254:3142";
+    Acquire::http::Proxy "http://${aptProxyAddress}:3142";
   '';
   ytDlpConfig = pkgs.writeTextDir "root/.config/yt-dlp/config" ''
     --remote-components ejs:npm

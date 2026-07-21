@@ -1,4 +1,5 @@
 {
+  aptProxyAddress,
   config,
   containerName,
   hostPkgs,
@@ -7,6 +8,7 @@
   newApiBaseUrl,
   pkgs,
   telegramBotApi,
+  telegramBotApiBaseUrl,
   ...
 }: let
   inherit (import ../../common/ssh-keys.nix) sshKeys;
@@ -28,7 +30,7 @@
     pkgs.chromium
   ];
   terminal = import ./terminal.nix {
-    inherit lib managedSkills newApiBaseUrl pkgs;
+    inherit aptProxyAddress lib managedSkills newApiBaseUrl pkgs;
   };
 in {
   imports = [inputs.hermes-agent.nixosModules.default];
@@ -169,8 +171,8 @@ in {
       web.backend = "exa";
       telegram.extra.rich_messages = true;
       gateway.platforms.telegram.extra = lib.optionalAttrs telegramBotApi.enable {
-        base_url = "http://${telegramBotApi.listenAddress}:${toString telegramBotApi.apiPort}/bot";
-        base_file_url = "http://${telegramBotApi.listenAddress}:${toString telegramBotApi.filePort}/file/bot";
+        base_url = "${telegramBotApiBaseUrl}:${toString telegramBotApi.apiPort}/bot";
+        base_file_url = "${telegramBotApiBaseUrl}:${toString telegramBotApi.filePort}/file/bot";
       };
       platform_toolsets.telegram = ["hermes-telegram"];
       stt.enabled = false;

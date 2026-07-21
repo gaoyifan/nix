@@ -1,9 +1,16 @@
 # Caching HTTP proxy for Debian/Ubuntu package downloads from Incus guests.
-{pkgs, ...}: let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
+  hermesNspawn = config.services.hermes-nspawn;
+  inherit (hermesNspawn) allowedInterfaces aptProxyAddress;
   configDir = pkgs.writeTextDir "apt-cacher-ng/acng.conf" ''
     CacheDir: /var/cache/apt-cacher-ng
     LogDir: /var/log/apt-cacher-ng
-    BindAddress: 100.65.2.254 100.65.3.254
+    BindAddress: ${aptProxyAddress}
     ForeGround: 1
     ReportPage: acng-report.html
 
@@ -46,15 +53,12 @@ in {
     serviceConfig = {
       Type = "oneshot";
       ExecStart = "${pkgs.apt-cacher-ng}/lib/apt-cacher-ng/acngtool maint -c ${configDir}/apt-cacher-ng";
-      Environment = "ACNGIP=100.65.2.254";
+      Environment = "ACNGIP=${aptProxyAddress}";
       DynamicUser = true;
       PrivateDevices = true;
       RestrictAddressFamilies = ["AF_INET" "AF_UNIX"];
     };
   };
-
-  # Let Debian's auto-apt-proxy discover the cache without a fixed proxy URL.
-  services.avahi.extraServiceFiles.apt-cacher-ng = "${pkgs.apt-cacher-ng}/etc/avahi/services/apt-cacher-ng.service";
 
   # home-router.nix disables the conventional NixOS firewall, so restrict the
   # proxy at the nftables input hook. In particular, do not expose it through
@@ -64,7 +68,7 @@ in {
     content = ''
       chain input {
         type filter hook input priority filter;
-        iifname { "lo", "br-gnet", "br-somo" } tcp dport 3142 accept
+        iifname { ${lib.concatMapStringsSep ", " (interface: ''"${interface}"'') allowedInterfaces} } tcp dport 3142 accept
         tcp dport 3142 reject with tcp reset
       }
     '';

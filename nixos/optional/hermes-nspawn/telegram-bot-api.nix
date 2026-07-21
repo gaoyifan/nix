@@ -26,11 +26,6 @@ in {
       description = "Telegram API application hash.";
     };
 
-    listenAddress = lib.mkOption {
-      type = lib.types.str;
-      description = "Address on which the API and file servers listen.";
-    };
-
     apiPort = lib.mkOption {
       type = lib.types.port;
       default = 8081;
@@ -41,11 +36,6 @@ in {
       type = lib.types.port;
       default = 8082;
       description = "Telegram file server HTTP port.";
-    };
-
-    allowedInterfaces = lib.mkOption {
-      type = lib.types.listOf lib.types.str;
-      description = "Interfaces allowed to reach the API and file servers.";
     };
   };
 
@@ -74,7 +64,7 @@ in {
         RuntimeDirectoryMode = "0700";
         ExecStart = lib.escapeShellArgs [
           (lib.getExe telegramBotApi.package)
-          "--http-ip-address=${telegramBotApi.listenAddress}"
+          "--http-ip-address=${cfg.listenAddress}"
           "--http-port=${toString telegramBotApi.apiPort}"
           "--dir=/var/lib/telegram-bot-api"
           "--temp-dir=/run/telegram-bot-api"
@@ -103,7 +93,7 @@ in {
         default = true;
         listen = [
           {
-            addr = telegramBotApi.listenAddress;
+            addr = cfg.listenAddress;
             port = telegramBotApi.filePort;
           }
         ];
@@ -121,7 +111,7 @@ in {
       content = ''
         chain input {
           type filter hook input priority filter;
-          iifname { ${lib.concatMapStringsSep ", " (interface: ''"${interface}"'') telegramBotApi.allowedInterfaces} } tcp dport { ${toString telegramBotApi.apiPort}, ${toString telegramBotApi.filePort} } accept
+          iifname { ${lib.concatMapStringsSep ", " (interface: ''"${interface}"'') cfg.allowedInterfaces} } tcp dport { ${toString telegramBotApi.apiPort}, ${toString telegramBotApi.filePort} } accept
           tcp dport { ${toString telegramBotApi.apiPort}, ${toString telegramBotApi.filePort} } reject with tcp reset
         }
       '';
