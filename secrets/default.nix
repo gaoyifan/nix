@@ -86,6 +86,7 @@ in {
       type = lib.types.attrs;
       default = import (secretsDir + "/nixos/somo-gw/caddy.nix") {
         hermes = config.services.secrets.nixos.hermes;
+        hermesNspawn = config.services.secrets.nixos."somo-minisforum".hermesNspawn;
       };
       description = "Caddy virtual hosts and private DNS delegates for somo-gw.";
       internal = true;
