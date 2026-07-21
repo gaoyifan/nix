@@ -36,6 +36,13 @@ in {
       internal = true;
     };
 
+    nixos."somo-minisforum".telegramBotApi = lib.mkOption {
+      type = lib.types.attrs;
+      default = import (secretsDir + "/nixos/somo-minisforum/telegram-bot-api.nix");
+      description = "Telegram Bot API credentials for somo-minisforum.";
+      internal = true;
+    };
+
     nixos.hermes = lib.mkOption {
       type = lib.types.attrs;
       default = import (secretsDir + "/nixos/hermes.nix");

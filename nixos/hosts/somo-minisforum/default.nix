@@ -25,6 +25,16 @@
   services.hermes-nspawn = {
     enable = true;
     containers = config.services.secrets.nixos."somo-minisforum".hermesNspawn;
+    telegramBotApi = {
+      enable = true;
+      inherit (config.services.secrets.nixos."somo-minisforum".telegramBotApi) apiId apiHash;
+      listenAddress = "100.65.2.254";
+      allowedInterfaces = [
+        "lo"
+        "br-gnet"
+        "br-somo"
+      ];
+    };
   };
 
   boot.loader.systemd-boot.enable = true;

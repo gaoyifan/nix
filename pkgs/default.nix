@@ -15,6 +15,7 @@
   tssh = import ./tssh.nix {inherit pkgs;};
   htop = import ./htop.nix {inherit pkgs;};
   tailscale = import ./tailscale.nix {inherit pkgs;};
+  telegram-bot-api = import ./telegram-bot-api.nix {inherit pkgs;};
   whisper-large-v3-turbo = import ./whisper-large-v3-turbo.nix {inherit pkgs;};
   lark-cli = import ./lark-cli.nix {inherit inputs pkgs;};
   node-docx = import ./node-docx.nix {inherit pkgs;};
