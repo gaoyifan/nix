@@ -5,7 +5,7 @@
   # paths missing from cache.nixos.org, so keep it as a fallback substituter.
   nixConfig = {
     builders = [
-      "ssh-ng://yifan@100.127.101.9?remote-program=/nix/var/nix/profiles/default/bin/nix-daemon&base64-ssh-public-host-key=c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSVBuVENJd3dGSUJ0ZmZVTmd0TG5Yb0FFc0dtbFYxVnJHd1VMVHhtME5HSVQ%3D aarch64-linux /home/yifan/.ssh/id_rsa 8 1"
+      "ssh-ng://yifan@100.127.101.9?remote-program=/nix/var/nix/profiles/default/bin/nix-daemon&base64-ssh-public-host-key=c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSVBuVENJd3dGSUJ0ZmZVTmd0TG5Yb0FFc0dtbFYxVnJHd1VMVHhtME5HSVQ%3D aarch64-linux /home/yifan/.ssh/id_ed25519 8 1"
     ];
     substituters = [
       "https://cache.nixos.org"
