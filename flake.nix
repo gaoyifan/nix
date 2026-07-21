@@ -4,6 +4,9 @@
   # Binary cache configuration. The personal cache intentionally stores only
   # paths missing from cache.nixos.org, so keep it as a fallback substituter.
   nixConfig = {
+    builders = [
+      "ssh-ng://yifan@100.127.101.9?remote-program=/nix/var/nix/profiles/default/bin/nix-daemon&base64-ssh-public-host-key=c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSVBuVENJd3dGSUJ0ZmZVTmd0TG5Yb0FFc0dtbFYxVnJHd1VMVHhtME5HSVQ%3D aarch64-linux /home/yifan/.ssh/id_rsa 8 1"
+    ];
     substituters = [
       "https://cache.nixos.org"
       "https://nix-cache.yfgao.net?priority=50"
@@ -388,7 +391,7 @@
     deploy.nodes.nix-cache = mkLocalBuildDeployNode "x86_64-linux" "100.64.1.25" self.nixosConfigurations.nix-cache;
     deploy.nodes.somo-minisforum = mkDeployNode "x86_64-linux" "somo-minisforum.ts.gaof.net" self.nixosConfigurations.somo-minisforum;
     deploy.nodes.somo-nanopi-r4s =
-      (mkDeployNode "aarch64-linux" "somo-nanopi-r4s.ts.gaof.net" self.nixosConfigurations.somo-nanopi-r4s)
+      (mkLocalBuildDeployNode "aarch64-linux" "somo-nanopi-r4s.ts.gaof.net" self.nixosConfigurations.somo-nanopi-r4s)
       // {sshOpts = ["-4"];};
     deploy.nodes.somo-gw = mkLocalBuildDeployNode "x86_64-linux" "115.29.195.35" self.nixosConfigurations.somo-gw;
     checks = builtins.mapAttrs (system: deployLib: deployLib.deployChecks self.deploy) deploy-rs.lib;

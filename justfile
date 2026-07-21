@@ -306,7 +306,9 @@ deploy target:
     set -euo pipefail
     source <({{ self_just }} _emit_nix_env)
     source <({{ self_just }} _emit_flake_ref)
-    nix develop --accept-flake-config "$FLAKE_REF" -c deploy "$FLAKE_REF#{{ target }}" --skip-checks
+    nix develop --accept-flake-config "$FLAKE_REF" -c deploy "$FLAKE_REF#{{ target }}" --skip-checks -- \
+        --accept-flake-config \
+        --builders "ssh-ng://yifan@100.127.101.9?remote-program=/nix/var/nix/profiles/default/bin/nix-daemon&base64-ssh-public-host-key=c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSVBuVENJd3dGSUJ0ZmZVTmd0TG5Yb0FFc0dtbFYxVnJHd1VMVHhtME5HSVQ%3D aarch64-linux /home/yifan/.ssh/id_rsa 8 1"
 
 # Deploy NixOS via target-side nixos-rebuild.
 [group('config')]
