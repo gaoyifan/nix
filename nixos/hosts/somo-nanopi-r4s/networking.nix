@@ -41,15 +41,6 @@ in {
 
   services.usbmuxd.enable = true;
 
-  systemd.network.networks."60-lo-service-portal" = {
-    matchConfig.Name = "lo";
-    address = [
-      "198.18.255.254/32"
-      "2001:2::ffff/128"
-    ];
-    linkConfig.RequiredForOnline = "no";
-  };
-
   systemd.network.wait-online.anyInterface = true;
 
   systemd.network.networks."11-usb-wan" = {

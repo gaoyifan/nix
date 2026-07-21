@@ -319,7 +319,17 @@ in {
           lib.listToAttrs (map mkBridgeNetdev bridgeNames)
           // lib.listToAttrs (map (entry: entry.netdev) vlanEntries);
         networks =
-          wanNetwork
+          {
+            "60-lo-host-services" = {
+              matchConfig.Name = "lo";
+              address = [
+                "198.18.255.254/32"
+                "2001:2::ffff/128"
+              ];
+              linkConfig.RequiredForOnline = "no";
+            };
+          }
+          // wanNetwork
           // lib.listToAttrs (map mkTrunkNetwork trunkNames)
           // lib.listToAttrs (map (entry: entry.network) vlanEntries)
           // lib.listToAttrs bridgeNetworkEntries;
