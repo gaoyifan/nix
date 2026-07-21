@@ -2,6 +2,7 @@
   aptProxyAddress,
   config,
   containerName,
+  honchoBaseUrl,
   hostPkgs,
   inputs,
   lib,
@@ -13,8 +14,18 @@
 }: let
   inherit (import ../../common/ssh-keys.nix) sshKeys;
   hermesPackage = inputs.hermes-agent.packages.${pkgs.stdenv.hostPlatform.system}.minimal.override {
-    extraDependencyGroups = ["exa" "messaging"];
+    extraDependencyGroups = ["exa" "honcho" "messaging"];
   };
+  honchoConfig = pkgs.writeText "honcho.json" (builtins.toJSON {
+    baseUrl = honchoBaseUrl;
+    hosts.hermes = {
+      enabled = true;
+      workspace = containerName;
+      peerName = lib.removePrefix "hermes-nix-" containerName;
+      aiPeer = containerName;
+      pinUserPeer = true;
+    };
+  });
   newApiCodexPlugin = pkgs.runCommand "newapi-codex" {} ''
     mkdir -p $out
     cp -r ${./newapi-codex}/. $out/
@@ -97,6 +108,7 @@ in {
     "d /var/lib/hermes 0750 agent agent - -"
     "d /var/lib/hermes/ssh 0700 root root - -"
     "d /var/lib/hermes/.hermes/skills 2770 agent agent - -"
+    "L+ /var/lib/hermes/.hermes/honcho.json - agent agent - ${honchoConfig}"
   ];
 
   systemd.services.podman = {
@@ -161,6 +173,7 @@ in {
       };
       compression.threshold = 0.95;
       auxiliary.title_generation.model = "gpt-5.6-luna";
+      memory.provider = "honcho";
       agent.system_prompt = ''
         Never run machine-learning model inference inside the Podman terminal environment. Use external APIs for inference.
 

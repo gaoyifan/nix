@@ -9,10 +9,15 @@
   hostPkgs = pkgs;
   newApiBaseUrl = "http://somo-minisforum.ts.gaof.net:3000/v1";
   secretDirectory = containerName: "/run/${containerName}-secrets";
+  honcho = cfg.honcho;
+  honchoBaseUrl = "http://${cfg.listenAddress}:${toString honcho.apiPort}";
   telegramBotApi = cfg.telegramBotApi;
   telegramBotApiBaseUrl = "http://${cfg.listenAddress}";
 in {
-  imports = [./hermes-nspawn/telegram-bot-api.nix];
+  imports = [
+    ./hermes-nspawn/honcho.nix
+    ./hermes-nspawn/telegram-bot-api.nix
+  ];
 
   options.services.hermes-nspawn = {
     enable = lib.mkEnableOption "Hermes nspawn containers";
@@ -40,7 +45,10 @@ in {
     systemd.services = lib.mkMerge (
       lib.mapAttrsToList (containerName: container: let
         dependencies =
-          ["${containerName}-secrets.service"]
+          [
+            "${containerName}-secrets.service"
+            "podman-honcho-api.service"
+          ]
           ++ lib.optionals telegramBotApi.enable [
             "nginx.service"
             "telegram-bot-api.service"
@@ -49,6 +57,8 @@ in {
         "${containerName}-secrets" = {
           description = "Prepare secrets for ${containerName}";
           before = ["container@${containerName}.service"];
+          after = ["honcho-runtime-env.service"];
+          requires = ["honcho-runtime-env.service"];
           path = [
             pkgs.coreutils
             pkgs.openssl
@@ -86,6 +96,11 @@ in {
 
             dashboard_password="$(tr -d '\r\n' < /var/lib/hermes/dashboard/${containerName}.pass)"
             dashboard_secret="$(tr -d '\r\n' < /var/lib/hermes/dashboard/${containerName}.secret)"
+            honcho_api_key="$(tr -d '\r\n' < /var/lib/honcho/jwt-secret | ${lib.getExe pkgs.jwt-cli} encode \
+              --secret @/dev/stdin \
+              --no-iat \
+              --payload t= \
+              --payload w=${lib.escapeShellArg containerName})"
 
             secrets_dir=${secretDirectory containerName}
             env_tmp="$secrets_dir/.env.tmp"
@@ -100,6 +115,7 @@ in {
               'HERMES_DASHBOARD_BASIC_AUTH_USERNAME=agent' \
               "HERMES_DASHBOARD_BASIC_AUTH_PASSWORD=$dashboard_password" \
               "HERMES_DASHBOARD_BASIC_AUTH_SECRET=$dashboard_secret" \
+              "HONCHO_API_KEY=$honcho_api_key" \
               "LARK_APP_ID=$lark_app_id" \
               "LARK_APP_SECRET=$lark_app_secret" \
               > "$env_tmp"
@@ -139,7 +155,7 @@ in {
           };
         };
         specialArgs = {
-          inherit containerName hostPkgs inputs newApiBaseUrl telegramBotApi telegramBotApiBaseUrl;
+          inherit containerName honchoBaseUrl hostPkgs inputs newApiBaseUrl telegramBotApi telegramBotApiBaseUrl;
           inherit (cfg) aptProxyAddress;
         };
         config = ./hermes-nspawn/guest.nix;

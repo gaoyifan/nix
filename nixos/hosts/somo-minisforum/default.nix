@@ -30,6 +30,9 @@
       "br-gnet"
       "br-somo"
     ];
+    honcho = {
+      newApiTokenFile = "${config.services.secrets.filesDir}/nixos/somo-minisforum/new-api-tokens/honcho";
+    };
     telegramBotApi = {
       enable = true;
       inherit (config.services.secrets.nixos."somo-minisforum".telegramBotApi) apiId apiHash;
