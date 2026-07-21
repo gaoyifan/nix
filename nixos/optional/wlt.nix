@@ -241,17 +241,6 @@ in {
       "f ${snapshotFile} 0644 root root -"
     ];
 
-    # Shared portal addresses on lo, managed declaratively by networkd (the
-    # loopback 127.0.0.1/::1 addresses are kernel-owned and left alone).
-    systemd.network.networks."60-lo-wlt-portal" = {
-      matchConfig.Name = "lo";
-      address = [
-        "${cfg.portal.ipv4Address}/32"
-        "${cfg.portal.ipv6Address}/128"
-      ];
-      linkConfig.RequiredForOnline = "no";
-    };
-
     networking.nftables.tables.wlt = {
       family = "inet";
       content = ''
