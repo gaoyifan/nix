@@ -198,7 +198,7 @@ in {
   };
 
   services.resolved.settings.Resolve = {
-    DNS = ["1.1.1.1" "1.0.0.1"];
+    DNS = ["1.1.1.1" "1.0.0.1" "223.5.5.5"];
     Domains = ["~."];
   };
   services.resolved.dnsDelegates.cjia = {
