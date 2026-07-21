@@ -70,7 +70,6 @@ in {
       shell = pkgs.bashInteractive;
       extraGroups = [
         "podman"
-        "wheel"
       ];
       openssh.authorizedKeys.keys = sshKeys;
     };
@@ -81,7 +80,6 @@ in {
       export CONTAINER_HOST=unix:///run/podman/podman.sock
     fi
   '';
-  security.sudo.wheelNeedsPassword = false;
   virtualisation = {
     podman.enable = true;
     containers.containersConf.settings = {
