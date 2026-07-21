@@ -20,7 +20,7 @@
     (name: vm: "${vm.devices.eth0.hwaddr},${vm.staticLease},${name}")
     (lib.filterAttrs (_: vm: vm ? staticLease) vms)
     ++ lib.mapAttrsToList
-    (name: vm: "${vm.macAddress},${vm.staticLease},${name}")
+    (name: vm: "${vm.macAddress},${vm.staticLease},hermes-nix-${name}")
     hermesContainers;
 
   divergeConf = pkgs.writeText "diverge.conf" ''

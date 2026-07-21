@@ -10,6 +10,7 @@
   pkgs,
   telegramBotApi,
   telegramBotApiBaseUrl,
+  userName,
   ...
 }: let
   inherit (import ../../common/ssh-keys.nix) sshKeys;
@@ -21,7 +22,7 @@
     hosts.hermes = {
       enabled = true;
       workspace = containerName;
-      peerName = lib.removePrefix "hermes-nix-" containerName;
+      peerName = userName;
       aiPeer = containerName;
       pinUserPeer = true;
     };

@@ -25,6 +25,7 @@
   services.hermes-nspawn = {
     enable = true;
     containers = config.services.secrets.nixos."somo-minisforum".hermesNspawn;
+    newApiTokenDirectory = "${config.services.secrets.filesDir}/nixos/somo-minisforum/new-api-tokens";
     allowedInterfaces = [
       "lo"
       "br-gnet"

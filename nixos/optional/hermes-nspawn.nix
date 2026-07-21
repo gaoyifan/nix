@@ -8,6 +8,8 @@
   cfg = config.services.hermes-nspawn;
   hostPkgs = pkgs;
   newApiBaseUrl = "http://somo-minisforum.ts.gaof.net:3000/v1";
+  containerNameFor = userName: "hermes-nix-${userName}";
+  newApiTokenFile = userName: "${cfg.newApiTokenDirectory}/hermes-${userName}";
   secretDirectory = containerName: "/run/${containerName}-secrets";
   honcho = cfg.honcho;
   honchoBaseUrl = "http://${cfg.listenAddress}:${toString honcho.apiPort}";
@@ -23,7 +25,11 @@ in {
     enable = lib.mkEnableOption "Hermes nspawn containers";
     containers = lib.mkOption {
       type = lib.types.attrs;
-      description = "Hermes nspawn container definitions.";
+      description = "Hermes nspawn container definitions keyed by user name.";
+    };
+    newApiTokenDirectory = lib.mkOption {
+      type = lib.types.path;
+      description = "Directory containing New API tokens named hermes-<user>.";
     };
     listenAddress = lib.mkOption {
       type = lib.types.str;
@@ -43,7 +49,9 @@ in {
 
   config = lib.mkIf cfg.enable {
     systemd.services = lib.mkMerge (
-      lib.mapAttrsToList (containerName: container: let
+      lib.mapAttrsToList (userName: container: let
+        containerName = containerNameFor userName;
+        dashboardCredentialName = "hermes-${userName}";
         dependencies =
           [
             "${containerName}-secrets.service"
@@ -70,7 +78,7 @@ in {
           script = ''
             set -euo pipefail
 
-            newapi_token="$(tr -d '\r\n' < ${container.newApiTokenFile})"
+            newapi_token="$(tr -d '\r\n' < ${newApiTokenFile userName})"
             exa_api_key="$(tr -d '\r\n' < /var/lib/hermes/exa_api_key)"
             lark_app_id="$(tr -d '\r\n' < /var/lib/hermes/lark_app_id)"
             lark_app_secret="$(tr -d '\r\n' < /var/lib/hermes/lark_app_secret)"
@@ -85,17 +93,17 @@ in {
             fi
 
             install -d -o root -g root -m 0700 /var/lib/hermes/dashboard
-            if [[ ! -s /var/lib/hermes/dashboard/${containerName}.pass ]]; then
-              openssl rand -base64 24 > /var/lib/hermes/dashboard/${containerName}.pass
-              chmod 0600 /var/lib/hermes/dashboard/${containerName}.pass
+            if [[ ! -s /var/lib/hermes/dashboard/${dashboardCredentialName}.pass ]]; then
+              openssl rand -base64 24 > /var/lib/hermes/dashboard/${dashboardCredentialName}.pass
+              chmod 0600 /var/lib/hermes/dashboard/${dashboardCredentialName}.pass
             fi
-            if [[ ! -s /var/lib/hermes/dashboard/${containerName}.secret ]]; then
-              openssl rand -hex 32 > /var/lib/hermes/dashboard/${containerName}.secret
-              chmod 0600 /var/lib/hermes/dashboard/${containerName}.secret
+            if [[ ! -s /var/lib/hermes/dashboard/${dashboardCredentialName}.secret ]]; then
+              openssl rand -hex 32 > /var/lib/hermes/dashboard/${dashboardCredentialName}.secret
+              chmod 0600 /var/lib/hermes/dashboard/${dashboardCredentialName}.secret
             fi
 
-            dashboard_password="$(tr -d '\r\n' < /var/lib/hermes/dashboard/${containerName}.pass)"
-            dashboard_secret="$(tr -d '\r\n' < /var/lib/hermes/dashboard/${containerName}.secret)"
+            dashboard_password="$(tr -d '\r\n' < /var/lib/hermes/dashboard/${dashboardCredentialName}.pass)"
+            dashboard_secret="$(tr -d '\r\n' < /var/lib/hermes/dashboard/${dashboardCredentialName}.secret)"
             honcho_api_key="$(tr -d '\r\n' < /var/lib/honcho/jwt-secret | ${lib.getExe pkgs.jwt-cli} encode \
               --secret @/dev/stdin \
               --no-iat \
@@ -125,14 +133,16 @@ in {
         "container@${containerName}" = {
           requires = dependencies;
           after = dependencies;
-          restartTriggers = [container.newApiTokenFile];
+          restartTriggers = [(newApiTokenFile userName)];
         };
       })
       cfg.containers
     );
 
-    containers =
-      lib.mapAttrs (containerName: container: {
+    containers = lib.mapAttrs' (userName: container: let
+      containerName = containerNameFor userName;
+    in
+      lib.nameValuePair containerName {
         autoStart = true;
         privateNetwork = true;
         hostBridge = container.bridge;
@@ -155,11 +165,11 @@ in {
           };
         };
         specialArgs = {
-          inherit containerName honchoBaseUrl hostPkgs inputs newApiBaseUrl telegramBotApi telegramBotApiBaseUrl;
+          inherit containerName honchoBaseUrl hostPkgs inputs newApiBaseUrl telegramBotApi telegramBotApiBaseUrl userName;
           inherit (cfg) aptProxyAddress;
         };
         config = ./hermes-nspawn/guest.nix;
       })
-      cfg.containers;
+    cfg.containers;
   };
 }
