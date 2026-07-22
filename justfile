@@ -67,7 +67,7 @@ trust-flake-config:
                 --apply 'configure: builtins.concatStringsSep " " (configure { hostname = builtins.getEnv "INTERNAL_SUBSTITUTER_HOSTNAME"; }).substituters'
     )"
     mkdir -p ~/.local/share/nix
-    printf '%s\n' '{"builders":{"ssh-ng://yifan@100.127.101.9?remote-program=/nix/var/nix/profiles/default/bin/nix-daemon&base64-ssh-public-host-key=c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSVBuVENJd3dGSUJ0ZmZVTmd0TG5Yb0FFc0dtbFYxVnJHd1VMVHhtME5HSVQ%3D aarch64-linux /home/yifan/.ssh/id_ed25519 8 1":true},"substituters":{"https://cache.nixos.org https://nix-cache.yfgao.net?priority=50":true},"trusted-public-keys":{"cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-cache.yfgao.net-1:mSv/FykKK4oFZbX9JgD38D/me1+xJeAKsQ+STHiHVp4=":true}}' > ~/.local/share/nix/trusted-settings.json
+    printf '%s\n' '{"builders":{"ssh-ng://yifan@100.127.101.9?remote-program=/nix/var/nix/profiles/default/bin/nix-daemon&base64-ssh-public-host-key=c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSVBuVENJd3dGSUJ0ZmZVTmd0TG5Yb0FFc0dtbFYxVnJHd1VMVHhtME5HSVQ%3D aarch64-linux /home/yifan/.ssh/id_ed25519 8 1":true},"extra-substituters":{"https://nix-cache.yfgao.net?priority=50":true},"extra-trusted-public-keys":{"nix-cache.yfgao.net-1:mSv/FykKK4oFZbX9JgD38D/me1+xJeAKsQ+STHiHVp4=":true}}' > ~/.local/share/nix/trusted-settings.json
     if [ -w /etc/nix/nix.custom.conf ] || command -v sudo >/dev/null 2>&1; then
         additions=()
         nix_config_changed=false
