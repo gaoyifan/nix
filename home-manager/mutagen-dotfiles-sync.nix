@@ -48,6 +48,7 @@
           -o IdentityAgent=none \
           -o IdentitiesOnly=yes \
           -o IdentityFile=${lib.escapeShellArg identityFile} \
+          -o StrictHostKeyChecking=accept-new \
           "$@"
       fi
 
@@ -358,6 +359,8 @@
         -i "$key_path" \
         -o StrictHostKeyChecking=accept-new \
         -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
+        -o ConnectTimeout=10 \
+        -o ConnectionAttempts=1 \
         -p ${toString cfg.port} \
         ${cfg.user}@${cfg.host}
     '';

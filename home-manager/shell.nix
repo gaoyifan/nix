@@ -64,7 +64,7 @@ in {
       && [ -f "${config.services.secrets.atuin.keyFile}" ]; then
       if ! ${pkgs.atuin}/bin/atuin status 2>/dev/null | grep -q "Username: ${config.home.username}"; then
         echo "Atuin not logged in. Attempting automated login..."
-        ${pkgs.atuin}/bin/atuin login -u ${config.home.username} \
+        ${pkgs.coreutils}/bin/timeout 10s ${pkgs.atuin}/bin/atuin login -u ${config.home.username} \
           -p "$(<"${config.services.secrets.atuin.passwordFile}")" \
           -k "$(<"${config.services.secrets.atuin.keyFile}")" || echo "Atuin login failed (non-blocking)"
       else
