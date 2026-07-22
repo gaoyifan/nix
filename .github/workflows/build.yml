@@ -7,6 +7,10 @@ on:
     branches: [main]
   workflow_dispatch:
     inputs:
+      revision:
+        description: "Exact commit to build; defaults to the dispatched ref"
+        required: false
+        type: string
       publish-cache:
         description: "Sign and push closures to the R2 binary cache when running on main"
         required: false
@@ -46,6 +50,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.revision || github.sha }}
 
       - name: Install Nix
         uses: nixbuild/nix-quick-install-action@v35
