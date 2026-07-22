@@ -2,7 +2,6 @@
 {
   config,
   lib,
-  modulesPath,
   pkgs,
   ...
 }: let
@@ -10,7 +9,8 @@
   publicInterface = "ens*";
 in {
   imports = [
-    (modulesPath + "/profiles/qemu-guest.nix")
+    ../../optional/qemu-guest.nix
+    ../../optional/tailscale-gnet.nix
     ./disk-config.nix
   ];
 
@@ -27,12 +27,6 @@ in {
     "console=ttyS0,115200n8"
     "console=tty0"
   ];
-  boot.initrd.availableKernelModules = [
-    "virtio_blk"
-    "virtio_net"
-    "virtio_pci"
-  ];
-
   fileSystems."/".device = lib.mkForce "/dev/disk/by-label/nixos-root";
 
   # Alibaba Cloud x86_64 VM with a small memory footprint. Keep rebuilds and
@@ -45,18 +39,6 @@ in {
   environment.systemPackages = with pkgs; [
     htop
   ];
-
-  services.tailscale = {
-    enable = true;
-    useRoutingFeatures = "server";
-    openFirewall = false;
-    extraSetFlags = [
-      "--accept-dns=false"
-      "--accept-routes"
-      "--advertise-exit-node"
-      "--netfilter-mode=off"
-    ];
-  };
 
   services.caddy = {
     enable = true;

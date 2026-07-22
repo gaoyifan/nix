@@ -60,6 +60,13 @@ in {
       internal = true;
     };
 
+    nixos.tailscale.authKeyFile = lib.mkOption {
+      type = lib.types.path;
+      default = "/var/lib/nixos-secrets/tailscale-auth-key";
+      description = "Runtime path to the shared reusable Tailscale authentication key.";
+      internal = true;
+    };
+
     nixos."somo-minisforum".wgEl2 = lib.mkOption {
       type = lib.types.attrs;
       default =
