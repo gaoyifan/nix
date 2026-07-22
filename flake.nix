@@ -345,6 +345,10 @@
     # NixOS configurations
     nixosConfigurations = {
       nix-cache = mkNixosHost "x86_64-linux" [./nixos/hosts/nix-cache];
+      misc0-jp = mkNixosHost "x86_64-linux" [
+        disko.nixosModules.disko
+        ./nixos/hosts/misc0-jp
+      ];
       somo-minisforum = mkNixosHost "x86_64-linux" [./nixos/hosts/somo-minisforum];
       somo-nanopi-r4s = mkNixosHost "aarch64-linux" [./nixos/hosts/somo-nanopi-r4s];
       somo-gw = mkNixosHost "x86_64-linux" [
@@ -375,6 +379,7 @@
 
     # deploy-rs configuration
     deploy.nodes.nix-cache = mkLocalBuildDeployNode "x86_64-linux" "100.64.1.25" self.nixosConfigurations.nix-cache;
+    deploy.nodes.misc0-jp = mkDeployNode "x86_64-linux" "103.90.136.69" self.nixosConfigurations.misc0-jp;
     deploy.nodes.somo-minisforum = mkDeployNode "x86_64-linux" "somo-minisforum.ts.gaof.net" self.nixosConfigurations.somo-minisforum;
     deploy.nodes.somo-nanopi-r4s =
       (mkLocalBuildDeployNode "aarch64-linux" "somo-nanopi-r4s.ts.gaof.net" self.nixosConfigurations.somo-nanopi-r4s)
