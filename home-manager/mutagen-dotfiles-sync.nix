@@ -133,6 +133,129 @@
       exec mutagen sync list --label-selector "$selector" -l
     '';
   };
+  resolveConflictsScript = pkgs.writeShellApplication {
+    name = "mutagen-dotfiles-resolve-conflicts";
+    runtimeInputs = with pkgs; [
+      coreutils
+      jq
+      mutagen
+    ];
+    text = ''
+      set -euo pipefail
+      ${mutagenSshEnv}
+
+      session_name=${lib.escapeShellArg sessionName}
+      selector=${lib.escapeShellArg sessionSelector}
+      status_json="$(mutagen sync list --label-selector "$selector" --template '{{json .}}')"
+      session_count="$(jq 'length' <<<"$status_json")"
+
+      if [ "$session_count" -ne 1 ]; then
+        echo "expected exactly one managed Mutagen session, found $session_count" >&2
+        exit 1
+      fi
+
+      excluded_conflicts="$(jq '.[0].excludedConflicts // 0' <<<"$status_json")"
+      if [ "$excluded_conflicts" -ne 0 ]; then
+        echo "Mutagen omitted $excluded_conflicts conflicts from its status output" >&2
+        exit 1
+      fi
+
+      conflict_count="$(jq '.[0].conflicts | length' <<<"$status_json")"
+      if [ "$conflict_count" -eq 0 ]; then
+        echo "No conflicts found."
+        exit 0
+      fi
+
+      mapfile -t conflict_paths < <(
+        jq -r '
+          .[0].conflicts[]
+          | select(
+              (.root | test("^\\.codex/sessions/[0-9]{4}/[0-9]{2}/[0-9]{2}/rollout-[A-Za-z0-9._-]+\\.jsonl$"))
+              and (.alphaChanges | length == 1)
+              and (.betaChanges | length == 1)
+              and (.alphaChanges[0].path == .root)
+              and (.betaChanges[0].path == .root)
+              and (.alphaChanges[0].new.kind == "file")
+              and (.betaChanges[0].new.kind == "file")
+            )
+          | .root
+        ' <<<"$status_json"
+      )
+
+      tmpdir="$(mktemp -d)"
+      session_paused=0
+      cleanup() {
+        rm -rf "$tmpdir"
+        if [ "$session_paused" -eq 1 ]; then
+          mutagen sync resume "$session_name" >/dev/null 2>&1 || true
+        fi
+      }
+      trap cleanup EXIT
+
+      mutagen sync pause "$session_name" >/dev/null
+      session_paused=1
+
+      resolved_count=0
+      for path in "''${conflict_paths[@]}"; do
+        alpha_file=${lib.escapeShellArg localPath}/"$path"
+        beta_file="$tmpdir/beta"
+
+        if [ ! -f "$alpha_file" ]; then
+          echo "Skipping $path: alpha is not a regular file." >&2
+          continue
+        fi
+
+        if ! ${sshWrapper}/bin/ssh \
+          -F /dev/null \
+          -p ${toString cfg.port} \
+          ${lib.escapeShellArg "${cfg.user}@${cfg.host}"} \
+          "cat -- ${lib.escapeShellArg cfg.remotePath}/$path" \
+          >"$beta_file"; then
+          echo "Skipping $path: unable to read beta." >&2
+          continue
+        fi
+
+        alpha_size="$(wc -c <"$alpha_file")"
+        beta_size="$(wc -c <"$beta_file")"
+
+        if cmp -s "$alpha_file" "$beta_file"; then
+          echo "Already identical: $path"
+        elif [ "$beta_size" -lt "$alpha_size" ] \
+          && cmp -s -n "$beta_size" "$beta_file" "$alpha_file" \
+          && [ "$(tail -c 1 "$beta_file" | od -An -tu1 | tr -d '[:space:]')" = 10 ]; then
+          ${sshWrapper}/bin/ssh \
+            -F /dev/null \
+            -p ${toString cfg.port} \
+            ${lib.escapeShellArg "${cfg.user}@${cfg.host}"} \
+            "rm -- ${lib.escapeShellArg cfg.remotePath}/$path"
+          echo "Resolved with alpha: $path"
+          resolved_count=$((resolved_count + 1))
+        elif [ "$alpha_size" -lt "$beta_size" ] \
+          && cmp -s -n "$alpha_size" "$alpha_file" "$beta_file" \
+          && [ "$(tail -c 1 "$alpha_file" | od -An -tu1 | tr -d '[:space:]')" = 10 ] \
+          && [ "$(wc -c <"$alpha_file")" -eq "$alpha_size" ]; then
+          rm -- "$alpha_file"
+          echo "Resolved with beta: $path"
+          resolved_count=$((resolved_count + 1))
+        else
+          echo "Skipping $path: neither file is a complete-line prefix of the other." >&2
+        fi
+      done
+
+      mutagen sync resume "$session_name" >/dev/null
+      session_paused=0
+      mutagen sync flush "$session_name" >/dev/null
+
+      status_json="$(mutagen sync list --label-selector "$selector" --template '{{json .}}')"
+      remaining_count="$(jq '([.[0].conflicts | length, (.[0].excludedConflicts // 0)] | add)' <<<"$status_json")"
+      if [ "$remaining_count" -ne 0 ]; then
+        echo "Resolved $resolved_count conflict(s); $remaining_count conflict(s) remain." >&2
+        exit 1
+      fi
+
+      echo "Resolved $resolved_count conflict(s); no conflicts remain."
+    '';
+  };
   resetScript = pkgs.writeShellApplication {
     name = "mutagen-dotfiles-reset";
     runtimeInputs = with pkgs; [
@@ -285,6 +408,7 @@ in {
       pkgs.mutagen
       reconcileScript
       statusScript
+      resolveConflictsScript
       resetScript
       forceBetaScript
       uploadKeyScript
