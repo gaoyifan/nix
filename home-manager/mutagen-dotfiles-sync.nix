@@ -11,19 +11,26 @@
   specHashPath = "${stateDir}/spec-hash";
   mutagenDataDir = "${stateDir}/mutagen-data";
   identityFile = cfg.identityFile;
-  specHash = builtins.hashString "sha256" (builtins.toJSON {
-    inherit localPath;
-    host = cfg.host;
-    user = cfg.user;
-    port = cfg.port;
-    remotePath = cfg.remotePath;
-    identityFile = cfg.identityFile;
-    mode = "two-way-safe";
-    watchMode = "portable";
-    ignoreVcs = true;
-    symlinkMode = "portable";
-    scanMode = "accelerated";
+  sessionName = "syncd-dotfiles";
+  sessionLabels = {
+    managed = "true";
+    service = "syncd-dotfiles";
+  };
+  sessionSelector = lib.concatStringsSep "," (lib.mapAttrsToList (name: value: "${name}==${value}") sessionLabels);
+  # Mutagen 0.18.0 parses SCP-style SSH endpoints as user@host:port:path; ssh://... is not recognized by pkg/url.Parse.
+  remoteEndpoint = "${cfg.user}@${cfg.host}:${toString cfg.port}:${cfg.remotePath}";
+  sessionCreateArguments = lib.cli.toCommandLineGNU {} {
     compression = "deflate";
+    label = lib.mapAttrsToList (name: value: "${name}=${value}") sessionLabels;
+    mode = "two-way-safe";
+    name = sessionName;
+    "no-ignore-vcs" = true;
+    "scan-mode" = "accelerated";
+    "symlink-mode" = "portable";
+    "watch-mode" = "portable";
+  };
+  specHash = builtins.hashString "sha256" (builtins.toJSON {
+    inherit identityFile localPath remoteEndpoint sessionCreateArguments;
   });
   mutagenDataEnv = ''
     export MUTAGEN_DATA_DIRECTORY=${mutagenDataDir}
@@ -64,10 +71,8 @@
       set -euo pipefail
       ${mutagenSshEnv}
 
-      session_name="syncd-dotfiles"
-      service_selector="managed==true,service==syncd-dotfiles"
-      # Mutagen 0.18.0 parses SCP-style SSH endpoints as user@host:port:path; ssh://... is not recognized by pkg/url.Parse.
-      remote_endpoint="${cfg.user}@${cfg.host}:${toString cfg.port}:${cfg.remotePath}"
+      session_name=${lib.escapeShellArg sessionName}
+      service_selector=${lib.escapeShellArg sessionSelector}
       desired_hash="${specHash}"
 
       ensure_daemon() {
@@ -88,17 +93,9 @@
 
       create_session() {
         mutagen sync create \
-          --name "$session_name" \
-          --label "managed=true" \
-          --label "service=syncd-dotfiles" \
-          --mode=two-way-safe \
-          --watch-mode=portable \
-          --ignore-vcs \
-          --symlink-mode=portable \
-          --scan-mode=accelerated \
-          --compression=deflate \
+          ${lib.escapeShellArgs sessionCreateArguments} \
           ${lib.escapeShellArg localPath} \
-          "$remote_endpoint"
+          ${lib.escapeShellArg remoteEndpoint}
       }
 
       mkdir -p ${lib.escapeShellArg localPath} ${lib.escapeShellArg stateDir} ${lib.escapeShellArg mutagenDataDir}
@@ -132,7 +129,7 @@
       set -euo pipefail
       ${mutagenDataEnv}
 
-      selector="managed==true,service==syncd-dotfiles"
+      selector=${lib.escapeShellArg sessionSelector}
       exec mutagen sync list --label-selector "$selector" -l
     '';
   };
@@ -146,7 +143,7 @@
       set -euo pipefail
       ${mutagenDataEnv}
 
-      selector="managed==true,service==syncd-dotfiles"
+      selector=${lib.escapeShellArg sessionSelector}
       mutagen sync terminate --label-selector "$selector" >/dev/null 2>&1 || true
       rm -f ${lib.escapeShellArg specHashPath}
     '';
@@ -163,7 +160,7 @@
       set -euo pipefail
       ${mutagenSshEnv}
 
-      session_name="syncd-dotfiles"
+      session_name=${lib.escapeShellArg sessionName}
 
       ${lib.getExe reconcileScript}
 
