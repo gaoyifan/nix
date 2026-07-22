@@ -2,6 +2,7 @@
   imports = [
     ../../optional/qemu-guest.nix
     ../../optional/tailscale-gnet.nix
+    ../../optional/nylon.nix
     ./disk-config.nix
   ];
 
@@ -40,6 +41,14 @@
         }
       '';
     };
+  };
+
+  networking.firewall.enable = false;
+
+  services.nylon = {
+    enable = true;
+    overlay.nat.enable = false;
+    routeBatch.enable = false;
   };
 
   time.timeZone = "UTC";
