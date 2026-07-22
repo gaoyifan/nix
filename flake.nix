@@ -1,18 +1,16 @@
 {
   description = "Nix configuration for yifan";
 
-  # Binary cache configuration. The personal cache intentionally stores only
-  # paths missing from cache.nixos.org, so keep it as a fallback substituter.
+  # The official cache remains Nix's default. The personal cache intentionally
+  # stores only missing paths, so keep it as a lower-priority fallback.
   nixConfig = {
     builders = [
       "ssh-ng://yifan@100.127.101.9?remote-program=/nix/var/nix/profiles/default/bin/nix-daemon&base64-ssh-public-host-key=c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSVBuVENJd3dGSUJ0ZmZVTmd0TG5Yb0FFc0dtbFYxVnJHd1VMVHhtME5HSVQ%3D aarch64-linux /home/yifan/.ssh/id_ed25519 8 1"
     ];
-    substituters = [
-      "https://cache.nixos.org"
+    extra-substituters = [
       "https://nix-cache.yfgao.net?priority=50"
     ];
-    trusted-public-keys = [
-      "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+    extra-trusted-public-keys = [
       "nix-cache.yfgao.net-1:mSv/FykKK4oFZbX9JgD38D/me1+xJeAKsQ+STHiHVp4="
     ];
   };
