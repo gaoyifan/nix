@@ -1,10 +1,30 @@
-{pkgs, ...}: {
-  programs.zsh.initContent = pkgs.lib.mkAfter ''
+{
+  lib,
+  pkgs,
+  ...
+}: {
+  programs.zsh.initContent = lib.mkIf pkgs.stdenv.hostPlatform.isLinux (lib.mkAfter ''
     # Keep SSH_AUTH_SOCK fresh after reattaching long-lived tmux sessions.
+    # Also publish it at the stable path used by Codex.
     zmodload -F zsh/stat b:zstat 2>/dev/null || true
     typeset -g _ssh_auth_sock_cache="''${XDG_RUNTIME_DIR:-''${TMPDIR:-/tmp}}/ssh-auth-sock.$UID"
+    typeset -g _ssh_auth_sock_stable="$HOME/.ssh/agent.sock"
     typeset -g _ssh_auth_sock_refresh_pid=0
     typeset -g _ssh_auth_sock_last_refresh=0
+
+    _ssh_auth_sock_publish() {
+        emulate -L zsh
+        local sock="$1"
+        local next
+
+        [[ -n "$_ssh_auth_sock_stable" && "$sock" != "$_ssh_auth_sock_stable" && -S "$sock" ]] || return 0
+        [[ "$_ssh_auth_sock_stable" -ef "$sock" ]] && return 0
+
+        ${pkgs.coreutils}/bin/mkdir -p -m 700 -- "$HOME/.ssh"
+        next="$_ssh_auth_sock_stable.$$.new"
+        ${pkgs.coreutils}/bin/ln -sfn -- "$sock" "$next" &&
+            ${pkgs.coreutils}/bin/mv -f -- "$next" "$_ssh_auth_sock_stable"
+    }
 
     _ssh_auth_sock_probe() {
         emulate -L zsh
@@ -21,17 +41,13 @@
             "$HOME"/.ssh/agent/*(N=)
             /tmp/ssh-*/agent.*(N=)
             /tmp/tsshd-*/agent.*(N=)
-            /private/tmp/ssh-*/agent.*(N=)
-            /private/tmp/com.apple.launchd.*/Listeners(N=)
-            /var/folders/*/*/*/ssh-*/agent.*(N=)
-            /var/folders/*/*/*/com.apple.launchd.*/Listeners(N=)
             /run/user/$UID/agent.*(N=)
             /run/user/$UID/*ssh-agent*(N=)
             /run/user/$UID/openssh_agent(N=)
         )
 
         for sock in "''${candidates[@]}"; do
-            [[ -S "$sock" ]] || continue
+            [[ "$sock" != "$_ssh_auth_sock_stable" && -S "$sock" ]] || continue
 
             zstat -A stat_info +mtime -- "$sock" 2>/dev/null || continue
             mtime="$stat_info[1]"
@@ -53,6 +69,7 @@
         [[ -n "$sock" && "$sock" != "''${SSH_AUTH_SOCK:-}" && -S "$sock" ]] || return 0
 
         export SSH_AUTH_SOCK="$sock"
+        _ssh_auth_sock_publish "$sock"
     }
 
     _ssh_auth_sock_refresh_async() {
@@ -71,6 +88,7 @@
         {
             sock="$(_ssh_auth_sock_probe)" || return
             print -r -- "$sock" >| "$_ssh_auth_sock_cache"
+            _ssh_auth_sock_publish "$sock"
         } &!
         _ssh_auth_sock_refresh_pid="$!"
     }
@@ -92,6 +110,7 @@
 
         export SSH_AUTH_SOCK="$sock"
         print -r -- "$sock" >| "$_ssh_auth_sock_cache"
+        _ssh_auth_sock_publish "$sock"
         printf 'SSH_AUTH_SOCK=%s\n' "$SSH_AUTH_SOCK"
     }
 
@@ -103,6 +122,7 @@
     add-zsh-hook precmd _ssh_auth_sock_precmd
     add-zsh-hook preexec _ssh_auth_sock_preexec
 
+    _ssh_auth_sock_publish "''${SSH_AUTH_SOCK:-}"
     _ssh_auth_sock_refresh_async
-  '';
+  '');
 }

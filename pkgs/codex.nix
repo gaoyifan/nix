@@ -38,6 +38,8 @@ in
     dontConfigure = true;
     dontBuild = true;
 
+    nativeBuildInputs = [pkgs.makeWrapper];
+
     installPhase = ''
       runHook preInstall
 
@@ -49,6 +51,12 @@ in
       cp -r codex-path "$out/"
 
       runHook postInstall
+    '';
+
+    # Home Manager repoints this stable path when the forwarded agent changes.
+    postFixup = ''
+      wrapProgram "$out/bin/codex" \
+        --run 'if [ -S "$HOME/.ssh/agent.sock" ]; then export SSH_AUTH_SOCK="$HOME/.ssh/agent.sock"; fi'
     '';
 
     meta = with lib; {
