@@ -394,6 +394,31 @@
       (mkLocalBuildDeployNode "aarch64-linux" "somo-nanopi-r4s.ts.gaof.net" self.nixosConfigurations.somo-nanopi-r4s)
       // {sshOpts = ["-4"];};
     deploy.nodes.somo-gw = mkLocalBuildDeployNode "x86_64-linux" "115.29.195.35" self.nixosConfigurations.somo-gw;
-    checks = builtins.mapAttrs (system: deployLib: deployLib.deployChecks self.deploy) deploy-rs.lib;
+    checks = let
+      # Hermes currently reads package manifests from lib.fileset.toSource
+      # results during evaluation. `nix flake check --no-build` uses a
+      # read-only store, so these computed source paths are not materialized;
+      # deployChecks then forces this host's profile and fails with "path is
+      # not valid" on a cold or garbage-collected store. This source filtering
+      # was introduced by https://github.com/NousResearch/hermes-agent/pull/65237.
+      #
+      # Replace only the path seen by deploy-rs checks. The real self.deploy
+      # output still contains the NixOS activation path used for deployments.
+      # Remove this workaround once Hermes no longer reads filtered sources
+      # during evaluation.
+      node = self.deploy.nodes.somo-minisforum;
+      deployForChecks = self.deploy // {
+        nodes = self.deploy.nodes // {
+          somo-minisforum = node // {
+            profiles = node.profiles // {
+              system = node.profiles.system // {
+                path = deploy-rs.lib.x86_64-linux.activate.noop (pkgsFor "x86_64-linux").emptyDirectory;
+              };
+            };
+          };
+        };
+      };
+    in
+      builtins.mapAttrs (_system: deployLib: deployLib.deployChecks deployForChecks) deploy-rs.lib;
   };
 }
