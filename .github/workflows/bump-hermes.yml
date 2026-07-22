@@ -1,25 +1,9 @@
-name: Bump CLI Packages
+name: Bump Hermes
 
 on:
   schedule:
-    - cron: "17 * * * *"
+    - cron: "47 * * * *"
   workflow_dispatch:
-    inputs:
-      package:
-        description: "Package to bump"
-        required: false
-        default: "all"
-        type: choice
-        options:
-          - all
-          - antigravity-cli
-          - copilot-cli
-          - codex
-          - cursor-cli
-      version:
-        description: "Optional version, only when selecting a single package"
-        required: false
-        type: string
 
 permissions:
   actions: write
@@ -40,26 +24,15 @@ jobs:
       - name: Install Nix
         uses: nixbuild/nix-quick-install-action@v35
 
-      - name: Bump packages
+      - name: Bump Hermes
         id: bump
-        uses: nick-fields/retry@v4
         env:
           GH_TOKEN: ${{ github.token }}
-          REQUESTED_PACKAGE: ${{ github.event.inputs.package || 'all' }}
-          REQUESTED_VERSION: ${{ github.event.inputs.version || '' }}
-        with:
-          max_attempts: 5
-          retry_wait_seconds: 1
-          timeout_minutes: 10
-          command: python3 .github/scripts/bump-cli-packages.py --package "$REQUESTED_PACKAGE" --version "$REQUESTED_VERSION"
+        run: python3 .github/scripts/bump-hermes.py
 
-      - name: Format package
+      - name: Validate flake
         if: steps.bump.outputs.changed == 'true'
-        run: nix run nixpkgs#alejandra -- ${{ steps.bump.outputs.files }}
-
-      - name: Validate packages
-        if: steps.bump.outputs.changed == 'true'
-        run: nix build --accept-flake-config .#agy .#copilot .#codex .#cursor-cli
+        run: nix flake check --accept-flake-config --all-systems --no-build
 
       - name: Commit and push
         if: steps.bump.outputs.changed == 'true'
@@ -69,26 +42,22 @@ jobs:
         run: |
           set -euo pipefail
 
-          if git diff --quiet; then
-            echo "No changes after update."
-            exit 0
-          fi
-
           git add ${{ steps.bump.outputs.files }}
           git \
             -c user.name='github-actions[bot]' \
             -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
             commit -m "$COMMIT_SUBJECT" -m "$COMMIT_BODY"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+          if ! git push origin "HEAD:${GITHUB_REF_NAME}"; then
+            git pull --rebase origin "$GITHUB_REF_NAME"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
 
       - name: Trigger build and cache
         if: steps.bump.outputs.changed == 'true' && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          set -euo pipefail
-
-          curl --fail --silent --show-error \
+          curl --fail-with-body --silent --show-error \
             -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${GH_TOKEN}" \

@@ -71,6 +71,13 @@ jobs:
         run: |
           : > cache-store-paths
 
+      - name: Build Hermes host configuration
+        if: matrix.system == 'x86_64-linux'
+        run: |
+          nix build --accept-flake-config --no-link --print-out-paths \
+            .#nixosConfigurations.somo-minisforum.config.system.build.toplevel \
+            | tee -a cache-store-paths
+
       - name: Build CLI apps
         run: |
           set -euo pipefail
