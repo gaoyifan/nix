@@ -5,6 +5,7 @@
   imports = [
     ../../secrets
     ./core.nix
+    ./home-manager.nix
     ./nix.nix
     ./users.nix
     ./openssh.nix

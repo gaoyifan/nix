@@ -195,7 +195,7 @@
     mkNixosHost = system: hostModules:
       nixpkgs.lib.nixosSystem {
         inherit system;
-        specialArgs = {inherit inputs username;};
+        specialArgs = {inherit inputs username mkHomeManagerBackupCommand;};
         modules =
           [
             {
@@ -204,18 +204,6 @@
             }
             ./nixos/common
             home-manager.nixosModules.home-manager
-            ({pkgs, ...}: {
-              home-manager = {
-                useGlobalPkgs = true;
-                useUserPackages = true;
-                backupCommand = mkHomeManagerBackupCommand pkgs;
-                extraSpecialArgs = {inherit inputs;};
-                users.${username} = {pkgs, ...}: {
-                  imports = [./home-manager];
-                  home.packages = [home-manager.packages.${pkgs.stdenv.hostPlatform.system}.default];
-                };
-              };
-            })
           ]
           ++ hostModules;
       };
