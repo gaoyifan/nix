@@ -4,6 +4,7 @@ nix_bin_dir := "/nix/var/nix/profiles/default/bin"
 submodule_path := "secrets/files"
 home_manager_backup_extension := "backup-$(date +%Y%m%d-%H%M%S)"
 deploy_rebuild_substituters := "https://mirrors.ustc.edu.cn/nix-channels/store https://mirror.sjtu.edu.cn/nix-channels/store https://nix-cache.yfgao.net?priority=50 https://cache.nixos.org?priority=100"
+nanopi_builder := "ssh-ng://yifan@100.127.101.9?remote-program=/nix/var/nix/profiles/default/bin/nix-daemon&base64-ssh-public-host-key=c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSVBuVENJd3dGSUJ0ZmZVTmd0TG5Yb0FFc0dtbFYxVnJHd1VMVHhtME5HSVQ%3D aarch64-linux - 8 1"
 self_just := quote(just_executable()) + " --justfile " + quote(justfile()) + " --working-directory " + quote(justfile_directory()) + " --quiet"
 
 # Default recipe: pulls the latest code, then applies the appropriate configuration
@@ -67,7 +68,7 @@ trust-flake-config:
                 --apply 'configure: builtins.concatStringsSep " " (configure { hostname = builtins.getEnv "INTERNAL_SUBSTITUTER_HOSTNAME"; }).substituters'
     )"
     mkdir -p ~/.local/share/nix
-    printf '%s\n' '{"builders":{"ssh-ng://yifan@100.127.101.9?remote-program=/nix/var/nix/profiles/default/bin/nix-daemon&base64-ssh-public-host-key=c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSVBuVENJd3dGSUJ0ZmZVTmd0TG5Yb0FFc0dtbFYxVnJHd1VMVHhtME5HSVQ%3D aarch64-linux /home/yifan/.ssh/id_ed25519 8 1":true},"extra-substituters":{"https://nix-cache.yfgao.net?priority=50":true},"extra-trusted-public-keys":{"nix-cache.yfgao.net-1:mSv/FykKK4oFZbX9JgD38D/me1+xJeAKsQ+STHiHVp4=":true}}' > ~/.local/share/nix/trusted-settings.json
+    printf '%s\n' '{"extra-substituters":{"https://nix-cache.yfgao.net?priority=50":true},"extra-trusted-public-keys":{"nix-cache.yfgao.net-1:mSv/FykKK4oFZbX9JgD38D/me1+xJeAKsQ+STHiHVp4=":true}}' > ~/.local/share/nix/trusted-settings.json
     if [ -w /etc/nix/nix.custom.conf ] || command -v sudo >/dev/null 2>&1; then
         additions=()
         nix_config_changed=false
@@ -297,7 +298,15 @@ build-nanopi-image:
     set -euo pipefail
     source <({{ self_just }} _emit_nix_env)
     source <({{ self_just }} _emit_flake_ref)
-    nix build --accept-flake-config "$FLAKE_REF#packages.aarch64-linux.somo-nanopi-r4s-image"
+    if [ -z "${SSH_AUTH_SOCK:-}" ] || [ ! -S "$SSH_AUTH_SOCK" ]; then
+        echo "build-nanopi-image requires a working SSH agent." >&2
+        exit 1
+    fi
+    sudo --preserve-env=SSH_AUTH_SOCK "$(command -v nix)" build \
+        --store local \
+        --accept-flake-config \
+        --builders "{{ nanopi_builder }}" \
+        "$FLAKE_REF#packages.aarch64-linux.somo-nanopi-r4s-image"
 
 # Deploy NixOS configuration to remote host
 [group('config')]
@@ -306,9 +315,24 @@ deploy target:
     set -euo pipefail
     source <({{ self_just }} _emit_nix_env)
     source <({{ self_just }} _emit_flake_ref)
-    nix develop --accept-flake-config "$FLAKE_REF" -c deploy "$FLAKE_REF#{{ target }}" --skip-checks -- \
-        --accept-flake-config \
-        --builders "ssh-ng://yifan@100.127.101.9?remote-program=/nix/var/nix/profiles/default/bin/nix-daemon&base64-ssh-public-host-key=c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSVBuVENJd3dGSUJ0ZmZVTmd0TG5Yb0FFc0dtbFYxVnJHd1VMVHhtME5HSVQ%3D aarch64-linux /home/yifan/.ssh/id_rsa 8 1"
+    if [ "{{ target }}" = "somo-nanopi-r4s" ]; then
+        if [ -z "${SSH_AUTH_SOCK:-}" ] || [ ! -S "$SSH_AUTH_SOCK" ]; then
+            echo "deploy somo-nanopi-r4s requires a working SSH agent." >&2
+            exit 1
+        fi
+        sudo --preserve-env=SSH_AUTH_SOCK "$(command -v nix)" develop \
+            --store local \
+            --accept-flake-config \
+            "$FLAKE_REF" \
+            -c deploy "$FLAKE_REF#{{ target }}" --skip-checks -- \
+            --store local \
+            --accept-flake-config \
+            --builders "{{ nanopi_builder }}"
+    else
+        nix develop --accept-flake-config "$FLAKE_REF" \
+            -c deploy "$FLAKE_REF#{{ target }}" --skip-checks -- \
+            --accept-flake-config
+    fi
 
 # Deploy NixOS via target-side nixos-rebuild.
 [group('config')]

@@ -4,9 +4,6 @@
   # The official cache remains Nix's default. The personal cache intentionally
   # stores only missing paths, so keep it as a lower-priority fallback.
   nixConfig = {
-    builders = [
-      "ssh-ng://yifan@100.127.101.9?remote-program=/nix/var/nix/profiles/default/bin/nix-daemon&base64-ssh-public-host-key=c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSVBuVENJd3dGSUJ0ZmZVTmd0TG5Yb0FFc0dtbFYxVnJHd1VMVHhtME5HSVQ%3D aarch64-linux /home/yifan/.ssh/id_ed25519 8 1"
-    ];
     extra-substituters = [
       "https://nix-cache.yfgao.net?priority=50"
     ];
@@ -383,7 +380,7 @@
     deploy.nodes.somo-minisforum = mkDeployNode "x86_64-linux" "somo-minisforum.ts.gaof.net" self.nixosConfigurations.somo-minisforum;
     deploy.nodes.somo-nanopi-r4s =
       (mkLocalBuildDeployNode "aarch64-linux" "somo-nanopi-r4s.ts.gaof.net" self.nixosConfigurations.somo-nanopi-r4s)
-      // {sshOpts = ["-4"];};
+      // {sshOpts = ["-4" "-o" "StrictHostKeyChecking=accept-new"];};
     deploy.nodes.somo-gw = mkLocalBuildDeployNode "x86_64-linux" "115.29.195.35" self.nixosConfigurations.somo-gw;
     checks = let
       # Hermes currently reads package manifests from lib.fileset.toSource
