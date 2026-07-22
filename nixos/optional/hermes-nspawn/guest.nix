@@ -152,7 +152,6 @@ in {
         default = "gpt-5.6-sol";
         base_url = newApiBaseUrl;
         api_mode = "codex_responses";
-        max_tokens = 128000;
       };
       providers.newapi = {
         api = newApiBaseUrl;
@@ -170,7 +169,7 @@ in {
           "gpt-5.6-luna".context_length = 272000;
         };
       };
-      compression.threshold = 0.95;
+      compression.threshold = 0.9;
       auxiliary.title_generation.model = "gpt-5.6-luna";
       memory.provider = "honcho";
       agent.system_prompt = ''
