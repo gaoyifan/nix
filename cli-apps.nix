@@ -24,6 +24,8 @@
       gh = {};
       mcat = {};
       node = {};
+      npm = {program = "npm";};
+      npx = {program = "npx";};
       playwright-cli = {};
       ruby = {};
       tokei = {};
@@ -47,6 +49,8 @@ in {
       fd = pkgs.fd;
       gh = pkgs.gh;
       node = pkgs.nodejs-slim;
+      npm = pkgs.nodejs-slim.npm;
+      npx = pkgs.nodejs-slim.npm;
       ruby = pkgs.ruby;
       tokei = pkgs.tokei;
       yazi = pkgs.yazi-unwrapped;
