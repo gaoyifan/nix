@@ -95,7 +95,6 @@ jobs:
             .#packages.${{ matrix.system }}.copilot
             .#packages.${{ matrix.system }}.codex
             .#packages.${{ matrix.system }}.cursor-agent
-            .#packages.${{ matrix.system }}.difftastic
             .#packages.${{ matrix.system }}.mcat
             .#packages.${{ matrix.system }}.playwright-cli
           )
