@@ -101,11 +101,11 @@
       REGISTRY_AUTH_FILE = pkgs.writeText "empty-registry-auth.json" ''{"auths":{}}'';
     };
   imageName = "localhost/hermes-terminal";
-  image = pkgs.dockerTools.buildLayeredImageWithNixDb {
+  image = pkgs.dockerTools.streamLayeredImage {
     name = imageName;
     fromImage = debianBase;
-    compressor = "zstd";
     contents = packages ++ [aptProxy fontConfig nixConfig ytDlpConfig];
+    includeNixDB = true;
     config = {
       Cmd = ["/bin/bash"];
       WorkingDir = "/workspace";
