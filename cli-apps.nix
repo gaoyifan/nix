@@ -23,6 +23,7 @@
       fd = {};
       gh = {};
       mcat = {};
+      node = {};
       playwright-cli = {};
       ruby = {};
       tokei = {};
@@ -47,6 +48,7 @@ in {
       difftastic = pkgs.difftastic;
       fd = pkgs.fd;
       gh = pkgs.gh;
+      node = pkgs.nodejs;
       ruby = pkgs.ruby;
       tokei = pkgs.tokei;
       yazi = pkgs.yazi-unwrapped;
