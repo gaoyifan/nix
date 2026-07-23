@@ -387,28 +387,14 @@
       # output still contains the NixOS activation path used for deployments.
       # Remove this workaround once Hermes no longer reads filtered sources
       # during evaluation.
-      node = self.deploy.nodes.somo-minisforum;
       deployForChecks =
-        self.deploy
-        // {
-          nodes =
-            self.deploy.nodes
-            // {
-              somo-minisforum =
-                node
-                // {
-                  profiles =
-                    node.profiles
-                    // {
-                      system =
-                        node.profiles.system
-                        // {
-                          path = deploy-rs.lib.x86_64-linux.activate.noop (pkgsFor "x86_64-linux").emptyDirectory;
-                        };
-                    };
-                };
-            };
-        };
+        nixpkgs.lib.updateManyAttrsByPath [
+          {
+            path = ["nodes" "somo-minisforum" "profiles" "system" "path"];
+            update = _: deploy-rs.lib.x86_64-linux.activate.noop (pkgsFor "x86_64-linux").emptyDirectory;
+          }
+        ]
+        self.deploy;
     in
       builtins.mapAttrs (_system: deployLib: deployLib.deployChecks deployForChecks) deploy-rs.lib;
   };
