@@ -1,5 +1,5 @@
 # Development shell for working on this flake
-# Provides: nh, nil (LSP), alejandra (formatter), just, home-manager, darwin-rebuild
+# Provides: Nix, nh, nil (LSP), alejandra (formatter), just, home-manager, darwin-rebuild
 {
   pkgs,
   home-manager,
@@ -9,6 +9,7 @@
 pkgs.mkShell {
   packages =
     [
+      pkgs.nix
       pkgs.nh
       pkgs.nil
       pkgs.nixd
