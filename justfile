@@ -3,7 +3,7 @@ nix_profile := "/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh"
 nix_bin_dir := "/nix/var/nix/profiles/default/bin"
 submodule_path := "secrets/files"
 home_manager_backup_extension := "backup-$(date +%Y%m%d-%H%M%S)"
-deploy_rebuild_substituters := "https://mirrors.ustc.edu.cn/nix-channels/store https://mirror.sjtu.edu.cn/nix-channels/store https://nix-cache.yfgao.net?priority=50 https://cache.nixos.org?priority=100"
+sync_and_rebuild_substituters := "https://mirrors.ustc.edu.cn/nix-channels/store https://mirror.sjtu.edu.cn/nix-channels/store https://nix-cache.yfgao.net?priority=50 https://cache.nixos.org?priority=100"
 nanopi_builder := "ssh-ng://yifan@100.127.101.9?remote-program=/nix/var/nix/profiles/default/bin/nix-daemon&base64-ssh-public-host-key=c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSVBuVENJd3dGSUJ0ZmZVTmd0TG5Yb0FFc0dtbFYxVnJHd1VMVHhtME5HSVQ%3D aarch64-linux - 8 1"
 self_just := quote(just_executable()) + " --justfile " + quote(justfile()) + " --working-directory " + quote(justfile_directory()) + " --quiet"
 
@@ -334,9 +334,9 @@ deploy target:
             --accept-flake-config
     fi
 
-# Deploy NixOS via target-side nixos-rebuild.
+# Sync the flake and rebuild NixOS on the target.
 [group('config')]
-deploy-rebuild target:
+sync-and-rebuild target:
     #!/usr/bin/env bash
     set -euo pipefail
     local_hostname="$(hostname -s 2>/dev/null || hostname 2>/dev/null || true)"
@@ -349,12 +349,14 @@ deploy-rebuild target:
         exit 0
     fi
     host="$(nix eval --accept-flake-config "$FLAKE_REF#deploy.nodes.$target.hostname" --raw)"
-    remote_dir="/home/yifan/nix"
-    ssh "root@$host" "install -d -o yifan -g users -m 755 '$remote_dir'"
-    rsync -az --delete --delete-excluded --chown=yifan:users \
+    ssh "$host" install -d -m 700 .cache/nixos-deploy
+    rsync -az --delete --delete-excluded \
         --exclude='result' \
-        ./ "root@$host:$remote_dir/"
-    ssh "root@$host" \
-        "set -euo pipefail
-        nixos-rebuild switch --accept-flake-config --flake 'path:$remote_dir#$target' \
-            --option substituters '{{ deploy_rebuild_substituters }}'"
+        ./ "$host:.cache/nixos-deploy/"
+    ssh "$host" bash -s -- "$target" <<'REMOTE'
+    set -euo pipefail
+    target="$1"
+    sudo nixos-rebuild switch --accept-flake-config \
+        --flake "path:$HOME/.cache/nixos-deploy#$target" \
+        --option substituters '{{ sync_and_rebuild_substituters }}'
+    REMOTE
