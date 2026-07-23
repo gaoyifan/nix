@@ -90,13 +90,16 @@
     mkdir -p $out/etc/fonts
     cp ${pkgs.makeFontsConf {fontDirectories = [pkgs.noto-fonts-cjk-sans];}} $out/etc/fonts/fonts.conf
   '';
-  debianBase = pkgs.dockerTools.pullImage {
-    imageName = "debian";
-    imageDigest = "sha256:020c0d20b9880058cbe785a9db107156c3c75c2ac944a6aa7ab59f2add76a7bd";
-    hash = "sha256-qSBIO82bf1xEUY3iQkhyrtvTUvt+QbJVTTGm5Bd4BKI=";
-    finalImageName = "debian";
-    finalImageTag = "trixie-slim";
-  };
+  debianBase =
+    (pkgs.dockerTools.pullImage {
+      imageName = "debian";
+      imageDigest = "sha256:020c0d20b9880058cbe785a9db107156c3c75c2ac944a6aa7ab59f2add76a7bd";
+      hash = "sha256-qSBIO82bf1xEUY3iQkhyrtvTUvt+QbJVTTGm5Bd4BKI=";
+      finalImageName = "debian";
+      finalImageTag = "trixie-slim";
+    }).overrideAttrs {
+      REGISTRY_AUTH_FILE = pkgs.writeText "empty-registry-auth.json" ''{"auths":{}}'';
+    };
   imageName = "localhost/hermes-terminal";
   image = pkgs.dockerTools.buildLayeredImageWithNixDb {
     name = imageName;
