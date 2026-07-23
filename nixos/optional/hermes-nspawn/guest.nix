@@ -14,9 +14,48 @@
   ...
 }: let
   inherit (import ../../common/ssh-keys.nix) sshKeys;
-  hermesPackage = inputs.hermes-agent.packages.${pkgs.stdenv.hostPlatform.system}.minimal.override {
+  hermesBasePackage = inputs.hermes-agent.packages.${pkgs.stdenv.hostPlatform.system}.minimal.override {
     extraDependencyGroups = ["exa" "honcho" "messaging"];
   };
+  sitePackages = pkgs.python312.sitePackages;
+  # Desktop/TUI uploads live in $HERMES_HOME/images, but Hermes 0.19.0 omits
+  # that agent-owned directory from the host-readable media roots used with a
+  # container terminal backend. Replace tools.image_source in a derived venv so
+  # uploads can reach vision without widening access to arbitrary host paths.
+  #
+  # A plain PYTHONPATH overlay is insufficient: slash_worker calls
+  # harden_import_path(), which moves the sealed import root ahead of
+  # PYTHONPATH. Pointing HERMES_PYTHON_SRC_ROOT at the derived venv preserves
+  # that protection while selecting the patched module. Remove this override
+  # once the pinned Hermes source includes the images root.
+  hermesVenv = hermesBasePackage.hermesVenv.overrideAttrs (old: {
+    postInstall =
+      (old.postInstall or "")
+      + ''
+        rm "$out/${sitePackages}/tools"
+        cp -rL "${hermesBasePackage.hermesVenv}/${sitePackages}/tools" "$out/${sitePackages}/"
+        chmod -R u+w "$out/${sitePackages}/tools"
+        substituteInPlace "$out/${sitePackages}/tools/image_source.py" \
+          --replace-fail \
+            '        home / "cache",  # cache/images, cache/vision, cache/video(s), cache/audio' \
+            '        home / "cache",  # cache/images, cache/vision, cache/video(s), cache/audio
+          home / "images",  # desktop/TUI uploads'
+      '';
+  });
+  hermesPackage = hermesBasePackage.overrideAttrs (old: {
+    postInstall =
+      (old.postInstall or "")
+      + ''
+        for program in hermes hermes-agent hermes-acp; do
+          # PYTHONPATH activates the derived venv while HERMES_PYTHON_SRC_ROOT
+          # keeps it first after import-path hardening.
+          wrapProgram "$out/bin/$program" \
+            --set HERMES_PYTHON_SRC_ROOT "${hermesVenv}/${sitePackages}" \
+            --prefix PYTHONPATH : "${hermesVenv}/${sitePackages}"
+        done
+      '';
+    passthru = (old.passthru or {}) // {inherit hermesVenv;};
+  });
   honchoConfig = pkgs.writeText "honcho.json" (builtins.toJSON {
     baseUrl = honchoBaseUrl;
     hosts.hermes = {
