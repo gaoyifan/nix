@@ -29,7 +29,7 @@
       tokei = {};
       yazi = {};
     }
-    // lib.genAttrs ansibleCommands (_: {});
+    // lib.genAttrs ansibleCommands (program: {inherit program;});
 in {
   mkPackages = {
     pkgs,
@@ -37,10 +37,8 @@ in {
   }:
     customPackages
     // lib.genAttrs ansibleCommands (
-      mainProgram:
-        pkgs.ansible.overrideAttrs (old: {
-          meta = (old.meta or {}) // {inherit mainProgram;};
-        })
+      _:
+        pkgs.ansible
     )
     // {
       copilot = customPackages.copilot-cli;
@@ -48,16 +46,19 @@ in {
       difftastic = pkgs.difftastic;
       fd = pkgs.fd;
       gh = pkgs.gh;
-      node = pkgs.nodejs;
+      node = pkgs.nodejs-slim;
       ruby = pkgs.ruby;
       tokei = pkgs.tokei;
       yazi = pkgs.yazi-unwrapped;
     };
 
   mkApps = packages:
-    lib.mapAttrs (name: _spec: {
+    lib.mapAttrs (name: spec: {
       type = "app";
-      program = lib.getExe packages.${name};
+      program =
+        if spec ? program
+        then lib.getExe' packages.${name} spec.program
+        else lib.getExe packages.${name};
       meta = packages.${name}.meta;
     })
     appSpecs;
