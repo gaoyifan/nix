@@ -96,6 +96,7 @@ jobs:
             .#packages.${{ matrix.system }}.codex
             .#packages.${{ matrix.system }}.cursor-agent
             .#packages.${{ matrix.system }}.mcat
+            .#packages.${{ matrix.system }}.pi
             .#packages.${{ matrix.system }}.playwright-cli
           )
 

@@ -26,6 +26,7 @@
       node = {};
       npm = {program = "npm";};
       npx = {program = "npx";};
+      pi = {};
       playwright-cli = {};
       ruby = {};
       tokei = {};
@@ -51,6 +52,7 @@ in {
       node = pkgs.nodejs-slim;
       npm = pkgs.nodejs-slim.npm;
       npx = pkgs.nodejs-slim.npm;
+      pi = customPackages.pi-coding-agent;
       ruby = pkgs.ruby;
       tokei = pkgs.tokei;
       yazi = pkgs.yazi-unwrapped;
