@@ -89,6 +89,7 @@ in {
         runtimes.runsc = ["${pkgs.gvisor}/bin/runsc"];
         runtimes_flags.runsc = [
           "platform=kvm"
+          "network=host"
           "overlay2=root:self,size=8g"
           "oci-seccomp=true"
           "watchdog-action=panic"

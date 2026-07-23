@@ -40,6 +40,11 @@
       --config 'model_providers.newapi.env_key="NEWAPI_API_KEY"' \
       "$@"
   '';
+  ytDlp = pkgs.writeShellScriptBin "yt-dlp" ''
+    exec ${pkgs.uv}/bin/uvx \
+      --from 'yt-dlp[default,curl-cffi]@latest' \
+      yt-dlp "$@"
+  '';
   packages = [
     pkgs.bashInteractive
     pkgs.bind.dnsutils
@@ -73,7 +78,7 @@
     tesseractWithLanguages
     pkgs.util-linux
     pkgs.uv
-    pkgs.yt-dlp
+    ytDlp
   ];
   aptProxy = pkgs.writeTextDir "etc/apt/apt.conf.d/01proxy" ''
     Acquire::http::Proxy "http://${aptProxyAddress}:3142";
