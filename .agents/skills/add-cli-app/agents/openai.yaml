@@ -1,0 +1,4 @@
+interface:
+  display_name: "Add CLI App"
+  short_description: "Add Nixpkgs or custom commands to CLI apps"
+  default_prompt: "Use $add-cli-app to add a command to this repository’s dynamic CLI apps."
