@@ -1,0 +1,9 @@
+name: weixin-channel
+version: 1.0.0
+description: "Connect or reconnect Hermes to WeChat through an inline QR code shown by Hermes Desktop."
+author: yifan
+kind: standalone
+platforms:
+  - linux
+provides_tools:
+  - weixin_channel

@@ -58,6 +58,10 @@
     mkdir -p $out
     cp -r ${./newapi-codex}/. $out/
   '';
+  weixinChannelPlugin = pkgs.runCommand "weixin-channel" {} ''
+    install -Dm0444 ${./weixin-channel/plugin.yaml} $out/plugin.yaml
+    install -Dm0444 ${./weixin-channel/__init__.py} $out/__init__.py
+  '';
   managedSkills = pkgs.runCommand "hermes-managed-skills" {} ''
     mkdir -p $out
     cp -rL ${inputs.anthropic-skills}/skills/{docx,xlsx,pdf,pptx} $out/
@@ -173,7 +177,10 @@ in {
     createUser = false;
     addToSystemPackages = true;
     extraPackages = guestTools;
-    extraPlugins = [newApiCodexPlugin];
+    extraPlugins = [
+      newApiCodexPlugin
+      weixinChannelPlugin
+    ];
     settings = {
       model = {
         provider = "newapi";
@@ -216,7 +223,10 @@ in {
       platform_toolsets.telegram = ["hermes-telegram"];
       stt.enabled = false;
       image_gen.provider = "newapi-codex";
-      plugins.enabled = ["newapi-codex"];
+      plugins.enabled = [
+        "newapi-codex"
+        "weixin-channel"
+      ];
       skills = {
         disabled = [
           "apple-notes"
