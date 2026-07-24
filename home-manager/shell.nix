@@ -111,6 +111,7 @@ in {
     terminal = "xterm-256color";
     extraConfig = ''
       set -g extended-keys on
+      set -g extended-keys-format csi-u
       set -as terminal-features ",xterm-256color:RGB"
       set -g window-status-current-style ""
       set -g status-right "#{?window_bigger,[#{window_offset_x},#{window_offset_y}],}"
