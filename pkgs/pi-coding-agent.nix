@@ -33,7 +33,7 @@ in
     sourceRoot = "pi";
 
     nativeBuildInputs =
-      [pkgs.makeBinaryWrapper]
+      [pkgs.makeWrapper]
       ++ lib.optionals stdenvNoCC.hostPlatform.isLinux [
         pkgs.autoPatchelfHook
       ];
@@ -55,13 +55,15 @@ in
       # Keep this example readable without making its non-Nix shebang a runtime reference.
       chmod -x "$out/lib/pi-coding-agent/examples/extensions/doom-overlay/doom/build.sh"
 
-      makeBinaryWrapper \
+      # Home Manager repoints this stable path when the forwarded agent changes.
+      makeWrapper \
         "$out/lib/pi-coding-agent/pi" \
         "$out/bin/pi" \
         --prefix PATH : ${lib.makeBinPath [
         pkgs.fd
         pkgs.ripgrep
-      ]}
+      ]} \
+        --run 'if [ -S "$HOME/.ssh/agent.sock" ]; then export SSH_AUTH_SOCK="$HOME/.ssh/agent.sock"; fi'
 
       runHook postInstall
     '';
