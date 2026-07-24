@@ -2,13 +2,12 @@
   description = "Nix configuration for yifan";
 
   nixConfig = {
+    # cache.nixos.org remains Nix's built-in fallback.
     extra-substituters = [
       "https://nix-cache.yfgao.net?priority=50"
-      "https://cache.nixos.org?priority=100"
     ];
     extra-trusted-public-keys = [
       "nix-cache.yfgao.net-1:mSv/FykKK4oFZbX9JgD38D/me1+xJeAKsQ+STHiHVp4="
-      "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
     ];
   };
 
@@ -117,7 +116,6 @@
     disko,
     ...
   } @ inputs: let
-    cacheSettings = (import ./flake.nix).nixConfig;
     systems = [
       "x86_64-linux"
       "aarch64-linux"
@@ -224,11 +222,12 @@
       system-manager.lib.makeSystemConfig {
         overlays = [overlay];
         specialArgs = {
-          inherit cacheSettings username;
+          inherit username;
           internalSubstituters = internalSubstitutersFor hostname;
         };
         modules =
           [
+            ./system-manager/nix.nix
             ./system-manager/restic.nix
             ./system-manager/tailscale.nix
             # system-manager imports NixOS nginx without the full NixOS module
@@ -236,22 +235,9 @@
             # drop this once the pin has nginx sslDhparam removed or system-manager
             # imports the matching dependency itself.
             "${nixpkgs}/nixos/modules/security/dhparams.nix"
-            ({
-              cacheSettings,
-              internalSubstituters,
-              lib,
-              pkgs,
-              ...
-            }: {
+            ({pkgs, ...}: {
               nixpkgs.hostPlatform = system;
               nixpkgs.config.allowUnfree = true;
-              nix = {
-                enable = true;
-                settings = {
-                  substituters = lib.mkForce (internalSubstituters ++ cacheSettings.extra-substituters);
-                  trusted-public-keys = cacheSettings.extra-trusted-public-keys;
-                };
-              };
               environment.systemPackages = [
                 pkgs.tsshd
               ];
@@ -318,8 +304,7 @@
       hostname:
         nix-darwin.lib.darwinSystem {
           specialArgs = {
-            inherit cacheSettings inputs username;
-            internalSubstituters = internalSubstitutersFor hostname;
+            inherit inputs username;
             darwinProfile =
               if hostname == "openclaw"
               then "openclaw"

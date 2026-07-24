@@ -56,92 +56,12 @@ ensure-nix:
 trust-flake-config:
     #!/usr/bin/env bash
     set -euo pipefail
-    local_hostname="$(hostname -s)"
-    default_substituters="$(
-        nix eval --raw --file flake.nix \
-            --apply 'flake: builtins.concatStringsSep " " flake.nixConfig.extra-substituters'
-    )"
-    trusted_public_keys="$(
-        nix eval --raw --file flake.nix \
-            --apply 'flake: builtins.concatStringsSep " " flake.nixConfig.extra-trusted-public-keys'
-    )"
-    private_substituters="$(
-        INTERNAL_SUBSTITUTER_HOSTNAME="$local_hostname" \
-            nix eval --impure --raw --file secrets/internal-substituters.nix \
-                --apply 'configure: builtins.concatStringsSep " " (configure { hostname = builtins.getEnv "INTERNAL_SUBSTITUTER_HOSTNAME"; })'
-    )"
     mkdir -p ~/.local/share/nix
-    nix eval --raw --file flake.nix \
-        --apply 'flake: builtins.toJSON {
-            extra-substituters = builtins.listToAttrs (map (name: { inherit name; value = true; }) flake.nixConfig.extra-substituters);
-            extra-trusted-public-keys = builtins.listToAttrs (map (name: { inherit name; value = true; }) flake.nixConfig.extra-trusted-public-keys);
+    nix eval --raw --file nix-cache.nix \
+        --apply 'settings: builtins.toJSON {
+            extra-substituters = builtins.listToAttrs (map (name: { inherit name; value = true; }) settings.extra-substituters);
+            extra-trusted-public-keys = builtins.listToAttrs (map (name: { inherit name; value = true; }) settings.extra-trusted-public-keys);
         }' > ~/.local/share/nix/trusted-settings.json
-    if [ -w /etc/nix/nix.custom.conf ] || command -v sudo >/dev/null 2>&1; then
-        additions=()
-        nix_config_changed=false
-        default_caches_current=false
-        if grep -Fqx '# default Nix binary caches' /etc/nix/nix.custom.conf 2>/dev/null \
-            && grep -Fqx "extra-substituters = $default_substituters" /etc/nix/nix.custom.conf \
-            && grep -Fqx "extra-trusted-public-keys = $trusted_public_keys" /etc/nix/nix.custom.conf; then
-            default_caches_current=true
-        elif [ -e /etc/nix/nix.custom.conf ]; then
-            filtered_config="$(mktemp)"
-            sudo awk '
-                skip_default_caches > 0 { skip_default_caches--; next }
-                $0 == "# default Nix binary caches" || $0 == "# yifan nix binary cache" {
-                    skip_default_caches = 2
-                    next
-                }
-                { print }
-            ' /etc/nix/nix.custom.conf > "$filtered_config"
-            sudo tee /etc/nix/nix.custom.conf < "$filtered_config" >/dev/null
-            rm "$filtered_config"
-            nix_config_changed=true
-        fi
-        if ! "$default_caches_current"; then
-            additions+=(
-                ''
-                '# default Nix binary caches'
-                "extra-substituters = $default_substituters"
-                "extra-trusted-public-keys = $trusted_public_keys"
-            )
-        fi
-        private_cache_current=false
-        if grep -Fqx '# private Nix binary cache' /etc/nix/nix.custom.conf 2>/dev/null; then
-            if [ -n "$private_substituters" ] \
-                && grep -Fqx "extra-substituters = $private_substituters" /etc/nix/nix.custom.conf; then
-                private_cache_current=true
-            else
-                filtered_config="$(mktemp)"
-                sudo awk '
-                    skip_private_cache { skip_private_cache = 0; next }
-                    $0 == "# private Nix binary cache" { skip_private_cache = 1; next }
-                    { print }
-                ' /etc/nix/nix.custom.conf > "$filtered_config"
-                sudo tee /etc/nix/nix.custom.conf < "$filtered_config" >/dev/null
-                rm "$filtered_config"
-                nix_config_changed=true
-            fi
-        fi
-        if [ -n "$private_substituters" ] && ! "$private_cache_current"; then
-            additions+=(
-                ''
-                '# private Nix binary cache'
-                "extra-substituters = $private_substituters"
-            )
-        fi
-        if [ "${#additions[@]}" -gt 0 ]; then
-            printf '%s\n' "${additions[@]}" | sudo tee -a /etc/nix/nix.custom.conf >/dev/null
-            nix_config_changed=true
-        fi
-        if "$nix_config_changed"; then
-            if [ "$(uname)" = "Darwin" ]; then
-                sudo launchctl kickstart -k system/systems.determinate.nix-daemon || true
-            else
-                sudo systemctl restart nix-daemon 2>/dev/null || true
-            fi
-        fi
-    fi
     echo "Trusted flake settings are up to date."
 
 # Install nix using Determinate Systems installer
@@ -265,6 +185,7 @@ system:
         esac
     fi
     nix run --accept-flake-config "$FLAKE_REF#system-manager" -- switch --sudo --flake "$FLAKE_REF" --nix-option eval-cache false
+    sudo systemctl restart nix-daemon.service
 
 # Switch nix-darwin configuration
 [group('config')]
@@ -274,6 +195,11 @@ darwin hostname='':
     source <({{ self_just }} _emit_nix_env)
     source <({{ self_just }} _emit_flake_ref)
     {{ self_just }} _write_username
+    if [ -f /etc/nix/nix.custom.conf ] && [ ! -L /etc/nix/nix.custom.conf ]; then
+        backup="/etc/nix/nix.custom.conf.before-nix-darwin.$(date +%Y%m%d-%H%M%S)"
+        echo "Moving the existing Determinate Nix custom configuration to $backup..."
+        sudo mv /etc/nix/nix.custom.conf "$backup"
+    fi
     hostname_args=()
     if [ -n "{{ hostname }}" ]; then
         hostname_args+=(--hostname "{{ hostname }}")
@@ -283,6 +209,7 @@ darwin hostname='':
     else
         nix run --accept-flake-config nixpkgs#nh -- darwin switch --accept-flake-config "${hostname_args[@]}" "$FLAKE_REF" -- --option eval-cache false
     fi
+    sudo launchctl kickstart -k system/systems.determinate.nix-daemon
 
 # Format all nix files
 [group('dev')]
@@ -384,8 +311,8 @@ sync-and-rebuild target:
     target="$1"
     repo="$HOME/.cache/nixos-deploy"
     default_substituters="$(
-        nix eval --raw --file "$repo/flake.nix" \
-            --apply 'flake: builtins.concatStringsSep " " flake.nixConfig.extra-substituters'
+        nix eval --raw --file "$repo/nix-cache.nix" \
+            --apply 'settings: builtins.concatStringsSep " " settings.extra-substituters'
     )"
     internal_substituters="$(
         INTERNAL_SUBSTITUTER_HOSTNAME="$target" \
@@ -394,5 +321,5 @@ sync-and-rebuild target:
     )"
     sudo nixos-rebuild switch --accept-flake-config \
         --flake "path:$repo#$target" \
-        --option substituters "$internal_substituters $default_substituters"
+        --option extra-substituters "$internal_substituters $default_substituters"
     REMOTE

@@ -1,12 +1,12 @@
 # Darwin system configuration
 {
-  cacheSettings,
   darwinProfile ? "default",
-  internalSubstituters,
+  lib,
   pkgs,
   username,
   ...
 }: let
+  cacheSettings = import ../nix-cache.nix;
   defaultHomebrew = import ./homebrew/default.nix;
   openclawHomebrew = import ./homebrew/openclaw.nix;
   yifansMacStudioHomebrew = import ./homebrew/yifansmacstudio.nix;
@@ -14,29 +14,13 @@ in {
   # User configuration - required for home-manager
   users.users.${username}.home = "/Users/${username}";
 
-  # Nix settings - system-wide configuration
-  nix = {
-    enable = false;
-    settings = {
-      # Trusted users for the nix daemon
-      trusted-users = [
-        "root"
-        username
-      ];
-
-      # Enable experimental features
-      experimental-features = [
-        "nix-command"
-        "flakes"
-      ];
-
-      substituters = internalSubstituters ++ cacheSettings.extra-substituters;
-      trusted-public-keys = cacheSettings.extra-trusted-public-keys;
-
-      # Automatically accept flake config (extra-substituters, etc.)
-      accept-flake-config = true;
-    };
-  };
+  # Determinate manages nix.conf and includes this declarative custom file.
+  nix.enable = false;
+  environment.etc."nix/nix.custom.conf".text = ''
+    extra-substituters = ${lib.concatStringsSep " " cacheSettings.extra-substituters}
+    extra-trusted-public-keys = ${lib.concatStringsSep " " cacheSettings.extra-trusted-public-keys}
+    extra-trusted-users = ${username}
+  '';
 
   # Add homebrew bins to PATH for global tools
   environment.systemPath = [
