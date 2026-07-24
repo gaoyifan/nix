@@ -5,15 +5,15 @@
   username,
   ...
 }: let
-  cacheSettings = (import ../../flake.nix).nixConfig;
+  flakeCacheSettings = (import ../../flake.nix).nixConfig;
 in {
   nix.settings = {
     experimental-features = ["nix-command" "flakes"];
-    substituters = lib.mkBefore (
+    substituters = lib.mkForce (
       config.services.secrets.nixos.internalSubstituters
-      ++ cacheSettings.extra-substituters
+      ++ flakeCacheSettings.extra-substituters
     );
-    trusted-public-keys = cacheSettings.extra-trusted-public-keys;
+    trusted-public-keys = flakeCacheSettings.extra-trusted-public-keys;
     trusted-users = ["root" username];
     # Free disk space automatically when the store partition runs low.
     min-free = lib.mkDefault (2 * 1024 * 1024 * 1024);

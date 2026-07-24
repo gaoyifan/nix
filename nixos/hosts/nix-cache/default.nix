@@ -1,9 +1,5 @@
 # nix-cache - VMware guest migrated from the gateway cluster.
-{
-  lib,
-  username,
-  ...
-}: {
+{username, ...}: {
   networking = {
     hostName = "nix-cache";
     useDHCP = false;
@@ -63,11 +59,6 @@
   swapDevices = [];
   virtualisation.vmware.guest.enable = true;
   home-manager.users.${username}.services.mutagen.dotfileSync.enable = false;
-
-  nix.settings.substituters = lib.mkForce [
-    "https://mirrors.ustc.edu.cn/nix-channels/store"
-    "https://cache.nixos.org/"
-  ];
 
   services.ncps = {
     enable = true;

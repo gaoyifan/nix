@@ -1,14 +1,14 @@
 {
   description = "Nix configuration for yifan";
 
-  # The official cache remains Nix's default. The personal cache intentionally
-  # stores only missing paths, so keep it as a lower-priority fallback.
   nixConfig = {
     extra-substituters = [
       "https://nix-cache.yfgao.net?priority=50"
+      "https://cache.nixos.org?priority=100"
     ];
     extra-trusted-public-keys = [
       "nix-cache.yfgao.net-1:mSv/FykKK4oFZbX9JgD38D/me1+xJeAKsQ+STHiHVp4="
+      "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
     ];
   };
 
@@ -117,6 +117,7 @@
     disko,
     ...
   } @ inputs: let
+    cacheSettings = (import ./flake.nix).nixConfig;
     systems = [
       "x86_64-linux"
       "aarch64-linux"
@@ -187,6 +188,10 @@
       };
     cliApps = import ./cli-apps.nix {lib = nixpkgs.lib;};
     overlay = _final: prev: customPackages prev;
+    internalSubstitutersFor = hostname:
+      import ./secrets/internal-substituters.nix {
+        hostname = builtins.head (nixpkgs.lib.splitString "." hostname);
+      };
     # NixOS host builder: shared nixpkgs setup, common modules, and
     # home-manager integration. Hosts only list their own modules.
     mkNixosHost = system: hostModules:
@@ -215,10 +220,13 @@
         remoteBuild = false;
       };
     };
-    mkLinuxSystemConfig = system: extraModules:
+    mkLinuxSystemConfig = system: hostname: extraModules:
       system-manager.lib.makeSystemConfig {
         overlays = [overlay];
-        specialArgs = {inherit username;};
+        specialArgs = {
+          inherit cacheSettings username;
+          internalSubstituters = internalSubstitutersFor hostname;
+        };
         modules =
           [
             ./system-manager/restic.nix
@@ -228,9 +236,22 @@
             # drop this once the pin has nginx sslDhparam removed or system-manager
             # imports the matching dependency itself.
             "${nixpkgs}/nixos/modules/security/dhparams.nix"
-            ({pkgs, ...}: {
+            ({
+              cacheSettings,
+              internalSubstituters,
+              lib,
+              pkgs,
+              ...
+            }: {
               nixpkgs.hostPlatform = system;
               nixpkgs.config.allowUnfree = true;
+              nix = {
+                enable = true;
+                settings = {
+                  substituters = lib.mkForce (internalSubstituters ++ cacheSettings.extra-substituters);
+                  trusted-public-keys = cacheSettings.extra-trusted-public-keys;
+                };
+              };
               environment.systemPackages = [
                 pkgs.tsshd
               ];
@@ -297,7 +318,8 @@
       hostname:
         nix-darwin.lib.darwinSystem {
           specialArgs = {
-            inherit inputs username;
+            inherit cacheSettings inputs username;
+            internalSubstituters = internalSubstitutersFor hostname;
             darwinProfile =
               if hostname == "openclaw"
               then "openclaw"
@@ -352,11 +374,11 @@
     systemConfigs = forAllLinuxSystems (
       system:
         {
-          default = mkLinuxSystemConfig system [];
+          default = mkLinuxSystemConfig system "default" [];
         }
         // nixpkgs.lib.genAttrs systemManagerHosts (
           host:
-            mkLinuxSystemConfig system (
+            mkLinuxSystemConfig system host (
               nixpkgs.lib.optional (builtins.elem host resticBackupHosts) {
                 services.resticBackup.enable = true;
               }

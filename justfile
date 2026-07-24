@@ -3,7 +3,6 @@ nix_profile := "/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh"
 nix_bin_dir := "/nix/var/nix/profiles/default/bin"
 submodule_path := "secrets/files"
 home_manager_backup_extension := "backup-$(date +%Y%m%d-%H%M%S)"
-sync_and_rebuild_substituters := "https://mirrors.ustc.edu.cn/nix-channels/store https://mirror.sjtu.edu.cn/nix-channels/store https://nix-cache.yfgao.net?priority=50 https://cache.nixos.org?priority=100"
 nanopi_builder := "ssh-ng://yifan@100.127.101.9?remote-program=/nix/var/nix/profiles/default/bin/nix-daemon&base64-ssh-public-host-key=c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSVBuVENJd3dGSUJ0ZmZVTmd0TG5Yb0FFc0dtbFYxVnJHd1VMVHhtME5HSVQ%3D aarch64-linux - 8 1"
 self_just := quote(just_executable()) + " --justfile " + quote(justfile()) + " --working-directory " + quote(justfile_directory()) + " --quiet"
 
@@ -58,26 +57,53 @@ trust-flake-config:
     #!/usr/bin/env bash
     set -euo pipefail
     local_hostname="$(hostname -s)"
-    secrets_dir="secrets/files-example"
-    if [ -f "{{ submodule_path }}/.gitkeep" ] || [ -f "{{ submodule_path }}/.git" ]; then
-        secrets_dir="{{ submodule_path }}"
-    fi
+    default_substituters="$(
+        nix eval --raw --file flake.nix \
+            --apply 'flake: builtins.concatStringsSep " " flake.nixConfig.extra-substituters'
+    )"
+    trusted_public_keys="$(
+        nix eval --raw --file flake.nix \
+            --apply 'flake: builtins.concatStringsSep " " flake.nixConfig.extra-trusted-public-keys'
+    )"
     private_substituters="$(
         INTERNAL_SUBSTITUTER_HOSTNAME="$local_hostname" \
-            nix eval --impure --raw --file "$secrets_dir/nixos/internal-substituters.nix" \
-                --apply 'configure: builtins.concatStringsSep " " (configure { hostname = builtins.getEnv "INTERNAL_SUBSTITUTER_HOSTNAME"; }).substituters'
+            nix eval --impure --raw --file secrets/internal-substituters.nix \
+                --apply 'configure: builtins.concatStringsSep " " (configure { hostname = builtins.getEnv "INTERNAL_SUBSTITUTER_HOSTNAME"; })'
     )"
     mkdir -p ~/.local/share/nix
-    printf '%s\n' '{"extra-substituters":{"https://nix-cache.yfgao.net?priority=50":true},"extra-trusted-public-keys":{"nix-cache.yfgao.net-1:mSv/FykKK4oFZbX9JgD38D/me1+xJeAKsQ+STHiHVp4=":true}}' > ~/.local/share/nix/trusted-settings.json
+    nix eval --raw --file flake.nix \
+        --apply 'flake: builtins.toJSON {
+            extra-substituters = builtins.listToAttrs (map (name: { inherit name; value = true; }) flake.nixConfig.extra-substituters);
+            extra-trusted-public-keys = builtins.listToAttrs (map (name: { inherit name; value = true; }) flake.nixConfig.extra-trusted-public-keys);
+        }' > ~/.local/share/nix/trusted-settings.json
     if [ -w /etc/nix/nix.custom.conf ] || command -v sudo >/dev/null 2>&1; then
         additions=()
         nix_config_changed=false
-        if ! grep -q 'nix-cache.yfgao.net' /etc/nix/nix.custom.conf 2>/dev/null; then
+        default_caches_current=false
+        if grep -Fqx '# default Nix binary caches' /etc/nix/nix.custom.conf 2>/dev/null \
+            && grep -Fqx "extra-substituters = $default_substituters" /etc/nix/nix.custom.conf \
+            && grep -Fqx "extra-trusted-public-keys = $trusted_public_keys" /etc/nix/nix.custom.conf; then
+            default_caches_current=true
+        elif [ -e /etc/nix/nix.custom.conf ]; then
+            filtered_config="$(mktemp)"
+            sudo awk '
+                skip_default_caches > 0 { skip_default_caches--; next }
+                $0 == "# default Nix binary caches" || $0 == "# yifan nix binary cache" {
+                    skip_default_caches = 2
+                    next
+                }
+                { print }
+            ' /etc/nix/nix.custom.conf > "$filtered_config"
+            sudo tee /etc/nix/nix.custom.conf < "$filtered_config" >/dev/null
+            rm "$filtered_config"
+            nix_config_changed=true
+        fi
+        if ! "$default_caches_current"; then
             additions+=(
                 ''
-                '# yifan nix binary cache'
-                'extra-substituters = https://nix-cache.yfgao.net?priority=50'
-                'extra-trusted-public-keys = nix-cache.yfgao.net-1:mSv/FykKK4oFZbX9JgD38D/me1+xJeAKsQ+STHiHVp4='
+                '# default Nix binary caches'
+                "extra-substituters = $default_substituters"
+                "extra-trusted-public-keys = $trusted_public_keys"
             )
         fi
         private_cache_current=false
@@ -356,7 +382,17 @@ sync-and-rebuild target:
     ssh "$host" bash -s -- "$target" <<'REMOTE'
     set -euo pipefail
     target="$1"
+    repo="$HOME/.cache/nixos-deploy"
+    default_substituters="$(
+        nix eval --raw --file "$repo/flake.nix" \
+            --apply 'flake: builtins.concatStringsSep " " flake.nixConfig.extra-substituters'
+    )"
+    internal_substituters="$(
+        INTERNAL_SUBSTITUTER_HOSTNAME="$target" \
+            nix eval --impure --raw --file "$repo/secrets/internal-substituters.nix" \
+                --apply 'configure: builtins.concatStringsSep " " (configure { hostname = builtins.getEnv "INTERNAL_SUBSTITUTER_HOSTNAME"; })'
+    )"
     sudo nixos-rebuild switch --accept-flake-config \
-        --flake "path:$HOME/.cache/nixos-deploy#$target" \
-        --option substituters '{{ sync_and_rebuild_substituters }}'
+        --flake "path:$repo#$target" \
+        --option substituters "$internal_substituters $default_substituters"
     REMOTE

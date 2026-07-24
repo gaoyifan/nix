@@ -1,7 +1,8 @@
 # Darwin system configuration
 {
+  cacheSettings,
   darwinProfile ? "default",
-  inputs,
+  internalSubstituters,
   pkgs,
   username,
   ...
@@ -28,6 +29,9 @@ in {
         "nix-command"
         "flakes"
       ];
+
+      substituters = internalSubstituters ++ cacheSettings.extra-substituters;
+      trusted-public-keys = cacheSettings.extra-trusted-public-keys;
 
       # Automatically accept flake config (extra-substituters, etc.)
       accept-flake-config = true;

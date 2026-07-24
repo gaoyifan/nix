@@ -53,19 +53,7 @@
     memoryPercent = 100;
   };
 
-  nix.settings = {
-    max-jobs = 2;
-    substituters = lib.mkForce [
-      "http://nix-cache.lib.ustc.edu.cn:8501"
-      "https://mirrors.ustc.edu.cn/nix-channels/store"
-      "https://mirror.sjtu.edu.cn/nix-channels/store"
-      "https://nix-cache.yfgao.net?priority=50"
-      "https://cache.nixos.org?priority=100"
-    ];
-    trusted-public-keys = [
-      "nix-cache.yfgao.net-1:mSv/FykKK4oFZbX9JgD38D/me1+xJeAKsQ+STHiHVp4="
-    ];
-  };
+  nix.settings.max-jobs = 2;
 
   system.stateVersion = "26.05";
 }
