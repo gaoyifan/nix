@@ -12,9 +12,10 @@ import urllib.request
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 # Excluded from "all" (scheduled) bumps; can still be bumped explicitly via
-# workflow_dispatch. cursor-cli carries a substituteInPlace patch on minified
-# JS that must be re-verified manually after each upstream release.
-AUTO_BUMP_SKIP = {"cursor-cli"}
+# workflow_dispatch. antigravity-cli and copilot-cli are intentionally
+# manual-only. cursor-cli carries a substituteInPlace patch on minified JS that
+# must be re-verified manually after each upstream release.
+AUTO_BUMP_SKIP = {"antigravity-cli", "copilot-cli", "cursor-cli"}
 
 
 PACKAGES = {
