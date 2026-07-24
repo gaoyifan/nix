@@ -56,6 +56,7 @@ ensure-nix:
 trust-flake-config:
     #!/usr/bin/env bash
     set -euo pipefail
+    source <({{ self_just }} _emit_nix_env)
     mkdir -p ~/.local/share/nix
     nix eval --raw --file nix-cache.nix \
         --apply 'settings: builtins.toJSON {
