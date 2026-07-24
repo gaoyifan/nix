@@ -66,6 +66,18 @@ PACKAGES = {
         },
         "url": lambda version, asset: f"https://downloads.cursor.com/lab/{version}/{asset}/agent-cli-package.tar.gz",
     },
+    "pi-coding-agent": {
+        "path": ROOT / "pkgs/pi-coding-agent.nix",
+        "release_api": "https://api.github.com/repos/earendil-works/pi/releases?per_page=100",
+        "tag_pattern": r"^v[0-9]+\.[0-9]+\.[0-9]+$",
+        "version_from_tag": lambda tag: tag.removeprefix("v"),
+        "assets": {
+            "x86_64-linux": "pi-linux-x64.tar.gz",
+            "aarch64-linux": "pi-linux-arm64.tar.gz",
+            "aarch64-darwin": "pi-darwin-arm64.tar.gz",
+        },
+        "url": lambda version, asset: f"https://github.com/earendil-works/pi/releases/download/v{version}/{asset}",
+    },
 }
 
 
@@ -127,7 +139,7 @@ def latest_antigravity(config):
 def latest_version(name, config):
     if name == "antigravity-cli":
         return latest_antigravity(config)
-    if name in {"copilot-cli", "codex"}:
+    if name in {"copilot-cli", "codex", "pi-coding-agent"}:
         return latest_github_release(config)
     if name == "cursor-cli":
         return latest_cursor_cli()

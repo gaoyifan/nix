@@ -16,6 +16,7 @@ on:
           - copilot-cli
           - codex
           - cursor-cli
+          - pi-coding-agent
       version:
         description: "Optional version, only when selecting a single package"
         required: false
@@ -59,7 +60,7 @@ jobs:
 
       - name: Validate packages
         if: steps.bump.outputs.changed == 'true'
-        run: nix build --accept-flake-config .#agy .#copilot .#codex .#cursor-cli
+        run: nix build --accept-flake-config .#agy .#copilot .#codex .#cursor-cli .#pi
 
       - name: Commit and push
         if: steps.bump.outputs.changed == 'true'
