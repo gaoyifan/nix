@@ -13,6 +13,20 @@
   secretDirectory = containerName: "/run/${containerName}-secrets";
   honcho = cfg.honcho;
   honchoBaseUrl = "http://${cfg.listenAddress}:${toString honcho.apiPort}";
+  jsonFormat = pkgs.formats.json {};
+  honchoConfigTemplate = userName: let
+    containerName = containerNameFor userName;
+  in
+    jsonFormat.generate "honcho-${userName}.json" {
+      baseUrl = honchoBaseUrl;
+      hosts.hermes = {
+        enabled = true;
+        workspace = containerName;
+        peerName = userName;
+        aiPeer = containerName;
+        pinUserPeer = true;
+      };
+    };
   telegramBotApi = cfg.telegramBotApi;
   telegramBotApiBaseUrl = "http://${cfg.listenAddress}";
 in {
@@ -69,6 +83,7 @@ in {
           requires = ["honcho-runtime-env.service"];
           path = [
             pkgs.coreutils
+            pkgs.jq
             pkgs.openssl
           ];
           serviceConfig = {
@@ -112,8 +127,9 @@ in {
 
             secrets_dir=${secretDirectory containerName}
             env_tmp="$secrets_dir/.env.tmp"
+            honcho_config_tmp="$secrets_dir/honcho.json.tmp"
             install -d -o root -g 1000 -m 0750 "$secrets_dir"
-            trap 'rm -f "$env_tmp"' EXIT
+            trap 'rm -f "$env_tmp" "$honcho_config_tmp"' EXIT
 
             install -o root -g 1000 -m 0640 /dev/null "$env_tmp"
             printf '%s\n' \
@@ -123,11 +139,19 @@ in {
               'HERMES_DASHBOARD_BASIC_AUTH_USERNAME=agent' \
               "HERMES_DASHBOARD_BASIC_AUTH_PASSWORD=$dashboard_password" \
               "HERMES_DASHBOARD_BASIC_AUTH_SECRET=$dashboard_secret" \
-              "HONCHO_API_KEY=$honcho_api_key" \
               "LARK_APP_ID=$lark_app_id" \
               "LARK_APP_SECRET=$lark_app_secret" \
               > "$env_tmp"
+
+            install -o root -g 1000 -m 0640 /dev/null "$honcho_config_tmp"
+            jq \
+              --arg apiKey "$honcho_api_key" \
+              '.hosts.hermes.apiKey = $apiKey' \
+              ${honchoConfigTemplate userName} \
+              > "$honcho_config_tmp"
+
             mv -f "$env_tmp" "$secrets_dir/.env"
+            mv -f "$honcho_config_tmp" "$secrets_dir/honcho.json"
           '';
         };
         "container@${containerName}" = {
@@ -165,7 +189,7 @@ in {
           };
         };
         specialArgs = {
-          inherit containerName honchoBaseUrl hostPkgs inputs newApiBaseUrl telegramBotApi telegramBotApiBaseUrl userName;
+          inherit containerName hostPkgs inputs newApiBaseUrl telegramBotApi telegramBotApiBaseUrl;
           inherit (cfg) aptProxyAddress;
         };
         config = ./hermes-nspawn/guest.nix;

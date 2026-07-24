@@ -2,7 +2,6 @@
   aptProxyAddress,
   config,
   containerName,
-  honchoBaseUrl,
   hostPkgs,
   inputs,
   lib,
@@ -10,7 +9,6 @@
   pkgs,
   telegramBotApi,
   telegramBotApiBaseUrl,
-  userName,
   ...
 }: let
   inherit (import ../../common/ssh-keys.nix) sshKeys;
@@ -55,16 +53,6 @@
         done
       '';
     passthru = (old.passthru or {}) // {inherit hermesVenv;};
-  });
-  honchoConfig = pkgs.writeText "honcho.json" (builtins.toJSON {
-    baseUrl = honchoBaseUrl;
-    hosts.hermes = {
-      enabled = true;
-      workspace = containerName;
-      peerName = userName;
-      aiPeer = containerName;
-      pinUserPeer = true;
-    };
   });
   newApiCodexPlugin = pkgs.runCommand "newapi-codex" {} ''
     mkdir -p $out
@@ -147,7 +135,7 @@ in {
     "d /var/lib/hermes 0750 agent agent - -"
     "d /var/lib/hermes/ssh 0700 root root - -"
     "d /var/lib/hermes/.hermes/skills 2770 agent agent - -"
-    "L+ /var/lib/hermes/.hermes/honcho.json - agent agent - ${honchoConfig}"
+    "L+ /var/lib/hermes/.hermes/honcho.json - agent agent - /etc/hermes/honcho.json"
   ];
 
   systemd.services.podman = {
