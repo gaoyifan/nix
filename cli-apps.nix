@@ -95,7 +95,7 @@ in {
       appArgs = lib.optionalString (args != []) " ${lib.escapeShellArgs args}";
     in
       pkgs.writeShellScript name ''
-        exec nix run ${lib.escapeShellArgs nixRunCacheOptions} "github:gaoyifan/nix#${app}" --${appArgs} "$@"
+        exec nix run ${lib.escapeShellArgs nixRunCacheOptions} "git+https://github.com/gaoyifan/nix.git?ref=main&shallow=1#${app}" --${appArgs} "$@"
       '';
     wrapperFiles = lib.mapAttrs' (
       app: spec: let
