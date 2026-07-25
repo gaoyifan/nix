@@ -216,6 +216,8 @@ in {
       '';
       web.backend = "exa";
       telegram.extra.rich_messages = true;
+      gateway.platforms.telegram.gateway_restart_notification = false;
+      gateway.platforms.weixin.gateway_restart_notification = false;
       gateway.platforms.telegram.extra = lib.optionalAttrs telegramBotApi.enable {
         base_url = "${telegramBotApiBaseUrl}:${toString telegramBotApi.apiPort}/bot";
         base_file_url = "${telegramBotApiBaseUrl}:${toString telegramBotApi.filePort}/file/bot";
