@@ -29,6 +29,7 @@
       pi = {};
       playwright-cli = {};
       ruby = {};
+      sqlite3 = {};
       tokei = {};
       yazi = {};
     }
@@ -54,6 +55,7 @@ in {
       npx = pkgs.nodejs-slim.npm;
       pi = customPackages.pi-coding-agent;
       ruby = pkgs.ruby;
+      sqlite3 = pkgs.sqlite;
       tokei = pkgs.tokei;
       yazi = pkgs.yazi-unwrapped;
     };
