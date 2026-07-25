@@ -191,7 +191,10 @@ in {
           inherit containerName hostPkgs inputs newApiBaseUrl telegramBotApi telegramBotApiBaseUrl;
           inherit (cfg) aptProxyAddress;
         };
-        config = ./hermes-nspawn/guest.nix;
+        config =
+          if container.canary or false
+          then ./hermes-nspawn/guest-canary.nix
+          else ./hermes-nspawn/guest.nix;
       })
     cfg.containers;
   };
