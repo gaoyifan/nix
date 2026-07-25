@@ -27,6 +27,7 @@ in {
     ./htop.nix
     ./neovim.nix
     ./mutagen-dotfiles-sync.nix
+    ./migrate-codex-skills.nix
     ./locked-home-symlinks.nix
     ../secrets/home.nix
   ];
