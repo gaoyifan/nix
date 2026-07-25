@@ -20,6 +20,10 @@
         pass
   '';
   healthCommand = host: port: "/app/.venv/bin/python /etc/honcho/healthcheck.py ${host} ${toString port}";
+  tiktokenO200kBase = pkgs.fetchurl {
+    url = "https://openaipublic.blob.core.windows.net/encodings/o200k_base.tiktoken";
+    hash = "sha256-RGqVOMtsNI41FhINfAiwn1fDZJXirP/+WaW/iwz7Gi0=";
+  };
   healthOptions = host: port: [
     "--health-cmd=${healthCommand host port}"
     "--health-interval=1m"
@@ -189,8 +193,10 @@ in {
       podman-honcho-api = {
         after = [
           "honcho-database-init.service"
+          "podman-honcho-openai-bridge.service"
           "redis-honcho.service"
         ];
+        wants = ["podman-honcho-openai-bridge.service"];
         requires = [
           "honcho-database-init.service"
           "redis-honcho.service"
@@ -221,6 +227,7 @@ in {
           "${healthCheck}:/etc/honcho/healthcheck.py:ro"
         ];
         environment = {
+          LITELLM_LOCAL_MODEL_COST_MAP = "true";
           NEWAPI_BASE_URL = "http://127.0.0.1:3000/v1";
           PYTHONUNBUFFERED = "1";
         };
@@ -246,9 +253,12 @@ in {
         volumes = [
           "${healthCheck}:/etc/honcho/healthcheck.py:ro"
           "${postgresqlSocket}:${postgresqlSocket}:ro"
+          "${tiktokenO200kBase}:/etc/honcho/tiktoken-cache/fb374d419588a4632f3f557e76b4b70aebbca790:ro"
         ];
+        environment = {
+          TIKTOKEN_CACHE_DIR = "/etc/honcho/tiktoken-cache";
+        };
         environmentFiles = [runtimeEnvironmentFile];
-        dependsOn = ["honcho-openai-bridge"];
         extraOptions =
           ["--network=host"]
           ++ healthOptions cfg.listenAddress honcho.apiPort;
@@ -262,7 +272,11 @@ in {
         workdir = "/app";
         volumes = [
           "${postgresqlSocket}:${postgresqlSocket}:ro"
+          "${tiktokenO200kBase}:/etc/honcho/tiktoken-cache/fb374d419588a4632f3f557e76b4b70aebbca790:ro"
         ];
+        environment = {
+          TIKTOKEN_CACHE_DIR = "/etc/honcho/tiktoken-cache";
+        };
         environmentFiles = [runtimeEnvironmentFile];
         dependsOn = ["honcho-api"];
         extraOptions = ["--network=host"];
