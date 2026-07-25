@@ -125,6 +125,8 @@ in {
       ".codex/sessions".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.codex/sessions";
       ".codex/archived_sessions".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.codex/archived_sessions";
       ".codex/skills/custom".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.agents/skills-codex";
+      ".omp/agent/config.yml".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.omp/agent/config.yml";
+      ".omp/agent/sessions".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.omp/agent/sessions";
       ".pi".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.pi";
       ".config/opencode".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.config/opencode";
       ".local/share/opencode/auth.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.local/share/opencode/auth.json";
@@ -151,6 +153,23 @@ in {
     enable = true;
     paths = ["Library/Rime"];
   };
+
+  home.activation.ompSyncedStateInit = lib.mkIf config.services.mutagen.dotfileSync.enable (lib.hm.dag.entryBefore ["linkGeneration"] ''
+    config_source=${lib.escapeShellArg "${config.home.homeDirectory}/.syncd-dotfiles/.omp/agent/config.yml"}
+    config_target=${lib.escapeShellArg "${config.home.homeDirectory}/.omp/agent/config.yml"}
+    sessions_source=${lib.escapeShellArg "${config.home.homeDirectory}/.syncd-dotfiles/.omp/agent/sessions"}
+    sessions_target=${lib.escapeShellArg "${config.home.homeDirectory}/.omp/agent/sessions"}
+
+    if [ -e "$config_target" ] && [ ! -L "$config_target" ] && [ ! -e "$config_source" ]; then
+      run mkdir -p "$(dirname "$config_source")"
+      run cp -p "$config_target" "$config_source"
+    fi
+
+    if [ -e "$sessions_target" ] && [ ! -L "$sessions_target" ] && [ ! -e "$sessions_source" ]; then
+      run mkdir -p "$(dirname "$sessions_source")"
+      run cp -a "$sessions_target" "$sessions_source"
+    fi
+  '');
 
   home.activation.cursorCliConfigInit = lib.mkIf config.services.mutagen.dotfileSync.enable (lib.hm.dag.entryAfter ["linkGeneration"] ''
     source=${lib.escapeShellArg cursorCliConfigSource}

@@ -26,6 +26,7 @@
       node = {};
       npm = {program = "npm";};
       npx = {program = "npx";};
+      omp = {};
       pi = {};
       playwright-cli = {};
       ruby = {};
@@ -53,6 +54,7 @@ in {
       node = pkgs.nodejs-slim;
       npm = pkgs.nodejs-slim.npm;
       npx = pkgs.nodejs-slim.npm;
+      omp = customPackages.oh-my-pi;
       pi = customPackages.pi-coding-agent;
       ruby = pkgs.ruby;
       sqlite3 = pkgs.sqlite;
