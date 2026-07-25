@@ -12,6 +12,15 @@ from litellm.exceptions import OpenAIError
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 new_api_base_url = os.environ["NEWAPI_BASE_URL"]
+litellm.register_model(
+    {
+        "gpt-5.3-codex-spark": {
+            "litellm_provider": "openai",
+            "mode": "responses",
+            "supports_native_streaming": True,
+        }
+    }
+)
 
 
 def dump_model(value: Any) -> dict[str, Any]:
@@ -94,6 +103,7 @@ async def chat_completions(
     model = request_payload.pop("model")
     messages = request_payload.pop("messages")
     client_stream = bool(request_payload.pop("stream", False))
+    request_payload.pop("temperature", None)
 
     try:
         chunks = await litellm.acompletion(
