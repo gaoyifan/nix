@@ -66,11 +66,9 @@ in {
       lib.mapAttrsToList (userName: container: let
         containerName = containerNameFor userName;
         dashboardCredentialName = "hermes-${userName}";
-        dependencies =
-          [
-            "${containerName}-secrets.service"
-            "podman-honcho-api.service"
-          ]
+        secretsService = "${containerName}-secrets.service";
+        serviceDependencies =
+          ["podman-honcho-api.service"]
           ++ lib.optionals telegramBotApi.enable [
             "nginx.service"
             "telegram-bot-api.service"
@@ -80,7 +78,7 @@ in {
           description = "Prepare secrets for ${containerName}";
           before = ["container@${containerName}.service"];
           after = ["honcho-runtime-env.service"];
-          requires = ["honcho-runtime-env.service"];
+          wants = ["honcho-runtime-env.service"];
           path = [
             pkgs.coreutils
             pkgs.jq
@@ -155,8 +153,9 @@ in {
           '';
         };
         "container@${containerName}" = {
-          requires = dependencies;
-          after = dependencies;
+          requires = [secretsService];
+          wants = serviceDependencies;
+          after = [secretsService] ++ serviceDependencies;
           restartTriggers = [(newApiTokenFile userName)];
         };
       })
