@@ -320,7 +320,7 @@ in {
 
       find "$TMPDIR" -mindepth 1 -delete
       if ! podman image exists "$image_ref"; then
-        ${terminal.image} | podman load
+        podman load --input ${terminal.image}
       fi
 
       install -d -o root -g root -m 0755 "$state_dir"

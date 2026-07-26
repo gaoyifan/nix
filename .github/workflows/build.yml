@@ -129,6 +129,38 @@ jobs:
           # because `just darwin` is too slow on GitHub-hosted runners.
           nix develop --accept-flake-config .#devShells.${{ matrix.system }}.default -c just home
 
+      - name: Compute R2 upload paths
+        run: |
+          set -euo pipefail
+
+          { printf '%s\n' ./result ./result-devshell; cat cache-store-paths; } \
+            | xargs nix-store --query --requisites \
+            | sort -u > cache-closure-store-paths
+          grep -E -- '-(hermes-terminal\.tar\.zst|ggml-large-v3-turbo\.bin)$' \
+            cache-closure-store-paths > cache-local-only-store-paths || true
+
+          local_only_count=$(wc -l < cache-local-only-store-paths)
+          if [[ "${{ matrix.system }}" == "x86_64-linux" && "$local_only_count" -ne 2 ]]; then
+            echo "Expected the terminal image and Whisper model in the local-only list; found $local_only_count:" >&2
+            cat cache-local-only-store-paths >&2
+            exit 1
+          fi
+
+          if [[ -s cache-local-only-store-paths ]]; then
+            comm -23 cache-closure-store-paths \
+              <(xargs nix-store --query --referrers-closure \
+                < cache-local-only-store-paths | sort -u) \
+              > cache-upload-store-paths
+          else
+            cp cache-closure-store-paths cache-upload-store-paths
+          fi
+
+          closure_count=$(wc -l < cache-closure-store-paths)
+          upload_count=$(wc -l < cache-upload-store-paths)
+          echo "R2 store paths: $upload_count"
+          echo "local-only store paths: $local_only_count"
+          echo "excluded reverse closure: $((closure_count - upload_count))"
+
       - name: Sign closure with secret key
         if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs['publish-cache']))
         run: |
@@ -136,10 +168,15 @@ jobs:
 
           xargs nix store sign --recursive --key-file ./secret.key ./result ./result-devshell < cache-store-paths
 
-      - name: Push closure to R2
+      # Excluding every reverse dependency leaves a reference-closed set, so
+      # Nix can upload it directly without staging and recompressing the full
+      # closure in a temporary binary cache on every push.
+      - name: Push filtered closure to R2
         if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs['publish-cache']))
         run: |
-          xargs nix copy --to "s3://nix-cache?endpoint=$S3_ENDPOINT&compression=zstd" ./result ./result-devshell < cache-store-paths
+          nix copy --stdin --no-recursive \
+            --to "s3://nix-cache?endpoint=$S3_ENDPOINT&compression=zstd" \
+            < cache-upload-store-paths
 
       # Stage everything we push into a throwaway local binary cache so we can
       # read back the *exact* object keys (each "<hash>.narinfo", its
@@ -151,8 +188,9 @@ jobs:
           set -euo pipefail
           lc="$RUNNER_TEMP/localcache"
           rm -rf "$lc"
-          { echo ./result; echo ./result-devshell; cat cache-store-paths; } \
-            | xargs nix copy --to "file://$lc?compression=zstd"
+          nix copy --stdin --no-recursive \
+            --to "file://$lc?compression=zstd" \
+            < cache-upload-store-paths
           ( cd "$lc" && find . -type f | sed 's|^\./||' ) | sort -u > "objects-${{ matrix.system }}.txt"
           echo "objects: $(wc -l < "objects-${{ matrix.system }}.txt")"
 
