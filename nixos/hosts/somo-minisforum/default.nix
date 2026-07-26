@@ -1,5 +1,10 @@
 # somo-minisforum - Minisforum mini PC, always-on Incus (KVM) host.
-{config, ...}: {
+{config, ...}: let
+  newApiTokenDirectory = builtins.path {
+    path = config.services.secrets.filesDir + "/nixos/somo-minisforum/new-api-tokens";
+    name = "hermes-new-api-tokens";
+  };
+in {
   imports = [
     ../../optional/bare-metal.nix
     ../../optional/hermes-nspawn.nix
@@ -21,14 +26,14 @@
   services.hermes-nspawn = {
     enable = true;
     containers = config.services.secrets.nixos."somo-minisforum".hermesNspawn;
-    newApiTokenDirectory = "${config.services.secrets.filesDir}/nixos/somo-minisforum/new-api-tokens";
+    inherit newApiTokenDirectory;
     allowedInterfaces = [
       "lo"
       "br-gnet"
       "br-somo"
     ];
     honcho = {
-      newApiTokenFile = "${config.services.secrets.filesDir}/nixos/somo-minisforum/new-api-tokens/honcho";
+      newApiTokenFile = "${newApiTokenDirectory}/honcho";
     };
     telegramBotApi = {
       enable = true;

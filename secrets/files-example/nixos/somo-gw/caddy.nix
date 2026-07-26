@@ -1,7 +1,4 @@
-{
-  hermes,
-  hermesNspawn,
-}: {
+{...}: {
   dnsDelegates = {};
   virtualHosts = {};
 }

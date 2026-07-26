@@ -90,6 +90,10 @@
     mkdir -p $out/etc/fonts
     cp ${pkgs.makeFontsConf {fontDirectories = [pkgs.noto-fonts-cjk-sans];}} $out/etc/fonts/fonts.conf
   '';
+  workspaceCompat = pkgs.runCommand "hermes-workspace-compat" {} ''
+    mkdir -p $out/home
+    ln -s /workspace $out/home/agent
+  '';
   debianBase =
     (pkgs.dockerTools.pullImage {
       imageName = "debian";
@@ -104,7 +108,7 @@
   image = pkgs.dockerTools.streamLayeredImage {
     name = imageName;
     fromImage = debianBase;
-    contents = packages ++ [aptProxy fontConfig nixConfig ytDlpConfig];
+    contents = packages ++ [aptProxy fontConfig nixConfig workspaceCompat ytDlpConfig];
     includeNixDB = true;
     config = {
       Cmd = ["/bin/bash"];

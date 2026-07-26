@@ -139,6 +139,8 @@ in {
     "d /var/lib/hermes 0750 agent agent - -"
     "d /var/lib/hermes/ssh 0700 root root - -"
     "d /var/lib/hermes/.hermes/skills 2770 agent agent - -"
+    "L+ /workspace - - - - /var/lib/hermes/workspace"
+    "L+ /home/agent - - - - /workspace"
     "L+ /var/lib/hermes/.hermes/honcho.json - agent agent - /etc/hermes/honcho.json"
   ];
 

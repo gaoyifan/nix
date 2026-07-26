@@ -7,7 +7,7 @@
 }: let
   cfg = config.services.hermes-nspawn;
   hostPkgs = pkgs;
-  newApiBaseUrl = "http://somo-minisforum.ts.gaof.net:3000/v1";
+  newApiBaseUrl = "http://${cfg.listenAddress}:3000/v1";
   containerNameFor = userName: "hermes-nix-${userName}";
   newApiTokenFile = userName: "${cfg.newApiTokenDirectory}/hermes-${userName}";
   secretDirectory = containerName: "/run/${containerName}-secrets";

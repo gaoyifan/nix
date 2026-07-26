@@ -22,9 +22,7 @@ in {
 
     nixos."somo-minisforum".vms = lib.mkOption {
       type = lib.types.attrs;
-      default = import (secretsDir + "/nixos/somo-minisforum/vms.nix") {
-        hermes = config.services.secrets.nixos.hermes;
-      };
+      default = import (secretsDir + "/nixos/somo-minisforum/vms.nix");
       description = "Declarative Incus VM definitions for somo-minisforum.";
       internal = true;
     };
@@ -40,13 +38,6 @@ in {
       type = lib.types.attrs;
       default = import (secretsDir + "/nixos/somo-minisforum/telegram-bot-api.nix");
       description = "Telegram Bot API credentials for somo-minisforum.";
-      internal = true;
-    };
-
-    nixos.hermes = lib.mkOption {
-      type = lib.types.attrs;
-      default = import (secretsDir + "/nixos/hermes.nix");
-      description = "Hermes operator VM inventory shared by SOMO services.";
       internal = true;
     };
 
@@ -91,7 +82,6 @@ in {
     nixos."somo-gw".caddy = lib.mkOption {
       type = lib.types.attrs;
       default = import (secretsDir + "/nixos/somo-gw/caddy.nix") {
-        hermes = config.services.secrets.nixos.hermes;
         hermesNspawn = config.services.secrets.nixos."somo-minisforum".hermesNspawn;
       };
       description = "Caddy virtual hosts and private DNS delegates for somo-gw.";
