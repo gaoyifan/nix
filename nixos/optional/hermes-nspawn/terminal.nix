@@ -127,6 +127,7 @@ in {
   imageRef = "${imageName}:${image.imageTag}";
   volumes = [
     "${managedSkills}:${managedSkills}:ro"
+    "/var/lib/hermes/workspace:/workspace"
     "/var/lib/hermes/.lark-cli:/root/.lark-cli:idmap=uids=1000-0-1;gids=1000-0-1"
     "/var/lib/hermes/.local/share/lark-cli:/root/.local/share/lark-cli:idmap=uids=1000-0-1;gids=1000-0-1"
   ];
