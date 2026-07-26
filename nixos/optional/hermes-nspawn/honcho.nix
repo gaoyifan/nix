@@ -13,23 +13,39 @@
   model = "gpt-5.6-terra";
   embeddingModel = "Qwen/Qwen3-Embedding-8B";
   healthCheck = pkgs.writeText "honcho-healthcheck.py" ''
-    import socket
+    import json
     import sys
+    from http.client import HTTPConnection
 
-    with socket.create_connection((sys.argv[1], int(sys.argv[2])), timeout=2):
-        pass
+    for encoding_name in sys.argv[3:]:
+        import tiktoken
+
+        tiktoken.get_encoding(encoding_name)
+
+    connection = HTTPConnection(sys.argv[1], int(sys.argv[2]), timeout=2)
+    try:
+        connection.request("GET", "/health")
+        response = connection.getresponse()
+        if response.status != 200 or json.load(response) != {"status": "ok"}:
+            raise RuntimeError(f"unhealthy response: HTTP {response.status}")
+    finally:
+        connection.close()
   '';
-  healthCommand = host: port: "/app/.venv/bin/python /etc/honcho/healthcheck.py ${host} ${toString port}";
+  healthCommand = host: port: encodings: "/app/.venv/bin/python /etc/honcho/healthcheck.py ${host} ${toString port}${lib.optionalString (encodings != []) " ${lib.concatStringsSep " " encodings}"}";
   tiktokenO200kBase = pkgs.fetchurl {
     url = "https://openaipublic.blob.core.windows.net/encodings/o200k_base.tiktoken";
     hash = "sha256-RGqVOMtsNI41FhINfAiwn1fDZJXirP/+WaW/iwz7Gi0=";
   };
-  healthOptions = host: port: [
-    "--health-cmd=${healthCommand host port}"
+  tiktokenCl100kBase = pkgs.fetchurl {
+    url = "https://openaipublic.blob.core.windows.net/encodings/cl100k_base.tiktoken";
+    hash = "sha256-Ijkht27pm96ZW3/3OFE+7xAPtR0YyTWXoRO8/+hlsqc=";
+  };
+  healthOptions = host: port: encodings: [
+    "--health-cmd=${healthCommand host port encodings}"
     "--health-interval=1m"
     "--health-timeout=3s"
     "--health-retries=3"
-    "--health-startup-cmd=${healthCommand host port}"
+    "--health-startup-cmd=${healthCommand host port encodings}"
     "--health-startup-interval=2s"
     "--health-startup-timeout=3s"
     "--health-startup-retries=60"
@@ -234,7 +250,7 @@ in {
         dependsOn = ["new-api"];
         extraOptions =
           ["--network=host"]
-          ++ healthOptions "127.0.0.1" 4000;
+          ++ healthOptions "127.0.0.1" 4000 [];
         podman.sdnotify = "healthy";
       };
 
@@ -254,6 +270,7 @@ in {
           "${healthCheck}:/etc/honcho/healthcheck.py:ro"
           "${postgresqlSocket}:${postgresqlSocket}:ro"
           "${tiktokenO200kBase}:/etc/honcho/tiktoken-cache/fb374d419588a4632f3f557e76b4b70aebbca790:ro"
+          "${tiktokenCl100kBase}:/etc/honcho/tiktoken-cache/9b5ad71b2ce5302211f9c61530b329a4922fc6a4:ro"
         ];
         environment = {
           TIKTOKEN_CACHE_DIR = "/etc/honcho/tiktoken-cache";
@@ -261,7 +278,10 @@ in {
         environmentFiles = [runtimeEnvironmentFile];
         extraOptions =
           ["--network=host"]
-          ++ healthOptions cfg.listenAddress honcho.apiPort;
+          ++ healthOptions cfg.listenAddress honcho.apiPort [
+            "o200k_base"
+            "cl100k_base"
+          ];
         podman.sdnotify = "healthy";
       };
 
@@ -273,6 +293,7 @@ in {
         volumes = [
           "${postgresqlSocket}:${postgresqlSocket}:ro"
           "${tiktokenO200kBase}:/etc/honcho/tiktoken-cache/fb374d419588a4632f3f557e76b4b70aebbca790:ro"
+          "${tiktokenCl100kBase}:/etc/honcho/tiktoken-cache/9b5ad71b2ce5302211f9c61530b329a4922fc6a4:ro"
         ];
         environment = {
           TIKTOKEN_CACHE_DIR = "/etc/honcho/tiktoken-cache";
