@@ -206,6 +206,7 @@ in {
           "gpt-5.6-luna".context_length = 272000;
         };
       };
+      approvals.mode = "off";
       compression.threshold = 0.9;
       auxiliary.title_generation.model = "gpt-5.6-luna";
       memory.provider = "honcho";
