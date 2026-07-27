@@ -36,6 +36,7 @@
 
   incus = "${config.virtualisation.incus.package}/bin/incus";
 
+  # Remove desktop devices from headless server VMs.
   qemuConf = ''
     [object "mem0"]
     share = "off"
@@ -43,6 +44,25 @@
 
     [device "qemu_balloon"]
     free-page-reporting = "on"
+
+    [machine]
+    i8042 = "off"
+    [device "qemu_gpu"]
+    [device "qemu_keyboard"]
+    [device "qemu_tablet"]
+    [audiodev "qemu_sound-audiodev"]
+    [device "qemu_sound"]
+    [chardev "qemu_spice-chardev"]
+    [device "qemu_spice"]
+    [chardev "qemu_spicedir-chardev"]
+    [device "qemu_spicedir"]
+    [device "qemu_usb"]
+    [chardev "qemu_spice-usb-chardev1"]
+    [device "qemu_spice-usb1"]
+    [chardev "qemu_spice-usb-chardev2"]
+    [device "qemu_spice-usb2"]
+    [chardev "qemu_spice-usb-chardev3"]
+    [device "qemu_spice-usb3"]
   '';
   vmSpec =
     lib.mapAttrs (_: vm: {
