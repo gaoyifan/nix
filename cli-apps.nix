@@ -29,6 +29,7 @@
       npm = {program = "npm";};
       npx = {program = "npx";};
       pi = {};
+      pi-baseline = {};
       playwright-cli = {};
       redis-cli = {program = "redis-cli";};
       ruby = {};
@@ -59,6 +60,7 @@ in {
       npm = pkgs.nodejs-slim.npm;
       npx = pkgs.nodejs-slim.npm;
       pi = customPackages.pi-coding-agent;
+      pi-baseline = customPackages.pi-coding-agent-baseline;
       redis-cli = pkgs.redis;
       ruby = pkgs.ruby;
       sqlite3 = pkgs.sqlite;

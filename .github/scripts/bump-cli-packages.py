@@ -79,6 +79,14 @@ PACKAGES = {
         },
         "url": lambda version, asset: f"https://github.com/earendil-works/pi/releases/download/v{version}/{asset}",
     },
+    "pi-coding-agent-baseline": {
+        "path": ROOT / "pkgs/pi-coding-agent-baseline.nix",
+        "release_api": "https://api.github.com/repos/earendil-works/pi/releases?per_page=100",
+        "tag_pattern": r"^v[0-9]+\.[0-9]+\.[0-9]+$",
+        "version_from_tag": lambda tag: tag.removeprefix("v"),
+        "assets": {"source": "pi-{version}-source.tar.gz"},
+        "nix_update": True,
+    },
 }
 
 
@@ -101,14 +109,17 @@ def current_version(path):
 
 def latest_github_release(config):
     releases = json.loads(fetch_text(config["release_api"], token=os.environ.get("GH_TOKEN")))
-    required_assets = set(config["assets"].values())
     tag_pattern = re.compile(config["tag_pattern"])
 
     for release in releases:
         tag = release.get("tag_name", "")
+        if not tag_pattern.match(tag):
+            continue
+        version = config["version_from_tag"](tag)
+        required_assets = {asset.format(version=version) for asset in config["assets"].values()}
         assets = {asset["name"] for asset in release.get("assets", [])}
-        if tag_pattern.match(tag) and required_assets <= assets:
-            return config["version_from_tag"](tag)
+        if required_assets <= assets:
+            return version
 
     raise RuntimeError(f"could not find a release with all required assets for {config['path'].name}")
 
@@ -140,7 +151,7 @@ def latest_antigravity(config):
 def latest_version(name, config):
     if name == "antigravity-cli":
         return latest_antigravity(config)
-    if name in {"copilot-cli", "codex", "pi-coding-agent"}:
+    if "release_api" in config:
         return latest_github_release(config)
     if name == "cursor-cli":
         return latest_cursor_cli()
@@ -153,6 +164,14 @@ def prefetch_hash(url):
 
 
 def update_package(name, config, version):
+    if config.get("nix_update"):
+        subprocess.run(
+            ["nix", "run", "nixpkgs#nix-update", "--", "--flake", name, "--version", version],
+            cwd=ROOT,
+            check=True,
+        )
+        return
+
     path = config["path"]
     text = path.read_text()
     text, count = re.subn(r'version = "[^"]+";', f'version = "{version}";', text, count=1)

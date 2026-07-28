@@ -104,6 +104,10 @@ jobs:
             .#packages.${{ matrix.system }}.playwright-cli
           )
 
+          if [[ "${{ matrix.system }}" == x86_64-linux ]]; then
+            cli_apps+=(.#packages.${{ matrix.system }}.pi-baseline)
+          fi
+
           nix build --accept-flake-config --no-link --print-out-paths \
             "${cli_apps[@]}" \
             | tee -a cache-store-paths
