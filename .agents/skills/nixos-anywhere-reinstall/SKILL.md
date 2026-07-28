@@ -145,6 +145,18 @@ scripts/time-phase.sh "$timings" tool-prepare -- \
 
 Time kexec separately; it is reversible from the provider console and does not format the disk:
 
+Before using a `nixos-images` tarball, inspect its `run` script. If it enters
+`$INITRD_TMP`, deletes that directory from an `EXIT` trap, and backgrounds the
+delayed execute, change the delayed command to leave the temporary directory:
+
+```sh
+nohup sh -c "sleep 6 && cd / && '$SCRIPT_DIR/kexec' -e ${kexec_extra_flags}" &
+```
+
+Without `cd /`, the background shell inherits a deleted working directory and
+may fail with `getcwd: No such file or directory` instead of entering the
+installer. This is the failure reported in nixos-anywhere issues 93 and 289.
+
 ```bash
 scripts/time-phase.sh "$timings" kexec -- \
   nix run "$nixos_anywhere" -- \
