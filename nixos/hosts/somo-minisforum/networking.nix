@@ -154,9 +154,9 @@ in {
       ipv4Subnet = "10.250.10.0/24";
       ipv6Subnet = "fd10:250:10::/64";
     };
-    exit = {
-      enable = true;
+    exits.default = {
       label = 100;
+      interface = config.networking.homeRouter.wan.interface;
     };
   };
 

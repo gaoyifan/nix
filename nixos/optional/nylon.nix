@@ -10,6 +10,8 @@
   ...
 }: let
   cfg = config.services.nylon;
+  exitsEnabled = cfg.exits != {};
+  overlayConfigured = cfg.overlay.ipv4Subnet != null || cfg.overlay.ipv6Subnet != null;
   types = lib.types;
 in {
   disabledModules = ["services/networking/nylon.nix"];
@@ -106,20 +108,24 @@ in {
       };
     };
 
-    exit = {
-      enable = lib.mkEnableOption "local Nylon MPLS exit";
-      label = lib.mkOption {
-        type = types.nullOr types.ints.positive;
-        default = null;
-        example = 100;
-        description = "MPLS label for this local exit.";
-      };
-      wanInterface = lib.mkOption {
-        type = types.nullOr types.str;
-        default = config.networking.homeRouter.wan.interface;
-        defaultText = lib.literalExpression "config.networking.homeRouter.wan.interface";
-        description = "WAN interface used by this local Nylon exit.";
-      };
+    exits = lib.mkOption {
+      type = types.attrsOf (types.submodule ({name, ...}: {
+        options = {
+          label = lib.mkOption {
+            type = types.ints.positive;
+            example = 100;
+            description = "MPLS label for the ${name} exit.";
+          };
+          interface = lib.mkOption {
+            type = types.nullOr types.str;
+            default = null;
+            example = "wg-cloudflare";
+            description = "Fixed egress interface, or null to follow the IPv4 default route.";
+          };
+        };
+      }));
+      default = {};
+      description = "Named local MPLS exits.";
     };
   };
 
@@ -142,20 +148,10 @@ in {
     {
       assertions = [
         {
-          assertion = !cfg.overlay.nat.enable || (cfg.overlay.ipv4Subnet != null && cfg.overlay.ipv6Subnet != null);
-          message = "services.nylon.overlay.ipv4Subnet and ipv6Subnet must be set when Nylon overlay NAT is enabled.";
-        }
-        {
-          assertion = !cfg.exit.enable || cfg.exit.label != null;
-          message = "services.nylon.exit.label must be set when the local Nylon exit is enabled.";
-        }
-        {
-          assertion = !cfg.exit.enable || cfg.exit.wanInterface != null;
-          message = "services.nylon.exit.wanInterface must be set when the local Nylon exit is enabled.";
-        }
-        {
-          assertion = !cfg.exit.enable || cfg.overlay.ipv4Subnet != null;
-          message = "services.nylon.overlay.ipv4Subnet must be set when the local Nylon exit is enabled.";
+          assertion =
+            !(cfg.overlay.nat.enable || exitsEnabled)
+            || overlayConfigured;
+          message = "Nylon NAT and exits require an overlay IPv4 or IPv6 subnet.";
         }
       ];
 
@@ -202,15 +198,15 @@ in {
       };
     }
 
-    (lib.mkIf (cfg.overlay.nat.enable && cfg.overlay.ipv4Subnet != null && cfg.overlay.ipv6Subnet != null) {
+    (lib.mkIf (cfg.overlay.nat.enable && overlayConfigured) {
       networking.nftables.enable = true;
       networking.nftables.tables.nylon-nat = {
         family = "inet";
         content = ''
           chain postrouting {
             type nat hook postrouting priority srcnat; policy accept;
-            oifname "${cfg.interfaceName}" ip saddr != ${cfg.overlay.ipv4Subnet} masquerade
-            oifname "${cfg.interfaceName}" ip6 saddr != ${cfg.overlay.ipv6Subnet} masquerade
+            ${lib.optionalString (cfg.overlay.ipv4Subnet != null) ''oifname "${cfg.interfaceName}" ip saddr != ${cfg.overlay.ipv4Subnet} masquerade''}
+            ${lib.optionalString (cfg.overlay.ipv6Subnet != null) ''oifname "${cfg.interfaceName}" ip6 saddr != ${cfg.overlay.ipv6Subnet} masquerade''}
           }
         '';
       };
@@ -232,16 +228,10 @@ in {
         serviceConfig = {
           Type = "oneshot";
           RemainAfterExit = true;
+          Restart = "on-failure";
+          RestartSec = "10s";
         };
         script = ''
-          for _ in $(seq 60); do
-            ip -brief link show dev ${cfg.interfaceName} 2>/dev/null | grep -qw LOWER_UP && break
-            sleep 1
-          done
-          if ! ip link show ${cfg.interfaceName} >/dev/null 2>&1; then
-            echo "${cfg.interfaceName} absent; skipping Nylon route batches" >&2
-            exit 0
-          fi
           if ! ip -brief link show dev ${cfg.interfaceName} | grep -qw LOWER_UP; then
             echo "${cfg.interfaceName} not LOWER_UP; cannot apply Nylon route batches" >&2
             exit 1
@@ -257,7 +247,7 @@ in {
       };
     })
 
-    (lib.mkIf cfg.exit.enable {
+    (lib.mkIf exitsEnabled {
       networking.nftables.enable = true;
 
       # tc act_ct tracks conntrack inline but never registers netfilter's
@@ -281,13 +271,13 @@ in {
       };
     })
 
-    (lib.mkIf (cfg.exit.enable && cfg.exit.label != null && cfg.exit.wanInterface != null && cfg.overlay.ipv4Subnet != null) {
+    (lib.mkIf (exitsEnabled && overlayConfigured) {
       # ${cfg.interfaceName} is created by nylon at startup, and its MPLS input
       # flag dies with it, so this must re-run on every nylon restart (PartOf).
       # The LSP and tc filters live on the WAN interface and would survive, but
       # replacing them is idempotent.
       systemd.services.nylon-exit = {
-        description = "Nylon MPLS exit: static LSP + egress SNAT on ${cfg.exit.wanInterface}";
+        description = "Nylon MPLS exits: static LSPs and egress SNAT";
         wants = ["nylon.service" "network-online.target"];
         after = ["nylon.service" "network-online.target"];
         partOf = ["nylon.service"];
@@ -306,50 +296,68 @@ in {
           RestartSec = "10s";
         };
         script = ''
-          for _ in $(seq 30); do
-            ip link show ${cfg.interfaceName} >/dev/null 2>&1 && break
-            sleep 1
-          done
           if ! ip link show ${cfg.interfaceName} >/dev/null 2>&1; then
-            echo "${cfg.interfaceName} absent (nylon not configured yet); skipping exit setup" >&2
-            exit 0
+            echo "${cfg.interfaceName} absent; cannot configure Nylon exits" >&2
+            exit 1
           fi
 
           # Accept MPLS packets nylon writes to its TUN after the outer pop.
           echo 1 > /proc/sys/net/mpls/conf/${cfg.interfaceName}/input
-
-          # Static LSP: pop the exit label and forward via the DHCP default
-          # gateway. Its MAC also routes IPv6, like the Debian L2 exits.
-          gw=""
-          for _ in $(seq 60); do
-            gw=$(ip -4 route show default dev ${cfg.exit.wanInterface} | awk '{print $3; exit}')
-            [ -n "$gw" ] && break
-            sleep 1
-          done
-          [ -n "$gw" ] || {
-            echo "no IPv4 default gateway on ${cfg.exit.wanInterface} after wait" >&2
-            exit 1
-          }
-          ip -f mpls route replace ${toString cfg.exit.label} via inet "$gw" dev ${cfg.exit.wanInterface}
-
-          # Egress SNAT for the popped packets. The uplink is DHCP, so wait for
-          # the address.
-          ip4=""
-          for _ in $(seq 60); do
-            ip4=$(ip -o -4 addr show dev ${cfg.exit.wanInterface} scope global | awk '{print $4}' | cut -d/ -f1 | head -1)
-            [ -n "$ip4" ] && break
-            sleep 1
-          done
-          [ -n "$ip4" ] || {
-            echo "no global IPv4 on ${cfg.exit.wanInterface} after wait" >&2
-            exit 1
-          }
-          # This unit is the only user of the clsact egress hook on the WAN.
-          tc qdisc replace dev ${cfg.exit.wanInterface} clsact
-          tc filter del dev ${cfg.exit.wanInterface} egress 2>/dev/null || true
-          tc filter add dev ${cfg.exit.wanInterface} egress protocol ip flower src_ip ${cfg.overlay.ipv4Subnet} \
-            action ct commit nat src addr "$ip4" pipe
-          echo "nylon-exit: SNAT ${cfg.overlay.ipv4Subnet} -> $ip4 on ${cfg.exit.wanInterface}"
+          declare -A configured_interfaces=()
+          ${lib.concatMapAttrsStringSep "\n" (name: route:
+            (
+              if route.interface != null
+              then ''
+                iface="${route.interface}"
+                if ! ip link show "$iface" >/dev/null 2>&1; then
+                  echo "egress interface $iface for Nylon exit ${name} is absent" >&2
+                  exit 1
+                fi
+                ip -f mpls route replace ${toString route.label} dev "$iface"
+              ''
+              else ''
+                default=$(ip -4 route show default | head -1)
+                gw=$(awk '{print $3}' <<< "$default")
+                iface=$(awk '{print $5}' <<< "$default")
+                if [ -z "$gw" ] || [ -z "$iface" ]; then
+                  echo "no IPv4 default gateway for Nylon exit ${name}" >&2
+                  exit 1
+                fi
+                    ip -f mpls route replace ${toString route.label} via inet "$gw" dev "$iface"
+              ''
+            )
+            + ''
+              if [[ ! -v "configured_interfaces[$iface]" ]]; then
+                tc qdisc replace dev "$iface" clsact
+                tc filter del dev "$iface" egress 2>/dev/null || true
+                filters=0
+                ${lib.optionalString (cfg.overlay.ipv4Subnet != null) ''
+                ip4=$(ip -o -4 addr show dev "$iface" scope global | awk '{print $4}' | cut -d/ -f1 | head -1)
+                if [ -n "$ip4" ]; then
+                  tc filter add dev "$iface" egress protocol ip flower src_ip ${cfg.overlay.ipv4Subnet} \
+                    action ct commit nat src addr "$ip4" pipe
+                  filters=$((filters + 1))
+                  echo "nylon-exit: IPv4 SNAT to $ip4 on $iface"
+                fi
+              ''}
+                ${lib.optionalString (cfg.overlay.ipv6Subnet != null) ''
+                ip6=$(ip -o -6 addr show dev "$iface" scope global | awk '{print $4}' | cut -d/ -f1 | head -1)
+                if [ -n "$ip6" ]; then
+                  tc filter add dev "$iface" egress protocol ipv6 flower src_ip ${cfg.overlay.ipv6Subnet} \
+                    action ct commit nat src addr "$ip6" pipe
+                  filters=$((filters + 1))
+                  echo "nylon-exit: IPv6 SNAT to $ip6 on $iface"
+                fi
+              ''}
+                if [ "$filters" -eq 0 ]; then
+                  echo "no configured overlay address family is available on $iface" >&2
+                  exit 1
+                fi
+                configured_interfaces["$iface"]=1
+              fi
+              echo "nylon-exit ${name}: label ${toString route.label} via $iface"
+            '')
+          cfg.exits}
         '';
       };
     })
