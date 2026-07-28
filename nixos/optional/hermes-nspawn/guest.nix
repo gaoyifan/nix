@@ -137,8 +137,13 @@ in {
   systemd.tmpfiles.rules = [
     "d /var/lib/containers/tmp 0700 root root - -"
     "d /var/lib/hermes 0750 agent agent - -"
+    "d /var/lib/hermes/.ssh 0700 agent agent - -"
     "d /var/lib/hermes/ssh 0700 root root - -"
     "d /var/lib/hermes/.hermes/skills 2770 agent agent - -"
+    "d /var/lib/hermes-ssh 0755 root root - -"
+    "d /var/lib/hermes-ssh/agent 0700 agent agent - -"
+    "f /var/lib/hermes-ssh/agent/authorized_keys 0600 agent agent - -"
+    "L+ /var/lib/hermes/.ssh/authorized_keys - agent agent - /var/lib/hermes-ssh/agent/authorized_keys"
     "L+ /workspace - - - - /var/lib/hermes/workspace"
     "L+ /home/agent - - - - /workspace"
     "L+ /var/lib/hermes/.hermes/honcho.json - agent agent - /etc/hermes/honcho.json"
@@ -152,6 +157,8 @@ in {
 
   services.openssh = {
     enable = true;
+    authorizedKeysInHomedir = false;
+    authorizedKeysFiles = lib.mkBefore ["/var/lib/hermes-ssh/%u/authorized_keys"];
     hostKeys = [
       {
         path = "/var/lib/hermes/ssh/ssh_host_ed25519_key";
