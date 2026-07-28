@@ -12,7 +12,7 @@
   lanDomain = "somo.gaof.net";
   divergeListen = "127.0.0.1:1054";
   usbWanGroup = 6505;
-  wgEl2 = config.services.secrets.nixos."somo-minisforum".wgEl2;
+  wgIplc = config.services.secrets.nixos."somo-minisforum".wgIplc;
   vms = config.services.secrets.nixos."somo-minisforum".vms;
   hermesContainers = config.services.hermes-nspawn.containers;
   staticLeases =
@@ -189,8 +189,8 @@ in {
         "pref 100 lookup main suppress_prefixlength 0"
         "pref 110 lookup 52 suppress_prefixlength 0"
 
-        # SOMO host-originated overseas IPv4 via wg-el2.
-        "pref 200 fwmark ${wgEl2.mark}/0xffffffff lookup ${wgEl2.routeTable}"
+        # SOMO host-originated overseas IPv4 via wg-iplc.
+        "pref 200 fwmark ${wgIplc.mark}/0xffffffff lookup ${wgIplc.routeTable}"
 
         "pref 32766 lookup main"
         "pref 32767 lookup default"
@@ -265,7 +265,7 @@ in {
     '';
   };
 
-  # SOMO policy: host-originated IPv4 overseas traffic uses wg-el2; overseas
+  # SOMO policy: host-originated IPv4 overseas traffic uses wg-iplc; overseas
   # IPv6 is disabled except echo requests for diagnostics.
   networking.nftables.tables.somo-host-egress = {
     family = "inet";
@@ -277,19 +277,19 @@ in {
         type route hook output priority mangle; policy accept;
         meta mark != 0 return
         udp sport ${toString config.services.nylon.udpPort} return
-        ip daddr != @cn meta mark set ${wgEl2.mark}
+        ip daddr != @cn meta mark set ${wgIplc.mark}
         ip6 daddr != @cn6 icmpv6 type echo-request return
         ip6 daddr != @cn6 meta mark set 0xff
       }
     '';
   };
 
-  networking.nftables.tables.wg-el2-nat = {
+  networking.nftables.tables.wg-iplc-nat = {
     family = "ip";
     content = ''
       chain postrouting {
         type nat hook postrouting priority srcnat; policy accept;
-        oifname "${wgEl2.interfaceName}" meta mark ${wgEl2.mark} masquerade
+        oifname "${wgIplc.interfaceName}" meta mark ${wgIplc.mark} masquerade
       }
     '';
   };

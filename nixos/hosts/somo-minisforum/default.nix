@@ -20,7 +20,7 @@ in {
     ./whisper-server.nix
     ./wifi-ap.nix
     ./tailscale.nix
-    ./wg-el2.nix
+    ./wg-iplc.nix
   ];
 
   services.hermes-nspawn = {

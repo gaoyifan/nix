@@ -1,5 +1,5 @@
 {
-  interfaceName = "wg-el2";
+  interfaceName = "wg-iplc";
   ips = ["192.0.2.58/32"];
   mtu = 1392;
   routeTable = "5110";
@@ -9,6 +9,6 @@
     publicKey = "example";
     endpoint = "203.0.113.1:51820";
     allowedIPs = ["0.0.0.0/0"];
-    persistentKeepalive = 25;
+    persistentKeepalive = 60;
   };
 }

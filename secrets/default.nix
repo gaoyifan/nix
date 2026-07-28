@@ -57,14 +57,21 @@ in {
       internal = true;
     };
 
-    nixos."somo-minisforum".wgEl2 = lib.mkOption {
+    nixos."somo-minisforum".wgIplc = lib.mkOption {
       type = lib.types.attrs;
-      default =
-        import (secretsDir + "/nixos/somo-minisforum/wg-el2.nix")
+      default = let
+        wg = import (secretsDir + "/nixos/somo-minisforum/wg-iplc.nix");
+      in
+        wg
         // {
-          privateKeyFile = "${config.services.secrets.filesDir}/nixos/somo-minisforum/wg-el2-private-key";
+          privateKeyFile = "${config.services.secrets.filesDir}/nixos/somo-minisforum/wg-iplc-private-key";
+          peer =
+            wg.peer
+            // {
+              presharedKeyFile = "${config.services.secrets.filesDir}/nixos/somo-minisforum/wg-iplc-preshared-key";
+            };
         };
-      description = "WireGuard EL2 egress configuration for somo-minisforum.";
+      description = "WireGuard IPLC egress configuration for somo-minisforum.";
       internal = true;
     };
 
