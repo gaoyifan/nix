@@ -47,6 +47,8 @@ When an explicitly requested push is rejected because the remote branch is ahead
 
 Before Nix evaluation or switch, run `git add -N <filename>.nix` for new `.nix` files.
 
+For `hermes-nix` guest changes, normally deploy via `guest-canary.nix` to `hermes-nix-canary` first; after testing, promote to `guest.nix` for all containers.
+
 Run `just fmt` and `just check` before opening a PR. Don't commit `result/` outputs.
 
 ## CI
