@@ -75,14 +75,21 @@ in {
       internal = true;
     };
 
-    nixos."somo-nanopi-r4s".wgEl2 = lib.mkOption {
+    nixos."somo-nanopi-r4s".wgIplc = lib.mkOption {
       type = lib.types.attrs;
-      default =
-        import (secretsDir + "/nixos/somo-nanopi-r4s/wg-el2.nix")
+      default = let
+        wg = import (secretsDir + "/nixos/somo-nanopi-r4s/wg-iplc.nix");
+      in
+        wg
         // {
-          privateKeyFile = "${config.services.secrets.filesDir}/nixos/somo-nanopi-r4s/wg-el2-private-key";
+          privateKeyFile = "${config.services.secrets.filesDir}/nixos/somo-nanopi-r4s/wg-iplc-private-key";
+          peer =
+            wg.peer
+            // {
+              presharedKeyFile = "${config.services.secrets.filesDir}/nixos/somo-nanopi-r4s/wg-iplc-preshared-key";
+            };
         };
-      description = "WireGuard EL2 egress configuration for somo-nanopi-r4s.";
+      description = "WireGuard IPLC egress configuration for somo-nanopi-r4s.";
       internal = true;
     };
 

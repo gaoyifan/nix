@@ -1,5 +1,5 @@
 {config, ...}: let
-  wg = config.services.secrets.nixos."somo-nanopi-r4s".wgEl2;
+  wg = config.services.secrets.nixos."somo-nanopi-r4s".wgIplc;
 in {
   networking.wireguard.interfaces.${wg.interfaceName} = {
     ips = wg.ips;

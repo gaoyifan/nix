@@ -12,7 +12,7 @@
   lanDomain = "somo.gaof.net";
   divergeListen = "127.0.0.1:1054";
   usbWanGroup = 6505;
-  wgEl2 = config.services.secrets.nixos."somo-nanopi-r4s".wgEl2;
+  wgIplc = config.services.secrets.nixos."somo-nanopi-r4s".wgIplc;
 
   divergeConf = pkgs.writeText "diverge.conf" ''
     [global]
@@ -170,7 +170,7 @@ in {
         "pref 91 from 100.65.14.0/24 unreachable"
         "pref 100 lookup main suppress_prefixlength 0"
         "pref 110 lookup 52 suppress_prefixlength 0"
-        "pref 200 fwmark ${wgEl2.mark}/0xffffffff lookup ${wgEl2.routeTable}"
+        "pref 200 fwmark ${wgIplc.mark}/0xffffffff lookup ${wgIplc.routeTable}"
         "pref 32766 lookup main"
         "pref 32767 lookup default"
       ];
@@ -201,10 +201,14 @@ in {
     DNS = ["1.1.1.1" "1.0.0.1" "223.5.5.5"];
     Domains = ["~."];
   };
-  services.resolved.dnsDelegates.cjia = {
-    Delegate = {
+  services.resolved.dnsDelegates = {
+    cjia.Delegate = {
       DNS = ["100.65.1.254"];
       Domains = ["cjia.gaof.net"];
+    };
+    wgIplcEndpoint.Delegate = {
+      DNS = ["223.5.5.5" "223.6.6.6"];
+      Domains = ["int.automesh.org"];
     };
   };
 
@@ -243,19 +247,19 @@ in {
         type route hook output priority mangle; policy accept;
         meta mark != 0 return
         udp sport ${toString config.services.nylon.udpPort} return
-        ip daddr != @cn meta mark set ${wgEl2.mark}
+        ip daddr != @cn meta mark set ${wgIplc.mark}
         ip6 daddr != @cn6 icmpv6 type echo-request return
         ip6 daddr != @cn6 meta mark set 0xff
       }
     '';
   };
 
-  networking.nftables.tables.wg-el2-nat = {
+  networking.nftables.tables.wg-iplc-nat = {
     family = "ip";
     content = ''
       chain postrouting {
         type nat hook postrouting priority srcnat; policy accept;
-        oifname "${wgEl2.interfaceName}" meta mark ${wgEl2.mark} masquerade
+        oifname "${wgIplc.interfaceName}" meta mark ${wgIplc.mark} masquerade
       }
     '';
   };

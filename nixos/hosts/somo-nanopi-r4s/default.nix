@@ -10,7 +10,7 @@
     (modulesPath + "/installer/sd-card/sd-image.nix")
     ./networking.nix
     ./tailscale.nix
-    ./wg-el2.nix
+    ./wg-iplc.nix
   ];
 
   boot = {
