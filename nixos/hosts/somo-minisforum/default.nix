@@ -27,6 +27,7 @@ in {
     enable = true;
     containers = config.services.secrets.nixos."somo-minisforum".hermesNspawn;
     inherit newApiTokenDirectory;
+    dashboardDomain = "hermes.dengdengli.com";
     allowedInterfaces = [
       "lo"
       "br-gnet"

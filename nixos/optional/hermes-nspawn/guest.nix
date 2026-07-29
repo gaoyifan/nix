@@ -2,6 +2,7 @@
   aptProxyAddress,
   config,
   containerName,
+  dashboardPublicUrl,
   hostPkgs,
   inputs,
   lib,
@@ -190,6 +191,11 @@ in {
       newApiCodexPlugin
       weixinChannelPlugin
     ];
+    mcpServers.notion = {
+      url = "https://mcp.notion.com/mcp";
+      auth = "oauth";
+      connect_timeout = 315;
+    };
     settings = {
       model = {
         provider = "newapi";
@@ -217,6 +223,7 @@ in {
       compression.threshold = 0.9;
       auxiliary.title_generation.model = "gpt-5.6-luna";
       memory.provider = "honcho";
+      dashboard.public_url = dashboardPublicUrl;
       agent.system_prompt = ''
         Never run machine-learning model inference inside the Podman terminal environment. Use external APIs for inference.
 

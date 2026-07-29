@@ -55,6 +55,10 @@ in {
       default = "198.18.255.254";
       description = "Address of the APT proxy used by Hermes terminal containers.";
     };
+    dashboardDomain = lib.mkOption {
+      type = lib.types.str;
+      description = "Base domain for per-user Hermes dashboard public URLs.";
+    };
     allowedInterfaces = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       description = "Interfaces allowed to reach services shared with Hermes containers.";
@@ -164,6 +168,7 @@ in {
 
     containers = lib.mapAttrs' (userName: container: let
       containerName = containerNameFor userName;
+      dashboardPublicUrl = "https://${userName}.${cfg.dashboardDomain}";
     in
       lib.nameValuePair containerName {
         autoStart = true;
@@ -188,7 +193,7 @@ in {
           };
         };
         specialArgs = {
-          inherit containerName hostPkgs inputs newApiBaseUrl telegramBotApi telegramBotApiBaseUrl;
+          inherit containerName dashboardPublicUrl hostPkgs inputs newApiBaseUrl telegramBotApi telegramBotApiBaseUrl;
           inherit (cfg) aptProxyAddress;
         };
         config =
