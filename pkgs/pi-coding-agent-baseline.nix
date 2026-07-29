@@ -1,7 +1,7 @@
 {pkgs}: let
   inherit (pkgs) lib;
 
-  version = "0.82.1";
+  version = "0.83.0";
   bunBaseline =
     pkgs.runCommand "bun-baseline-compiler-1.3.14" {
       src = pkgs.fetchurl {
@@ -48,10 +48,10 @@ in
 
     src = pkgs.fetchurl {
       url = "https://github.com/earendil-works/pi/releases/download/v${version}/pi-${version}-source.tar.gz";
-      hash = "sha256-5+37qJvEsxaD95IJtZoBudYnMC1p/y34ve6o9fY87XM=";
+      hash = "sha256-8iW4fsO0gl3VuU6SKoYpVYrdyjGhtNLCBq5Zio4mksA=";
     };
     sourceRoot = "pi-${version}";
-    npmDepsHash = "sha256-5pHRwxpKg95/phOcYHeWdvPJNtSOhiw7PRoVxsuh0RM=";
+    npmDepsHash = "sha256-AbSfP1Ion8bN309NUBQb1QSn2cIIUjNONmZgls9vnYE=";
     npmBuildScript = "build:offline";
     npmRebuildFlags = ["--ignore-scripts"];
     nodejs = pkgs.nodejs_22;
