@@ -65,11 +65,6 @@ in {
         wg
         // {
           privateKeyFile = "${config.services.secrets.filesDir}/nixos/somo-minisforum/wg-iplc-private-key";
-          peer =
-            wg.peer
-            // {
-              presharedKeyFile = "${config.services.secrets.filesDir}/nixos/somo-minisforum/wg-iplc-preshared-key";
-            };
         };
       description = "WireGuard IPLC egress configuration for somo-minisforum.";
       internal = true;
@@ -83,11 +78,6 @@ in {
         wg
         // {
           privateKeyFile = "${config.services.secrets.filesDir}/nixos/somo-nanopi-r4s/wg-iplc-private-key";
-          peer =
-            wg.peer
-            // {
-              presharedKeyFile = "${config.services.secrets.filesDir}/nixos/somo-nanopi-r4s/wg-iplc-preshared-key";
-            };
         };
       description = "WireGuard IPLC egress configuration for somo-nanopi-r4s.";
       internal = true;
