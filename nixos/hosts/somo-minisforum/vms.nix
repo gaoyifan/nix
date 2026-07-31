@@ -15,7 +15,7 @@
   imageRemote = "nju-images";
   imageRemoteUrl = "https://mirror.nju.edu.cn/lxc-images/";
 
-  vms = config.services.secrets.nixos."somo-minisforum".vms;
+  vms = import ./incus-vms.nix;
 
   nicHostName = vm: let
     mac = lib.replaceStrings [":"] [""] vm.devices.eth0.hwaddr;

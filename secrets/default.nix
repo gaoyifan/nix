@@ -20,13 +20,6 @@ in {
       internal = true;
     };
 
-    nixos."somo-minisforum".vms = lib.mkOption {
-      type = lib.types.attrs;
-      default = import (secretsDir + "/nixos/somo-minisforum/vms.nix");
-      description = "Declarative Incus VM definitions for somo-minisforum.";
-      internal = true;
-    };
-
     nixos."somo-minisforum".hermesNspawn = lib.mkOption {
       type = lib.types.attrs;
       default = import (secretsDir + "/nixos/somo-minisforum/hermes-nspawn.nix");

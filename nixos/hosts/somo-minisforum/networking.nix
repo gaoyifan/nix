@@ -13,7 +13,7 @@
   divergeListen = "127.0.0.1:1054";
   usbWanGroup = 6505;
   wgIplc = config.services.secrets.nixos."somo-minisforum".wgIplc;
-  vms = config.services.secrets.nixos."somo-minisforum".vms;
+  vms = import ./incus-vms.nix;
   hermesContainers = config.services.hermes-nspawn.containers;
   staticLeases =
     lib.mapAttrsToList
