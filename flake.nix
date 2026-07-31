@@ -356,6 +356,18 @@
         disko.nixosModules.disko
         ./nixos/hosts/somo-gw
       ];
+      xtom-hkg = mkNixosHost "x86_64-linux" [
+        disko.nixosModules.disko
+        ./nixos/hosts/xtom-hkg
+      ];
+      xtom-sjc = mkNixosHost "x86_64-linux" [
+        disko.nixosModules.disko
+        ./nixos/hosts/xtom-sjc
+      ];
+      xtom-syd = mkNixosHost "x86_64-linux" [
+        disko.nixosModules.disko
+        ./nixos/hosts/xtom-syd
+      ];
     };
 
     # Linux system configuration for non-NixOS hosts.
@@ -387,6 +399,9 @@
       (mkDeployNode "aarch64-linux" "somo-nanopi-r4s.ts.gaof.net" self.nixosConfigurations.somo-nanopi-r4s)
       // {sshOpts = ["-4" "-o" "StrictHostKeyChecking=accept-new"];};
     deploy.nodes.somo-gw = mkDeployNode "x86_64-linux" "115.29.195.35" self.nixosConfigurations.somo-gw;
+    deploy.nodes.xtom-hkg = mkDeployNode "x86_64-linux" "103.125.232.15" self.nixosConfigurations.xtom-hkg;
+    deploy.nodes.xtom-sjc = mkDeployNode "x86_64-linux" "142.147.94.11" self.nixosConfigurations.xtom-sjc;
+    deploy.nodes.xtom-syd = mkDeployNode "x86_64-linux" "103.136.144.12" self.nixosConfigurations.xtom-syd;
     checks = let
       # Hermes currently reads package manifests from lib.fileset.toSource
       # results during evaluation. `nix flake check --no-build` uses a
