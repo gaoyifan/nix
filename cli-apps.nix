@@ -23,6 +23,8 @@
       fd = {};
       file = {};
       gh = {};
+      go = {};
+      gofmt = {program = "gofmt";};
       hexdump = {};
       mcat = {};
       node = {};
@@ -55,6 +57,8 @@ in {
       fd = pkgs.fd;
       file = pkgs.file;
       gh = pkgs.gh;
+      go = pkgs.go;
+      gofmt = pkgs.go;
       hexdump = pkgs.hexdump;
       node = pkgs.nodejs-slim;
       npm = pkgs.nodejs-slim.npm;
