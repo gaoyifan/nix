@@ -54,23 +54,27 @@
     yazi = from "yazi-unwrapped";
   };
   packagePathOf = name: spec: spec.packagePath or [name];
-  availableSpecs = packages:
+  availableSpecs = platform: packages:
     lib.filterAttrs (
-      name: spec: lib.hasAttrByPath (packagePathOf name spec) packages
+      name: spec: let
+        package = lib.attrByPath (packagePathOf name spec) null packages;
+      in
+        package != null && lib.meta.availableOn platform package
     )
     appSpecs;
-  resolvePackages = packages:
+  resolvePackages = platform: packages:
     lib.mapAttrs (
       name: spec: lib.getAttrFromPath (packagePathOf name spec) packages
     )
-    (availableSpecs packages);
+    (availableSpecs platform packages);
 in {
   mkPackages = {
     pkgs,
     customPackages,
   }: let
-    appPackages = resolvePackages (pkgs // customPackages);
-    customAppPackages = resolvePackages customPackages;
+    platform = pkgs.stdenv.hostPlatform;
+    appPackages = resolvePackages platform (pkgs // customPackages);
+    customAppPackages = resolvePackages platform customPackages;
   in
     customPackages
     // appPackages
@@ -90,7 +94,7 @@ in {
 
   mkHomeManager = pkgs: let
     relBinDir = ".local/share/nix-lazy-apps/bin";
-    availableAppSpecs = availableSpecs pkgs;
+    availableAppSpecs = availableSpecs pkgs.stdenv.hostPlatform pkgs;
     nixRunCacheOptions = [
       "--option"
       "extra-substituters"
