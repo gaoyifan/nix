@@ -52,19 +52,32 @@
     tokei = {};
     yazi = from "yazi-unwrapped";
   };
+  packagePathOf = name: spec: spec.packagePath or [name];
+  availableSpecs = packages:
+    lib.filterAttrs (
+      name: spec: lib.hasAttrByPath (packagePathOf name spec) packages
+    )
+    appSpecs;
+  resolvePackages = packages:
+    lib.mapAttrs (
+      name: spec: lib.getAttrFromPath (packagePathOf name spec) packages
+    )
+    (availableSpecs packages);
 in {
   mkPackages = {
     pkgs,
     customPackages,
   }: let
-    availablePackages = pkgs // customPackages;
+    appPackages = resolvePackages (pkgs // customPackages);
+    customAppPackages = resolvePackages customPackages;
   in
     customPackages
-    // lib.mapAttrs (
-      name: spec:
-        lib.getAttrFromPath (spec.packagePath or [name]) availablePackages
-    )
-    appSpecs;
+    // appPackages
+    // {
+      cli-apps-cache = pkgs.linkFarm "cli-apps-cache" (
+        lib.mapAttrsToList (name: path: {inherit name path;}) customAppPackages
+      );
+    };
 
   mkApps = packages:
     lib.mapAttrs (name: spec: {
@@ -72,10 +85,11 @@ in {
       program = lib.getExe' packages.${name} (spec.program or name);
       meta = packages.${name}.meta;
     })
-    appSpecs;
+    (lib.intersectAttrs packages appSpecs);
 
   mkHomeManager = pkgs: let
     relBinDir = ".local/share/nix-lazy-apps/bin";
+    availableAppSpecs = availableSpecs pkgs;
     nixRunCacheOptions = [
       "--option"
       "extra-substituters"
@@ -107,7 +121,7 @@ in {
         lib.nameValuePair "${relBinDir}/${name}" {
           source = mkWrapper name app (spec.wrapperArgs or []);
         }
-    ) (lib.filterAttrs (_name: spec: spec.enableWrapper or true) appSpecs);
+    ) (lib.filterAttrs (_name: spec: spec.enableWrapper or true) availableAppSpecs);
   in {
     inherit completions relBinDir wrapperFiles;
   };

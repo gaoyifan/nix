@@ -93,5 +93,8 @@ in
       autoPatchelf -- "$out/lib/pi-coding-agent/node_modules"
     '';
 
-    meta.mainProgram = "pi";
+    meta = {
+      mainProgram = "pi";
+      platforms = ["x86_64-linux"];
+    };
   }

@@ -12,7 +12,6 @@
   codex = import ./codex.nix {inherit pkgs;};
   cursor-cli = import ./cursor-cli.nix {inherit pkgs;};
   pi-coding-agent = import ./pi-coding-agent.nix {inherit pkgs;};
-  pi-coding-agent-baseline = import ./pi-coding-agent-baseline.nix {inherit pkgs;};
   playwright-cli = import ./playwright-cli.nix {inherit pkgs;};
   tssh = import ./tssh.nix {inherit pkgs;};
   htop = import ./htop.nix {inherit pkgs;};
@@ -25,6 +24,9 @@
 // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
   jip = import ./jip.nix {inherit pkgs;};
   nylon = import ./nylon.nix {inherit pkgs;};
+}
+// pkgs.lib.optionalAttrs (pkgs.stdenv.hostPlatform.system == "x86_64-linux") {
+  pi-coding-agent-baseline = import ./pi-coding-agent-baseline.nix {inherit pkgs;};
 }
 // pkgs.lib.optionalAttrs (pkgs.stdenv.hostPlatform.system == "aarch64-linux") {
   nanopi-r4s-uboot = import ./nanopi-r4s-uboot.nix {inherit pkgs;};

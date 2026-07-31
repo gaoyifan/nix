@@ -90,26 +90,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Cache only CLI packages defined under ./pkgs. Apps mapped directly
-          # to Nixpkgs in cli-apps.nix use the upstream Nixpkgs binary cache and
-          # must not be added here. mcat is included because ./pkgs/mcat.nix
-          # packages a newer version than Nixpkgs.
-          cli_apps=(
-            .#packages.${{ matrix.system }}.agy
-            .#packages.${{ matrix.system }}.copilot
-            .#packages.${{ matrix.system }}.codex
-            .#packages.${{ matrix.system }}.cursor-agent
-            .#packages.${{ matrix.system }}.mcat
-            .#packages.${{ matrix.system }}.pi
-            .#packages.${{ matrix.system }}.playwright-cli
-          )
-
-          if [[ "${{ matrix.system }}" == x86_64-linux ]]; then
-            cli_apps+=(.#packages.${{ matrix.system }}.pi-baseline)
-          fi
-
           nix build --accept-flake-config --no-link --print-out-paths \
-            "${cli_apps[@]}" \
+            .#packages.${{ matrix.system }}.cli-apps-cache \
             | tee -a cache-store-paths
 
       - name: Build system-manager configurations
