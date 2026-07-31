@@ -165,13 +165,12 @@ in {
     domain = "gaof.net";
     lanInterfaces = ["br-gnet" "br-somo"];
     # Default overseas egress for LAN clients without an explicit selection:
-    # IPv4 via "JP Tokyo | ALVIDI" (0x42), IPv6 via "JP Tokyo | Cloudflare
-    # WARP" (0x44); marks come from nylon.toml / nylon.batch. CN destinations
-    # keep mark 0 and leave via the WAN uplink. Only LAN bridges get these
-    # defaults: WAN return traffic and forwarded tailnet flows keep their path.
+    # IPv4 via wg-iplc and IPv6 disabled. CN destinations keep mark 0 and leave
+    # via the WAN uplink. Only LAN bridges get these defaults: WAN return
+    # traffic and forwarded tailnet flows keep their path.
     defaultOutletMark = {
-      ipv4 = "0x42";
-      ipv6 = "0x44";
+      ipv4 = wgIplc.mark;
+      ipv6 = "0xff";
     };
   };
 
