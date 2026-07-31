@@ -1,84 +1,75 @@
 {lib}: let
-  ansibleCommands = [
-    "ansible"
-    "ansible-config"
-    "ansible-console"
-    "ansible-doc"
-    "ansible-galaxy"
-    "ansible-inventory"
-    "ansible-playbook"
-    "ansible-pull"
-    "ansible-test"
-    "ansible-vault"
-  ];
-  appSpecs =
-    {
-      agy = {};
-      codex = {};
-      copilot = {wrapperArgs = ["--yolo"];};
-      copilot-cli = {enableWrapper = false;};
-      cursor-agent = {};
-      cursor-cli = {enableWrapper = false;};
-      difftastic = {wrapperName = "difft";};
-      fd = {};
-      file = {};
-      gh = {};
-      go = {};
-      gofmt = {program = "gofmt";};
-      hexdump = {};
-      mcat = {};
-      node = {};
-      npm = {program = "npm";};
-      npx = {program = "npx";};
-      pi = {};
-      pi-baseline = {};
-      playwright-cli = {};
-      redis-cli = {program = "redis-cli";};
-      ruby = {};
-      sqlite3 = {};
-      tokei = {};
-      yazi = {};
-    }
-    // lib.genAttrs ansibleCommands (program: {inherit program;});
+  from = packagePath: {packagePath = lib.toList packagePath;};
+  appSpecs = rec {
+    agy = {};
+    ansible = from "ansible";
+    ansible-config = ansible;
+    ansible-console = ansible;
+    ansible-doc = ansible;
+    ansible-galaxy = ansible;
+    ansible-inventory = ansible;
+    ansible-playbook = ansible;
+    ansible-pull = ansible;
+    ansible-test = ansible;
+    ansible-vault = ansible;
+    codex = {};
+    copilot = {
+      packagePath = ["copilot-cli"];
+      wrapperArgs = ["--yolo"];
+    };
+    copilot-cli = {
+      enableWrapper = false;
+      program = "copilot";
+    };
+    cursor-agent = from "cursor-cli";
+    cursor-cli = {
+      enableWrapper = false;
+      program = "cursor-agent";
+    };
+    difftastic = {
+      program = "difft";
+      wrapperName = "difft";
+    };
+    fd = {};
+    file = {};
+    gh = {};
+    go = from "go";
+    gofmt = go;
+    hexdump = {};
+    mcat = {};
+    node = from "nodejs-slim";
+    npm = from ["nodejs-slim" "npm"];
+    npx = npm;
+    pi = from "pi-coding-agent";
+    pi-baseline = {
+      packagePath = ["pi-coding-agent-baseline"];
+      program = "pi";
+    };
+    playwright-cli = {};
+    redis-cli = from "redis";
+    ruby = {};
+    sqlite3 = from "sqlite";
+    tokei = {};
+    yazi = from "yazi-unwrapped";
+  };
 in {
   mkPackages = {
     pkgs,
     customPackages,
-  }:
+  }: let
+    availablePackages = pkgs // customPackages;
+  in
     customPackages
-    // lib.genAttrs ansibleCommands (
-      _:
-        pkgs.ansible
+    // lib.mapAttrs (
+      name: spec:
+        lib.getAttrFromPath (spec.packagePath or [name]) availablePackages
     )
-    // {
-      copilot = customPackages.copilot-cli;
-      cursor-agent = customPackages.cursor-cli;
-      difftastic = pkgs.difftastic;
-      fd = pkgs.fd;
-      file = pkgs.file;
-      gh = pkgs.gh;
-      go = pkgs.go;
-      gofmt = pkgs.go;
-      hexdump = pkgs.hexdump;
-      node = pkgs.nodejs-slim;
-      npm = pkgs.nodejs-slim.npm;
-      npx = pkgs.nodejs-slim.npm;
-      pi = customPackages.pi-coding-agent;
-      pi-baseline = customPackages.pi-coding-agent-baseline;
-      redis-cli = pkgs.redis;
-      ruby = pkgs.ruby;
-      sqlite3 = pkgs.sqlite;
-      tokei = pkgs.tokei;
-      yazi = pkgs.yazi-unwrapped;
-    };
+    appSpecs;
 
   mkApps = packages:
     lib.mapAttrs (name: spec: {
       type = "app";
-      program =
-        if spec ? program
-        then lib.getExe' packages.${name} spec.program
-        else lib.getExe packages.${name};
+      program = lib.getExe' packages.${name} (spec.program or name);
       meta = packages.${name}.meta;
     })
     appSpecs;
