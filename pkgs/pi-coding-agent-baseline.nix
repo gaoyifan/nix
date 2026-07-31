@@ -75,9 +75,9 @@ in
         --platform linux-x64 \
         --out "$PWD/binaries"
 
-      interpreterOffset=$(readelf -lW "${bunBaseline}/bin/bun" | awk '$1 == "INTERP" { print $2 }')
-      printf '/lib64/ld-linux-x86-64.so.2\0' \
-        | dd of=binaries/linux-x64/pi bs=1 seek="$((interpreterOffset))" conv=notrunc status=none
+      patchelf \
+        --set-interpreter "${pkgs.stdenv.cc.bintools.dynamicLinker}" \
+        binaries/linux-x64/pi
 
       install -dm755 "$out/bin" "$out/lib/pi-coding-agent"
       cp -R binaries/linux-x64/. "$out/lib/pi-coding-agent/"
