@@ -312,16 +312,16 @@ in {
           # Accept MPLS packets nylon writes to its TUN after the outer pop.
           echo 1 > /proc/sys/net/mpls/conf/${cfg.interfaceName}/input
           declare -A configured_interfaces=()
-          ${lib.concatMapAttrsStringSep "\n" (name: route:
+          ${lib.concatMapAttrsStringSep "\n" (name: exitConfig:
             (
-              if route.interface != null
+              if exitConfig.interface != null
               then ''
-                iface="${route.interface}"
+                iface="${exitConfig.interface}"
                 if ! ip link show "$iface" >/dev/null 2>&1; then
                   echo "egress interface $iface for Nylon exit ${name} is absent" >&2
                   exit 1
                 fi
-                ip -f mpls route replace ${toString route.label} dev "$iface"
+                ip -f mpls route replace ${toString exitConfig.label} dev "$iface"
               ''
               else ''
                 default=$(ip -4 route show default | head -1)
@@ -331,7 +331,7 @@ in {
                   echo "no IPv4 default gateway for Nylon exit ${name}" >&2
                   exit 1
                 fi
-                    ip -f mpls route replace ${toString route.label} via inet "$gw" dev "$iface"
+                    ip -f mpls route replace ${toString exitConfig.label} via inet "$gw" dev "$iface"
               ''
             )
             + ''
@@ -363,7 +363,7 @@ in {
                 fi
                 configured_interfaces["$iface"]=1
               fi
-              echo "nylon-exit ${name}: label ${toString route.label} via $iface"
+              echo "nylon-exit ${name}: label ${toString exitConfig.label} via $iface"
             '')
           cfg.exits}
         '';

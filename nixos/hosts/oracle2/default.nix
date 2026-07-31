@@ -36,27 +36,27 @@ in {
       tables.warp = {
         family = "inet";
         content = ''
-          set warpep4 {
+          set warp_endpoints_v4 {
             type ipv4_addr
             elements = { 162.159.192.1, 162.159.192.2, 162.159.192.3, 162.159.192.4, 162.159.192.5, 162.159.193.1, 162.159.193.2, 162.159.193.3, 162.159.193.4, 162.159.193.5 }
           }
-          set warpep6 {
+          set warp_endpoints_v6 {
             type ipv6_addr
             elements = { 2606:4700:d0::a29f:c001, 2606:4700:d0::a29f:c002, 2606:4700:d0::a29f:c003, 2606:4700:d0::a29f:c004, 2606:4700:d0::a29f:c005 }
           }
-          set warpport {
+          set warp_udp_ports {
             type inet_service
             elements = { 500, 1701, 2408, 4500 }
           }
           chain warp-in {
             type filter hook input priority -150; policy accept;
-            ip saddr @warpep4 udp sport @warpport @th,72,24 set 0x0
-            ip6 saddr @warpep6 udp sport @warpport @th,72,24 set 0x0
+            ip saddr @warp_endpoints_v4 udp sport @warp_udp_ports @th,72,24 set 0x0
+            ip6 saddr @warp_endpoints_v6 udp sport @warp_udp_ports @th,72,24 set 0x0
           }
           chain warp-out {
             type filter hook output priority -150; policy accept;
-            ip daddr @warpep4 udp dport @warpport @th,72,24 set 0xdeeca8
-            ip6 daddr @warpep6 udp dport @warpport @th,72,24 set 0xdeeca8
+            ip daddr @warp_endpoints_v4 udp dport @warp_udp_ports @th,72,24 set 0xdeeca8
+            ip6 daddr @warp_endpoints_v6 udp dport @warp_udp_ports @th,72,24 set 0xdeeca8
           }
         '';
       };
