@@ -36,6 +36,7 @@
     go = from "go";
     gofmt = go;
     hexdump = {};
+    iostat = from "sysstat";
     mcat = {};
     node = from "nodejs-slim";
     npm = from ["nodejs-slim" "npm"];
