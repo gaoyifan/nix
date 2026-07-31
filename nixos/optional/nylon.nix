@@ -232,6 +232,10 @@ in {
           RestartSec = "10s";
         };
         script = ''
+          for _ in {1..50}; do
+            ip -brief link show dev ${cfg.interfaceName} 2>/dev/null | grep -qw LOWER_UP && break
+            sleep 0.2
+          done
           if ! ip -brief link show dev ${cfg.interfaceName} | grep -qw LOWER_UP; then
             echo "${cfg.interfaceName} not LOWER_UP; cannot apply Nylon route batches" >&2
             exit 1
@@ -296,6 +300,10 @@ in {
           RestartSec = "10s";
         };
         script = ''
+          for _ in {1..50}; do
+            ip link show ${cfg.interfaceName} >/dev/null 2>&1 && break
+            sleep 0.2
+          done
           if ! ip link show ${cfg.interfaceName} >/dev/null 2>&1; then
             echo "${cfg.interfaceName} absent; cannot configure Nylon exits" >&2
             exit 1
