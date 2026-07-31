@@ -392,16 +392,14 @@
 
     # deploy-rs configuration
     deploy.nodes.nix-cache = mkDeployNode "x86_64-linux" "100.64.1.25" self.nixosConfigurations.nix-cache;
-    deploy.nodes.misc0-jp = mkDeployNode "x86_64-linux" "103.90.136.69" self.nixosConfigurations.misc0-jp;
-    deploy.nodes.oracle2 = mkDeployNode "aarch64-linux" "oracle2.gaof.net" self.nixosConfigurations.oracle2;
+    deploy.nodes.misc0-jp = mkDeployNode "x86_64-linux" "misc0-jp.ts.gaof.net" self.nixosConfigurations.misc0-jp;
+    deploy.nodes.oracle2 = mkDeployNode "aarch64-linux" "oracle2.ts.gaof.net" self.nixosConfigurations.oracle2;
     deploy.nodes.somo-minisforum = mkDeployNode "x86_64-linux" "somo-minisforum.ts.gaof.net" self.nixosConfigurations.somo-minisforum;
-    deploy.nodes.somo-nanopi-r4s =
-      (mkDeployNode "aarch64-linux" "somo-nanopi-r4s.ts.gaof.net" self.nixosConfigurations.somo-nanopi-r4s)
-      // {sshOpts = ["-4" "-o" "StrictHostKeyChecking=accept-new"];};
-    deploy.nodes.somo-gw = mkDeployNode "x86_64-linux" "115.29.195.35" self.nixosConfigurations.somo-gw;
-    deploy.nodes.xtom-hkg = mkDeployNode "x86_64-linux" "103.125.232.15" self.nixosConfigurations.xtom-hkg;
-    deploy.nodes.xtom-sjc = mkDeployNode "x86_64-linux" "142.147.94.11" self.nixosConfigurations.xtom-sjc;
-    deploy.nodes.xtom-syd = mkDeployNode "x86_64-linux" "103.136.144.12" self.nixosConfigurations.xtom-syd;
+    deploy.nodes.somo-nanopi-r4s = mkDeployNode "aarch64-linux" "somo-nanopi-r4s.ts.gaof.net" self.nixosConfigurations.somo-nanopi-r4s;
+    deploy.nodes.somo-gw = mkDeployNode "x86_64-linux" "somo-gw.ts.gaof.net" self.nixosConfigurations.somo-gw;
+    deploy.nodes.xtom-hkg = mkDeployNode "x86_64-linux" "xtom-hkg.ts.gaof.net" self.nixosConfigurations.xtom-hkg;
+    deploy.nodes.xtom-sjc = mkDeployNode "x86_64-linux" "xtom-sjc.ts.gaof.net" self.nixosConfigurations.xtom-sjc;
+    deploy.nodes.xtom-syd = mkDeployNode "x86_64-linux" "xtom-syd.ts.gaof.net" self.nixosConfigurations.xtom-syd;
     checks = let
       # Hermes currently reads package manifests from lib.fileset.toSource
       # results during evaluation. `nix flake check --no-build` uses a
