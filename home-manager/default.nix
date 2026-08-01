@@ -28,7 +28,6 @@ in {
     ./neovim.nix
     ./mutagen-dotfiles-sync.nix
     ./migrate-codex-skills.nix
-    ./locked-home-symlinks.nix
     ../secrets/home.nix
   ];
 
@@ -139,19 +138,38 @@ in {
     (lib.mkIf (config.services.mutagen.dotfileSync.enable && !isDarwin) {
       ".config/cursor/auth.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.config/cursor/auth.json";
     })
-    (lib.mkIf isDarwin {
-      "Library/Rime" = {
-        source = rimeIce;
-        recursive = true;
-      };
-      "Library/Rime/rime_ice.custom.yaml".source = rimeIceCustom;
-    })
   ];
 
-  services.lockedHomeSymlinks = lib.mkIf isDarwin {
-    enable = true;
-    paths = ["Library/Rime"];
-  };
+  home.activation.unlockLegacyRimeSymlinks = lib.mkIf isDarwin (
+    lib.hm.dag.entryBetween ["linkGeneration"] ["writeBoundary"] ''
+      rime_dir="$HOME/Library/Rime"
+
+      if [ -d "$rime_dir" ]; then
+        run /usr/bin/find "$rime_dir" -type l -exec /usr/bin/chflags -h nouchg {} +
+      fi
+    ''
+  );
+
+  home.activation.installRimeConfig = lib.mkIf isDarwin (
+    lib.hm.dag.entryAfter ["linkGeneration"] ''
+      rime_dir="$HOME/Library/Rime"
+
+      run mkdir -p "$rime_dir"
+
+      while IFS= read -r -d "" rime_link; do
+        rime_target=$(/usr/bin/readlink "$rime_link")
+        case "$rime_target" in
+          /nix/store/*)
+            run rm "$rime_link"
+            ;;
+        esac
+      done < <(/usr/bin/find "$rime_dir" -type l -print0)
+
+      run cp -RL ${lib.escapeShellArg "${rimeIce}/."} "$rime_dir/"
+      run cp ${lib.escapeShellArg rimeIceCustom} "$rime_dir/rime_ice.custom.yaml"
+      run chmod -R u+w "$rime_dir"
+    ''
+  );
 
   home.activation.cursorCliConfigInit = lib.mkIf config.services.mutagen.dotfileSync.enable (lib.hm.dag.entryAfter ["linkGeneration"] ''
     source=${lib.escapeShellArg cursorCliConfigSource}
