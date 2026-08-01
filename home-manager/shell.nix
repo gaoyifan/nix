@@ -173,6 +173,7 @@ in {
         "dotenv"
         # Custom plugins
         "alias"
+        "atuin-context-history"
         "docker-extras"
         "ip"
         "keybind"
@@ -217,15 +218,11 @@ in {
         fi
       '')
       (pkgs.lib.mkAfter ''
-        # Atuin: disable Up Arrow binding, and init after zsh-vi-mode sets keymaps.
+        # Initialize atuin after zsh-vi-mode creates its keymaps. Keep atuin's
+        # Ctrl-R integration, but reserve Up/Down for contextual inline history.
         typeset -ga zvm_after_init_commands
-        zvm_after_init_commands+=('eval "$(atuin init zsh)"')
-        # Override atuin's up arrow binding with smart binding after atuin initializes
-        # The _atuin_smart_up function is defined in keybind plugin's zvm_after_init
-        zvm_after_init_commands+=('bindkey "^[[A" _atuin_smart_up')
-        zvm_after_init_commands+=('bindkey -M vicmd "^[[A" _atuin_smart_up')
-        zvm_after_init_commands+=('bindkey -M viins "^[[A" _atuin_smart_up')
-        zvm_after_init_commands+=('bindkey -M emacs "^[[A" _atuin_smart_up')
+        zvm_after_init_commands+=('eval "$(atuin init zsh --disable-up-arrow)"')
+        zvm_after_init_commands+=('_atuin_context_history_install')
       '')
       (pkgs.lib.mkAfter ''
         # iTerm2 Shell Integration
