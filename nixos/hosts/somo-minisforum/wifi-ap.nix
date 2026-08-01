@@ -1,5 +1,12 @@
 # WiFi AP on the onboard MediaTek MT7921, bridged into br-gnet.
 {config, ...}: {
+  # hostapd otherwise races networkd at boot, creates br-gnet itself, and
+  # deletes the bridge (including its nspawn ports) when hostapd restarts.
+  systemd.services.hostapd = {
+    after = ["sys-subsystem-net-devices-br\\x2dgnet.device"];
+    bindsTo = ["sys-subsystem-net-devices-br\\x2dgnet.device"];
+  };
+
   services.hostapd = {
     enable = true;
     radios.wlp6s0 = {
