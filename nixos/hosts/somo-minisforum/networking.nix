@@ -1,7 +1,7 @@
 # Network configuration for somo-minisforum.
 #
 # WAN: enp3s0. USB tethering WANs: iOS ipheth or RNDIS interfaces.
-# LAN trunk: enp4s0 untagged to br-somo and VLAN 652 to br-gnet.
+# LAN trunk: enp4s0 untagged and VLAN 652 to br-gnet.
 {
   config,
   inputs,
@@ -90,7 +90,7 @@ in {
     wan.interface = "enp3s0";
 
     trunks.enp4s0 = {
-      untaggedBridge = "br-somo";
+      untaggedBridge = "br-gnet";
       vlans."652".bridge = "br-gnet";
       vlans."654".bridge = "br-guest";
     };
