@@ -12,6 +12,7 @@
     ansible-pull = ansible;
     ansible-test = ansible;
     ansible-vault = ansible;
+    bmon = {};
     codex = {};
     copilot = {
       packagePath = ["copilot-cli"];
