@@ -59,8 +59,8 @@ in {
 
   config = lib.mkIf cfg.enable {
     systemd.services.policy-routing = let
-      ipv4Rules = mkRulesFile "ipv4" cfg.ipv4.rules;
-      ipv6Rules = mkRulesFile "ipv6" cfg.ipv6.rules;
+      ipv4Rules = mkRulesFile "ipv4" (lib.unique cfg.ipv4.rules);
+      ipv6Rules = mkRulesFile "ipv6" (lib.unique cfg.ipv6.rules);
     in {
       description = "Declarative RPDB policy routing";
       wantedBy = ["multi-user.target"];

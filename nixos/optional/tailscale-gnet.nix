@@ -12,6 +12,13 @@
     "--snat-subnet-routes=false"
   ];
 in {
+  imports = [./policy-routing.nix];
+
+  networking.policyRouting = {
+    ipv4.rules = lib.mkBefore ["pref 110 lookup 52 suppress_prefixlength 0"];
+    ipv6.rules = lib.mkBefore ["pref 110 lookup 52 suppress_prefixlength 0"];
+  };
+
   services.tailscale = {
     enable = true;
     authKeyFile = lib.mkDefault config.services.secrets.nixos.tailscale.authKeyFile;
