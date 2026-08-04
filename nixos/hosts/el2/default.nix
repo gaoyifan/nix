@@ -5,6 +5,7 @@
     ./networking.nix
     ./tailscale.nix
     ./wg-iplc.nix
+    ./wg0.nix
   ];
 
   networking.hostName = "el2";
