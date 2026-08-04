@@ -210,7 +210,10 @@ in {
 
       systemd.services.nylon = {
         description = "Nylon mesh router";
-        wants = ["network-online.target"];
+        wants =
+          ["network-online.target"]
+          ++ lib.optional cfg.routeBatch.enable "nylon-routes.service"
+          ++ lib.optional (exitsEnabled && overlayConfigured) "nylon-exit.service";
         after = ["network-online.target"];
         wantedBy = ["multi-user.target"];
         # nylon shells out to `ip` for interface/route setup.
@@ -245,16 +248,17 @@ in {
     (lib.mkIf cfg.routeBatch.enable {
       systemd.services.nylon-routes = {
         description = "Nylon MPLS route batches";
-        wants = ["nylon.service" "network-online.target"];
+        wants = ["network-online.target"];
         after = ["nylon.service" "network-online.target"];
         # A nylon restart recreates nylon0, dropping MPLS routes in the per-exit
         # tables; PartOf makes that restart re-run this unit.
         partOf = ["nylon.service"];
-        wantedBy = [
-          "multi-user.target"
-          "nylon.service"
-        ];
+        wantedBy = ["multi-user.target"];
         path = [pkgs.iproute2];
+        unitConfig.ConditionPathExists = [
+          cfg.centralConfigFile
+          cfg.nodeConfigFile
+        ];
         serviceConfig = {
           Type = "oneshot";
           RemainAfterExit = true;
@@ -312,16 +316,17 @@ in {
       # replacing them is idempotent.
       systemd.services.nylon-exit = {
         description = "Nylon MPLS exits: static LSPs and egress SNAT";
-        wants = ["nylon.service" "network-online.target"];
+        wants = ["network-online.target"];
         after = ["nylon.service" "network-online.target"];
         partOf = ["nylon.service"];
-        wantedBy = [
-          "multi-user.target"
-          "nylon.service"
-        ];
+        wantedBy = ["multi-user.target"];
         path = [
           pkgs.iproute2
           pkgs.gawk
+        ];
+        unitConfig.ConditionPathExists = [
+          cfg.centralConfigFile
+          cfg.nodeConfigFile
         ];
         serviceConfig = {
           Type = "oneshot";
