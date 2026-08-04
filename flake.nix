@@ -420,7 +420,10 @@
           }
         ]
         self.deploy;
+      deployChecks = builtins.mapAttrs (_system: deployLib: deployLib.deployChecks deployForChecks) deploy-rs.lib;
     in
-      builtins.mapAttrs (_system: deployLib: deployLib.deployChecks deployForChecks) deploy-rs.lib;
+      nixpkgs.lib.recursiveUpdate deployChecks {
+        x86_64-linux.home-router = ((pkgsFor "x86_64-linux").extend overlay).testers.runNixOSTest (import ./nixos/tests/home-router.nix);
+      };
   };
 }
