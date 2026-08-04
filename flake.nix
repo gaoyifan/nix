@@ -345,6 +345,11 @@
         disko.nixosModules.disko
         ./nixos/hosts/el2
       ];
+      el2-install = mkNixosHost "x86_64-linux" [
+        disko.nixosModules.disko
+        ./nixos/hosts/el2
+        ./nixos/hosts/el2/install.nix
+      ];
       nix-cache = mkNixosHost "x86_64-linux" [./nixos/hosts/nix-cache];
       misc0-jp = mkNixosHost "x86_64-linux" [
         disko.nixosModules.disko
