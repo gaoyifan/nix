@@ -2,6 +2,8 @@
   imports = [
     ./disk-config.nix
     ./hardware-configuration.nix
+    ./networking.nix
+    ./wg-iplc.nix
   ];
 
   networking.hostName = "el2";

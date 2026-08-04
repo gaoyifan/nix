@@ -18,4 +18,7 @@ pkgs.runCommand "nft-geo-sets" {} ''
   }
   gen cn ipv4_addr ${inputs.chnroutes2}/chnroutes.txt
   gen cn6 ipv6_addr ${inputs.china-operator-ip}/china6.txt
+  gen cernet ipv4_addr ${inputs.china-operator-ip}/cernet.txt
+  gen chinanet ipv4_addr ${inputs.china-operator-ip}/chinanet.txt
+  gen cmcc ipv4_addr ${inputs.china-operator-ip}/cmcc.txt
 ''
