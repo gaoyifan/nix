@@ -78,6 +78,8 @@ in {
             default = interfaceForVlan lan.vlan;
             description = "Host VLAN interface derived from the LAN VLAN.";
           };
+          # Alternative names are human-readable labels for an interface's
+          # purpose; the VLAN-derived primary name remains the stable identity.
           altnames = lib.mkOption {
             type = types.listOf types.str;
             default = [name];
@@ -168,6 +170,8 @@ in {
               else "";
             description = "Host interface derived from the WAN attachment.";
           };
+          # Alternative names are human-readable labels for an interface's
+          # purpose; the VLAN-derived primary name remains the stable identity.
           altnames = lib.mkOption {
             type = types.listOf types.str;
             default = [name];

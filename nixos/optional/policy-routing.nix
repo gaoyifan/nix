@@ -58,6 +58,10 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
+    # Keep one declarative desired state for the whole RPDB. Some required rule
+    # forms and runtime-generated fragments cannot be represented by networkd,
+    # so splitting static rules into .network files would leave two competing
+    # owners and make reconciliation less predictable.
     systemd.services.policy-routing = let
       ipv4Rules = mkRulesFile "ipv4" (lib.unique cfg.ipv4.rules);
       ipv6Rules = mkRulesFile "ipv6" (lib.unique cfg.ipv6.rules);
