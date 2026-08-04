@@ -7,8 +7,10 @@
   bridge = config.networking.homeRouter.switch.name;
   bridgeDevice = "sys-subsystem-net-devices-${utils.escapeSystemdPath bridge}.device";
 in {
-  # hostapd otherwise races networkd at boot, creates the bridge itself, and
-  # deletes it (including its nspawn ports) when hostapd restarts.
+  # A wireless interface can join a bridge only after hostapd switches it to
+  # AP mode. networkd then attaches it and applies the switch-port VLANs.
+  systemd.network.networks."31-wlp6s0".matchConfig.WLANInterfaceType = "ap";
+
   systemd.services.hostapd = {
     after = [bridgeDevice];
     bindsTo = [bridgeDevice];
@@ -45,7 +47,6 @@ in {
           wpaPasswordFile = passwordFile;
           saePasswordsFile = passwordFile;
         };
-        settings.bridge = bridge;
       };
     };
   };
