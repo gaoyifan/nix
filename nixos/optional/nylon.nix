@@ -122,6 +122,24 @@ in {
             example = "wg-cloudflare";
             description = "Fixed egress interface, or null to follow the IPv4 default route.";
           };
+          gateway4 = lib.mkOption {
+            type = types.nullOr types.str;
+            default = null;
+            example = "192.0.2.1";
+            description = "IPv4 next hop for this MPLS exit; null is suitable for point-to-point interfaces.";
+          };
+          ipv4Address = lib.mkOption {
+            type = types.nullOr types.str;
+            default = null;
+            example = "192.0.2.2";
+            description = "IPv4 SNAT address; null uses the first global address on the egress interface.";
+          };
+          ipv6Address = lib.mkOption {
+            type = types.nullOr types.str;
+            default = null;
+            example = "2001:db8::2";
+            description = "IPv6 SNAT address; null uses the first global address on the egress interface.";
+          };
         };
       }));
       default = {};
@@ -153,10 +171,22 @@ in {
             || overlayConfigured;
           message = "Nylon NAT and exits require an overlay IPv4 or IPv6 subnet.";
         }
+        {
+          assertion =
+            builtins.length (map (exit: exit.label) (lib.attrValues cfg.exits))
+            == builtins.length (lib.unique (map (exit: exit.label) (lib.attrValues cfg.exits)));
+          message = "Nylon exit labels must be unique.";
+        }
       ];
 
       # mpls_iptunnel serves the WLT selector's `encap mpls` policy routes.
-      boot.kernelModules = ["mpls_router" "mpls_iptunnel"];
+      boot.kernelModules = [
+        "act_ct"
+        "act_skbedit"
+        "cls_flower"
+        "mpls_router"
+        "mpls_iptunnel"
+      ];
       boot.kernel.sysctl."net.mpls.platform_labels" = 256;
 
       # `nylon` on PATH lets Ansible generate/verify keys and configs; python3
@@ -311,6 +341,8 @@ in {
 
           # Accept MPLS packets nylon writes to its TUN after the outer pop.
           echo 1 > /proc/sys/net/mpls/conf/${cfg.interfaceName}/input
+          tc qdisc replace dev ${cfg.interfaceName} clsact
+          tc filter del dev ${cfg.interfaceName} ingress 2>/dev/null || true
           declare -A configured_interfaces=()
           ${lib.concatMapAttrsStringSep "\n" (name: exitConfig:
             (
@@ -321,7 +353,11 @@ in {
                   echo "egress interface $iface for Nylon exit ${name} is absent" >&2
                   exit 1
                 fi
-                ip -f mpls route replace ${toString exitConfig.label} dev "$iface"
+                ${
+                  if exitConfig.gateway4 != null
+                  then ''ip -f mpls route replace ${toString exitConfig.label} via inet ${exitConfig.gateway4} dev "$iface"''
+                  else ''ip -f mpls route replace ${toString exitConfig.label} dev "$iface"''
+                }
               ''
               else ''
                 default=$(ip -4 route show default | head -1)
@@ -331,37 +367,48 @@ in {
                   echo "no IPv4 default gateway for Nylon exit ${name}" >&2
                   exit 1
                 fi
-                    ip -f mpls route replace ${toString exitConfig.label} via inet "$gw" dev "$iface"
+                ip -f mpls route replace ${toString exitConfig.label} via inet "$gw" dev "$iface"
               ''
             )
             + ''
+              mark=$((0x10000 + ${toString exitConfig.label}))
+              tc filter add dev ${cfg.interfaceName} ingress protocol mpls_uc pref ${toString exitConfig.label} \
+                flower mpls_label ${toString exitConfig.label} action skbedit mark "$mark"
+
               if [[ ! -v "configured_interfaces[$iface]" ]]; then
                 tc qdisc replace dev "$iface" clsact
                 tc filter del dev "$iface" egress 2>/dev/null || true
-                filters=0
-                ${lib.optionalString (cfg.overlay.ipv4Subnet != null) ''
-                ip4=$(ip -o -4 addr show dev "$iface" scope global | awk '{print $4}' | cut -d/ -f1 | head -1)
+                configured_interfaces["$iface"]=1
+              fi
+
+              filters=0
+              ${lib.optionalString (cfg.overlay.ipv4Subnet != null) ''
+                ip4="${lib.optionalString (exitConfig.ipv4Address != null) exitConfig.ipv4Address}"
+                if [ -z "$ip4" ]; then
+                  ip4=$(ip -o -4 addr show dev "$iface" scope global | awk '{print $4}' | cut -d/ -f1 | head -1)
+                fi
                 if [ -n "$ip4" ]; then
-                  tc filter add dev "$iface" egress protocol ip flower src_ip ${cfg.overlay.ipv4Subnet} \
+                  tc filter add dev "$iface" egress protocol ip pref ${toString exitConfig.label} handle "$mark" fw \
                     action ct commit nat src addr "$ip4" pipe
                   filters=$((filters + 1))
-                  echo "nylon-exit: IPv4 SNAT to $ip4 on $iface"
+                  echo "nylon-exit ${name}: IPv4 SNAT to $ip4 on $iface"
                 fi
               ''}
-                ${lib.optionalString (cfg.overlay.ipv6Subnet != null) ''
-                ip6=$(ip -o -6 addr show dev "$iface" scope global | awk '{print $4}' | cut -d/ -f1 | head -1)
+              ${lib.optionalString (cfg.overlay.ipv6Subnet != null) ''
+                ip6="${lib.optionalString (exitConfig.ipv6Address != null) exitConfig.ipv6Address}"
+                if [ -z "$ip6" ]; then
+                  ip6=$(ip -o -6 addr show dev "$iface" scope global | awk '{print $4}' | cut -d/ -f1 | head -1)
+                fi
                 if [ -n "$ip6" ]; then
-                  tc filter add dev "$iface" egress protocol ipv6 flower src_ip ${cfg.overlay.ipv6Subnet} \
+                  tc filter add dev "$iface" egress protocol ipv6 pref ${toString (exitConfig.label + 1000)} handle "$mark" fw \
                     action ct commit nat src addr "$ip6" pipe
                   filters=$((filters + 1))
-                  echo "nylon-exit: IPv6 SNAT to $ip6 on $iface"
+                  echo "nylon-exit ${name}: IPv6 SNAT to $ip6 on $iface"
                 fi
               ''}
-                if [ "$filters" -eq 0 ]; then
-                  echo "no configured overlay address family is available on $iface" >&2
-                  exit 1
-                fi
-                configured_interfaces["$iface"]=1
+              if [ "$filters" -eq 0 ]; then
+                echo "no configured overlay address family is available on $iface" >&2
+                exit 1
               fi
               echo "nylon-exit ${name}: label ${toString exitConfig.label} via $iface"
             '')
