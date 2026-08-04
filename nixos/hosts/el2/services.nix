@@ -1,6 +1,8 @@
 {...}: {
   imports = [../../optional/diverge.nix];
 
+  services.openssh.settings.MaxStartups = 100;
+  services.fail2ban.enable = true;
   services.diverge.enable = true;
 
   services.resolved.settings.Resolve = {
