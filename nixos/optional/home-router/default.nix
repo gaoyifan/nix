@@ -9,6 +9,8 @@ in {
     ../policy-routing.nix
     ./options.nix
     ./networkd.nix
+    ./firewall.nix
+    ./services.nix
   ];
 
   config = lib.mkIf cfg.enable {

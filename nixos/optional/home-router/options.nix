@@ -103,6 +103,23 @@ in {
             default = false;
             description = "Whether this is a guest LAN excluded from internal services.";
           };
+          dhcpServer = {
+            range = lib.mkOption {
+              type = types.nullOr types.str;
+              default = null;
+              description = "Native dnsmasq dhcp-range value for this LAN.";
+            };
+            hosts = lib.mkOption {
+              type = types.listOf types.str;
+              default = [];
+              description = "Native dnsmasq static lease values belonging to this LAN.";
+            };
+            settings = lib.mkOption {
+              type = types.attrs;
+              default = {};
+              description = "Additional native dnsmasq DHCP settings belonging to this LAN.";
+            };
+          };
           ipv6 = {
             enable = lib.mkOption {
               type = types.bool;
@@ -226,6 +243,49 @@ in {
       readOnly = true;
       default = internalInterfaceNames;
       description = "Host interfaces belonging to non-guest LANs.";
+    };
+
+    internalDhcpHosts = lib.mkOption {
+      type = types.listOf types.str;
+      internal = true;
+      default = [];
+      description = "Static DHCP leases registered by homeRouter-integrated modules.";
+    };
+
+    serviceAddresses = {
+      ipv4 = lib.mkOption {
+        type = types.str;
+        default = "198.18.255.254";
+        description = "Shared IPv4 address held on loopback for internal services.";
+      };
+      ipv6 = lib.mkOption {
+        type = types.str;
+        default = "2001:2::ffff";
+        description = "Shared IPv6 address held on loopback for internal services.";
+      };
+    };
+
+    avahi.enable = lib.mkOption {
+      type = types.bool;
+      default = true;
+      description = "Whether to publish and reflect mDNS between non-guest LANs.";
+    };
+
+    dnsmasq = {
+      domain = lib.mkOption {
+        type = types.str;
+        description = "Local LAN domain served by dnsmasq.";
+      };
+      servers = lib.mkOption {
+        type = types.listOf types.str;
+        default = [];
+        description = "Upstream DNS servers for dnsmasq.";
+      };
+      extraInterfaces = lib.mkOption {
+        type = types.listOf types.str;
+        default = [];
+        description = "Additional interfaces on which dnsmasq should answer DNS queries.";
+      };
     };
 
   };
