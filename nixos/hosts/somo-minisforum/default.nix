@@ -14,7 +14,6 @@ in {
     ./graphics.nix
     ./bees.nix
     ./ksm.nix
-    ./vms.nix
     ./apt-cacher-ng.nix
     ./newapi.nix
     ./whisper-server.nix

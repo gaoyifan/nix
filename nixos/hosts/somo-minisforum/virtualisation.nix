@@ -1,71 +1,61 @@
-# Incus daemon for KVM virtual machines.
-# Guests attach by default to the br-somo bridge defined in networking.nix
-# (no Incus-managed incusbr0 NAT bridge); dnsmasq provides DHCP/DNS there.
-# Individual VMs may override eth0 to join br-gnet instead.
-{
-  pkgs,
-  username,
-  ...
-}: let
-  metricsPort = 8444;
+{username, ...}: let
+  sshKey = (import ../../common/ssh-keys.nix).userKeys."yifan-macbook";
+  memory = "16GiB";
+  userData = ''
+    #cloud-config
+    users:
+      - name: root
+        lock_passwd: false
+        hashed_passwd: "*"
+        ssh_authorized_keys:
+          - ${sshKey}
+      - name: agent
+        shell: /bin/bash
+        sudo: ALL=(ALL) NOPASSWD:ALL
+        lock_passwd: false
+        hashed_passwd: "*"
+        ssh_authorized_keys:
+          - ${sshKey}
+    ssh_pwauth: false
+    apt:
+      primary:
+        - arches: [default]
+          uri: http://mirrors.ustc.edu.cn/debian
+      security:
+        - arches: [default]
+          uri: http://mirrors.ustc.edu.cn/debian-security
+    packages:
+      - auto-apt-proxy
+      - avahi-daemon
+      - avahi-utils
+      - openssh-server
+  '';
 in {
-  virtualisation.incus = {
+  imports = [../../optional/incus-vms];
+
+  virtualisation.incusVms = {
     enable = true;
-    preseed = {
+    metricsPort = 8444;
+    cacheReclaim = true;
+
+    instances.debian42 = {
+      image = "debian/13/cloud";
+      vlan = 652;
+      macAddress = "52:54:00:de:b1:42";
+      dhcpAddress = "100.65.2.42";
+      rootSize = "510GiB";
+      rootConfig."size.state" = memory;
+      headless = true;
       config = {
-        "core.metrics_address" = "127.0.0.1:${toString metricsPort}";
-        "core.metrics_authentication" = "false";
+        "security.secureboot" = "false";
+        "limits.cpu" = "16";
+        "limits.memory" = memory;
+        "cloud-init.user-data" = userData;
+        "migration.stateful" = "true";
+        "boot.host_shutdown_action" = "stateful-stop";
       };
-      storage_pools = [
-        {
-          name = "default";
-          driver = "dir";
-        }
-      ];
-      profiles = [
-        {
-          name = "default";
-          devices = {
-            eth0 = {
-              type = "nic";
-              name = "eth0";
-              nictype = "bridged";
-              parent = "br-somo";
-            };
-            root = {
-              type = "disk";
-              path = "/";
-              pool = "default";
-            };
-          };
-        }
-      ];
     };
   };
 
-  services.prometheus.scrapeConfigs = [
-    {
-      job_name = "incus";
-      metrics_path = "/1.0/metrics";
-      scheme = "https";
-      static_configs = [
-        {
-          targets = ["127.0.0.1:${toString metricsPort}"];
-        }
-      ];
-      tls_config.insecure_skip_verify = true;
-    }
-  ];
-
-  services.grafana.provision.dashboards.settings.providers = [
-    {
-      name = "incus-vm-performance";
-      options.path = pkgs.writeTextDir "incus-vm-performance.json" (
-        builtins.readFile ./incus-vm-performance.json
-      );
-    }
-  ];
-
-  # Manage Incus without sudo.
   users.users.${username}.extraGroups = ["incus-admin"];
 }
