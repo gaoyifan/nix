@@ -51,6 +51,7 @@
     redis-cli = from "redis";
     ruby = {};
     sqlite3 = from "sqlite";
+    tig = {};
     tokei = {};
     yazi = from "yazi-unwrapped";
   };
