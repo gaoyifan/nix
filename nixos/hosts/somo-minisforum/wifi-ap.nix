@@ -1,10 +1,10 @@
-# WiFi AP on the onboard MediaTek MT7921, bridged into br-gnet.
+# WiFi AP on the onboard MediaTek MT7921, attached to the homeRouter switch.
 {
   config,
   utils,
   ...
 }: let
-  bridge = "br-gnet";
+  bridge = config.networking.homeRouter.switch.name;
   bridgeDevice = "sys-subsystem-net-devices-${utils.escapeSystemdPath bridge}.device";
 in {
   # hostapd otherwise races networkd at boot, creates the bridge itself, and
