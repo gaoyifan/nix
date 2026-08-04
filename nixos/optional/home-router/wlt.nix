@@ -1,0 +1,211 @@
+# WLT is an internal homeRouter capability. Its implementation constants stay
+# behind networking.homeRouter.wlt's small interface.
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
+  homeRouter = config.networking.homeRouter;
+  cfg = homeRouter.wlt;
+  lanInterfaceSet = "{ ${lib.concatMapStringsSep ", " (name: "\"${name}\"") homeRouter.internalInterfaces} }";
+  disabledIpv6Mark = "0xff";
+  disabledIpv6Table = 5255;
+  defaultOutletRules = ''
+    ${lib.optionalString (cfg.defaultOutlet.ipv4Mark != null) ''fib saddr oifname ${lanInterfaceSet} ip daddr != @cn meta mark 0 meta mark set ${cfg.defaultOutlet.ipv4Mark}''}
+    ${lib.optionalString (cfg.defaultOutlet.ipv6 == "disabled") ''fib saddr oifname ${lanInterfaceSet} ip6 daddr != @cn6 meta mark 0 meta mark set ${disabledIpv6Mark}''}
+  '';
+
+  image = "ghcr.io/gaoyifan/wlt@sha256:f805f9ec0b5ffae8dddcfd9666707a6785ceccd204b485543928316b3f2dcf6d";
+  configD = "/var/lib/wlt/config.d";
+  persistDir = "/var/lib/wlt/persist";
+  snapshotFile = "${persistDir}/wlt_src2mark.conf";
+  runtimeDir = "/run/wlt";
+  sshHostKeyRuntime = "${runtimeDir}/ssh_host_key";
+  tlsCertRuntime = "${runtimeDir}/tls/server.pem";
+  tlsKeyRuntime = "${runtimeDir}/tls/server-key.pem";
+  wltSecrets = config.services.secrets.nixos.wlt;
+  portalIpv4 = homeRouter.serviceAddresses.ipv4;
+  portalIpv6 = homeRouter.serviceAddresses.ipv6;
+  geoSets = pkgs.nft-geo-sets;
+
+  wltConfig = pkgs.writeText "wlt-config.toml" ''
+    time_limits = [1, 4, 10, 24, 0]
+
+    [web]
+    listen = ["${portalIpv4}:80", "[${portalIpv6}]:80"]
+
+    [web.https]
+    listen = ["${portalIpv4}:443", "[${portalIpv6}]:443"]
+    cert = "/data/tls/server.pem"
+    key = "/data/tls/server-key.pem"
+
+    [ssh]
+    listen = ["[::]:2222"]
+    host_key = "/data/ssh_host_key"
+
+    [persist]
+    path = "/etc/nftables/wlt_src2mark.conf"
+    interval = 300
+
+    [nftables]
+    family = "inet"
+    table = "wlt"
+    map = "src2mark"
+    map_v6 = "src2mark6"
+
+    [portal]
+    domain = "${cfg.domain}"
+    v4_host = "wlt-ipv4.${cfg.domain}"
+    v6_host = "wlt-ipv6.${cfg.domain}"
+    cors_domain = "${cfg.domain}"
+
+    [[outlet_groups]]
+    title = "国内出口"
+    mask = 0xFF00
+    [outlet_groups.outlets]
+    "默认" = 0x0
+    [outlet_groups.outlets_v6]
+    "默认" = 0x0
+    "禁用 IPv6" = 0xff00
+
+    [[outlet_groups]]
+    title = "海外出口"
+    cn_last = true
+    mask = 0xFF
+    [outlet_groups.outlets]
+    "默认" = 0x0
+    [outlet_groups.outlets_v6]
+    "默认" = 0x0
+    "禁用 IPv6" = 0xff
+  '';
+in {
+  options.networking.homeRouter.wlt = {
+    enable = lib.mkEnableOption "WLT outlet selector";
+    domain = lib.mkOption {
+      type = lib.types.str;
+      example = "gaof.net";
+      description = "Public domain used by the WLT portal.";
+    };
+    defaultOutlet = {
+      ipv4Mark = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        description = "Default IPv4 overseas outlet mark for internal LAN clients.";
+      };
+      ipv6 = lib.mkOption {
+        type = lib.types.enum ["default" "disabled"];
+        default = "default";
+        description = "Default IPv6 overseas behavior for internal LAN clients.";
+      };
+    };
+  };
+
+  config = lib.mkIf (homeRouter.enable && cfg.enable) (lib.mkMerge [
+    {
+      assertions = [
+        {
+          assertion = homeRouter.internalInterfaces != [];
+          message = "networking.homeRouter.wlt requires at least one non-guest LAN.";
+        }
+      ];
+
+      virtualisation.oci-containers = {
+        backend = "podman";
+        containers.wlt = {
+          inherit image;
+          volumes = [
+            "${wltConfig}:/app/config.toml:ro"
+            "${configD}:/app/config.d:ro"
+            "${persistDir}:/etc/nftables"
+            "${sshHostKeyRuntime}:/data/ssh_host_key:ro"
+            "${tlsCertRuntime}:/data/tls/server.pem:ro"
+            "${tlsKeyRuntime}:/data/tls/server-key.pem:ro"
+          ];
+          extraOptions = [
+            "--network=host"
+            "--cap-add=NET_ADMIN"
+          ];
+        };
+      };
+
+      systemd.services.podman-wlt.serviceConfig = {
+        RuntimeDirectory = lib.mkForce "wlt";
+        RuntimeDirectoryMode = "0700";
+        ExecStartPre = lib.mkAfter [
+          (pkgs.writeShellScript "wlt-install-runtime-secrets" ''
+            set -euo pipefail
+
+            ${pkgs.coreutils}/bin/install -d -m 0700 ${runtimeDir}/tls
+            ${pkgs.coreutils}/bin/install -m 0600 ${wltSecrets.sshHostKeyFile} ${sshHostKeyRuntime}
+            ${pkgs.coreutils}/bin/install -m 0644 ${wltSecrets.tls.certFile} ${tlsCertRuntime}
+            ${pkgs.coreutils}/bin/install -m 0600 ${wltSecrets.tls.keyFile} ${tlsKeyRuntime}
+          '')
+        ];
+      };
+
+      systemd.tmpfiles.rules = [
+        "d ${configD} 0755 root root -"
+        "d ${persistDir} 0755 root root -"
+        "f ${snapshotFile} 0644 root root -"
+      ];
+
+      networking.nftables.tables.wlt = {
+        family = "inet";
+        content = ''
+          include "${geoSets}/set-cn.conf"
+          include "${geoSets}/set-cn6.conf"
+
+          map src2mark {
+            type ipv4_addr : mark
+            flags interval, timeout
+          }
+          map src2mark6 {
+            type ipv6_addr : mark
+            flags timeout
+          }
+
+          chain prerouting {
+            type filter hook prerouting priority mangle - 1; policy accept;
+            ip daddr @cn    meta mark set ip saddr map @src2mark meta mark set mark >> 8
+            ip daddr != @cn meta mark set ip saddr map @src2mark meta mark set mark & 0xff
+            ip6 daddr @cn6    meta mark set ip6 saddr map @src2mark6 meta mark set mark >> 8
+            ip6 daddr != @cn6 meta mark set ip6 saddr map @src2mark6 meta mark set mark & 0xff
+            ${defaultOutletRules}
+          }
+
+          chain portal-dnat {
+            type nat hook prerouting priority dstnat; policy accept;
+            ip daddr ${portalIpv4} tcp dport 22 dnat ip to ${portalIpv4}:2222
+            ip6 daddr ${portalIpv6} tcp dport 22 dnat ip6 to [${portalIpv6}]:2222
+          }
+        '';
+      };
+
+      networking.nftables.ruleset = ''
+        include "${snapshotFile}"
+      '';
+
+      networking.nftables.preCheckRuleset = ''
+        sed 's|include "${snapshotFile}"||' -i ruleset.conf
+      '';
+    }
+
+    (lib.mkIf (cfg.defaultOutlet.ipv6 == "disabled") {
+      networking.policyRouting = {
+        enable = true;
+        ipv6.rules = lib.mkBefore [
+          "pref 300 fwmark ${disabledIpv6Mark}/${disabledIpv6Mark} lookup ${toString disabledIpv6Table}"
+        ];
+      };
+
+      systemd.network.networks."60-lo-host-services".routes = [
+        {
+          Destination = "::/0";
+          Table = toString disabledIpv6Table;
+          Type = "unreachable";
+        }
+      ];
+    })
+  ]);
+}

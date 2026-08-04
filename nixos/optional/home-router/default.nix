@@ -12,6 +12,7 @@ in {
     ./firewall.nix
     ./services.nix
     ./monitoring.nix
+    ./wlt.nix
   ];
 
   config = lib.mkIf cfg.enable {
