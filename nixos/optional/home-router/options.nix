@@ -288,5 +288,25 @@ in {
       };
     };
 
+    monitoring = {
+      enable = lib.mkEnableOption "home router monitoring";
+      wan = lib.mkOption {
+        type = types.nullOr types.str;
+        default = null;
+        description = "WAN displayed by the public egress dashboard.";
+      };
+      grafana = {
+        port = lib.mkOption {
+          type = types.port;
+          default = 3000;
+          description = "Port on which Grafana listens.";
+        };
+        extraInterfaces = lib.mkOption {
+          type = types.listOf types.str;
+          default = [];
+          description = "Additional trusted interfaces allowed to access Grafana.";
+        };
+      };
+    };
   };
 }

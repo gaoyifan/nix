@@ -11,9 +11,17 @@ in {
     ./networkd.nix
     ./firewall.nix
     ./services.nix
+    ./monitoring.nix
   ];
 
   config = lib.mkIf cfg.enable {
+    assertions = [
+      {
+        assertion = !cfg.monitoring.enable || (cfg.monitoring.wan != null && lib.hasAttr cfg.monitoring.wan cfg.wans);
+        message = "networking.homeRouter.monitoring.wan must name a WAN when monitoring is enabled.";
+      }
+    ];
+
     networking.useDHCP = false;
     networking.useNetworkd = true;
     networking.firewall.enable = false;

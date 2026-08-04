@@ -19,13 +19,13 @@
     [
       (lib.concatStringsSep "," routerInterfaceNames)
     ]
-    (builtins.readFile ./home-router-overview.json)
+    (builtins.readFile ./home-router/overview.json)
   );
   publicEgressDashboard = pkgs.writeTextDir "home-router-public-egress.json" (
     builtins.replaceStrings
     ["__WAN_INTERFACE__"]
     [(toString cfg.wan.interface)]
-    (builtins.readFile ./home-router-public-egress.json)
+    (builtins.readFile ./home-router/public-egress.json)
   );
   ipv6NatRules =
     lib.concatMapStringsSep "\n" (ipv6SourceSubnet: ''
