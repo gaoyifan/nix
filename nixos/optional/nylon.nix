@@ -16,6 +16,8 @@
 in {
   disabledModules = ["services/networking/nylon.nix"];
 
+  imports = [./policy-routing.nix];
+
   options.services.nylon = {
     enable = lib.mkEnableOption "Nylon mesh router";
 
@@ -108,6 +110,8 @@ in {
       };
     };
 
+    policyRouting.enable = lib.mkEnableOption "loading rendered Nylon policy rules through networking.policyRouting";
+
     exits = lib.mkOption {
       type = types.attrsOf (types.submodule ({name, ...}: {
         options = {
@@ -176,6 +180,10 @@ in {
             builtins.length (map (exit: exit.label) (lib.attrValues cfg.exits))
             == builtins.length (lib.unique (map (exit: exit.label) (lib.attrValues cfg.exits)));
           message = "Nylon exit labels must be unique.";
+        }
+        {
+          assertion = !cfg.policyRouting.enable || cfg.routeBatch.enable;
+          message = "Nylon policy routing requires routeBatch.enable.";
         }
       ];
 
@@ -282,6 +290,13 @@ in {
             ip -6 -force -batch ${cfg.routeBatch.ipv6File}
           fi
         '';
+      };
+    })
+
+    (lib.mkIf cfg.policyRouting.enable {
+      networking.policyRouting = {
+        ipv4.ruleFiles = ["${cfg.routeBatch.dir}/rules4.batch"];
+        ipv6.ruleFiles = ["${cfg.routeBatch.dir}/rules6.batch"];
       };
     })
 
