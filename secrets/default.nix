@@ -50,6 +50,13 @@ in {
       internal = true;
     };
 
+    nixos.acmeCertificates.sshPrivateKeyFile = lib.mkOption {
+      type = lib.types.path;
+      default = secretsDir + "/nixos/acme-repository-pull-key";
+      description = "SSH private key used to pull the shared ACME certificate repository.";
+      internal = true;
+    };
+
     nixos."somo-minisforum".wgIplc = lib.mkOption {
       type = lib.types.attrs;
       default = let
