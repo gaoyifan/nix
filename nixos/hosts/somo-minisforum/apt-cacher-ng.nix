@@ -5,12 +5,13 @@
   pkgs,
   ...
 }: let
-  hermesNspawn = config.services.hermes-nspawn;
-  inherit (hermesNspawn) allowedInterfaces aptProxyAddress;
+  homeRouter = config.networking.homeRouter;
+  listenAddress = homeRouter.serviceAddresses.ipv4;
+  allowedInterfaces = ["lo"] ++ homeRouter.internalInterfaces;
   configDir = pkgs.writeTextDir "apt-cacher-ng/acng.conf" ''
     CacheDir: /var/cache/apt-cacher-ng
     LogDir: /var/log/apt-cacher-ng
-    BindAddress: ${aptProxyAddress}
+    BindAddress: ${listenAddress}
     ForeGround: 1
     ReportPage: acng-report.html
 
@@ -53,14 +54,14 @@ in {
     serviceConfig = {
       Type = "oneshot";
       ExecStart = "${pkgs.apt-cacher-ng}/lib/apt-cacher-ng/acngtool maint -c ${configDir}/apt-cacher-ng";
-      Environment = "ACNGIP=${aptProxyAddress}";
+      Environment = "ACNGIP=${listenAddress}";
       DynamicUser = true;
       PrivateDevices = true;
       RestrictAddressFamilies = ["AF_INET" "AF_UNIX"];
     };
   };
 
-  # home-router.nix disables the conventional NixOS firewall, so restrict the
+  # The homeRouter module disables the conventional NixOS firewall, so restrict the
   # proxy at the nftables input hook. In particular, do not expose it through
   # the WAN or Tailscale even if those peers route a LAN address via this host.
   networking.nftables.tables.apt-cacher-ng = {

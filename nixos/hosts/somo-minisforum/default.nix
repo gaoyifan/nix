@@ -25,14 +25,10 @@ in {
 
   services.hermes-nspawn = {
     enable = true;
+    defaultLan = "somo";
     containers = config.services.secrets.nixos."somo-minisforum".hermesNspawn;
     inherit newApiTokenDirectory;
     dashboardDomain = "hermes.dengdengli.com";
-    allowedInterfaces = [
-      "lo"
-      "br-gnet"
-      "br-somo"
-    ];
     honcho = {
       newApiTokenFile = "${newApiTokenDirectory}/honcho";
     };

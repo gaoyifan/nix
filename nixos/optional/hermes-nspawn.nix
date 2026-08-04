@@ -6,6 +6,13 @@
   ...
 }: let
   cfg = config.services.hermes-nspawn;
+  homeRouter = config.networking.homeRouter;
+  coreBridge = homeRouter.switch.name;
+  containerLanName = container:
+    if container ? lan
+    then container.lan
+    else cfg.defaultLan;
+  containerLan = container: homeRouter.lans.${containerLanName container};
   hostPkgs = pkgs;
   newApiBaseUrl = "http://${cfg.listenAddress}:3000/v1";
   containerNameFor = userName: "hermes-nix-${userName}";
@@ -29,6 +36,9 @@
     };
   telegramBotApi = cfg.telegramBotApi;
   telegramBotApiBaseUrl = "http://${cfg.listenAddress}";
+  staticLeases =
+    lib.mapAttrsToList (userName: container: "${container.macAddress},${container.staticLease},${containerNameFor userName}")
+    cfg.containers;
 in {
   imports = [
     ./hermes-nspawn/honcho.nix
@@ -41,33 +51,35 @@ in {
       type = lib.types.attrs;
       description = "Hermes nspawn container definitions keyed by user name.";
     };
+    defaultLan = lib.mkOption {
+      type = lib.types.str;
+      description = "homeRouter LAN used by containers that do not select one explicitly.";
+    };
     newApiTokenDirectory = lib.mkOption {
       type = lib.types.path;
       description = "Directory containing New API tokens named hermes-<user>.";
     };
     listenAddress = lib.mkOption {
       type = lib.types.str;
-      default = "198.18.255.254";
+      default = homeRouter.serviceAddresses.ipv4;
+      defaultText = lib.literalExpression "config.networking.homeRouter.serviceAddresses.ipv4";
       description = "Address on which services shared with Hermes containers listen.";
     };
     aptProxyAddress = lib.mkOption {
       type = lib.types.str;
-      default = "198.18.255.254";
+      default = homeRouter.serviceAddresses.ipv4;
+      defaultText = lib.literalExpression "config.networking.homeRouter.serviceAddresses.ipv4";
       description = "Address of the APT proxy used by Hermes terminal containers.";
     };
     dashboardDomain = lib.mkOption {
       type = lib.types.str;
       description = "Base domain for per-user Hermes dashboard public URLs.";
     };
-    allowedInterfaces = lib.mkOption {
-      type = lib.types.listOf lib.types.str;
-      description = "Interfaces allowed to reach services shared with Hermes containers.";
-    };
   };
 
   config = lib.mkIf cfg.enable {
     systemd.services = lib.mkMerge (
-      lib.mapAttrsToList (userName: container: let
+      lib.mapAttrsToList (userName: _: let
         containerName = containerNameFor userName;
         dashboardCredentialName = "hermes-${userName}";
         secretsService = "${containerName}-secrets.service";
@@ -173,7 +185,7 @@ in {
       lib.nameValuePair containerName {
         autoStart = true;
         privateNetwork = true;
-        hostBridge = container.bridge;
+        hostBridge = coreBridge;
         localMacAddress = container.macAddress;
         timeoutStartSec = "15min";
         allowedDevices = [
@@ -202,5 +214,25 @@ in {
           else ./hermes-nspawn/guest.nix;
       })
     cfg.containers;
+
+    systemd.network.networks = lib.mapAttrs' (userName: container: let
+      containerName = containerNameFor userName;
+    in
+      lib.nameValuePair "50-${containerName}" {
+        # systemd-nspawn names bridged host veths vb-*. Long names are hashed,
+        # but the full vb-${containerName} is retained as an alternative name.
+        matchConfig.Name = "vb-${containerName}";
+        networkConfig.Bridge = coreBridge;
+        bridgeVLANs = [
+          {
+            PVID = (containerLan container).vlan;
+            EgressUntagged = (containerLan container).vlan;
+          }
+        ];
+        linkConfig.RequiredForOnline = "no";
+      })
+    cfg.containers;
+
+    networking.homeRouter.internalDhcpHosts = lib.mkAfter staticLeases;
   };
 }

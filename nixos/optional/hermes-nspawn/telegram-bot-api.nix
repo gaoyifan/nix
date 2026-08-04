@@ -6,6 +6,7 @@
 }: let
   cfg = config.services.hermes-nspawn;
   telegramBotApi = cfg.telegramBotApi;
+  allowedInterfaces = ["lo"] ++ config.networking.homeRouter.internalInterfaces;
 in {
   options.services.hermes-nspawn.telegramBotApi = {
     enable = lib.mkEnableOption "local Telegram Bot API server";
@@ -105,13 +106,13 @@ in {
       };
     };
 
-    # The conventional NixOS firewall is disabled by home-router.nix.
+    # The conventional NixOS firewall is disabled by the homeRouter module.
     networking.nftables.tables.telegram-bot-api = {
       family = "inet";
       content = ''
         chain input {
           type filter hook input priority filter;
-          iifname { ${lib.concatMapStringsSep ", " (interface: ''"${interface}"'') cfg.allowedInterfaces} } tcp dport { ${toString telegramBotApi.apiPort}, ${toString telegramBotApi.filePort} } accept
+          iifname { ${lib.concatMapStringsSep ", " (interface: ''"${interface}"'') allowedInterfaces} } tcp dport { ${toString telegramBotApi.apiPort}, ${toString telegramBotApi.filePort} } accept
           tcp dport { ${toString telegramBotApi.apiPort}, ${toString telegramBotApi.filePort} } reject with tcp reset
         }
       '';
