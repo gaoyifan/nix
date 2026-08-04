@@ -341,6 +341,10 @@
 
     # NixOS configurations
     nixosConfigurations = {
+      el2 = mkNixosHost "x86_64-linux" [
+        disko.nixosModules.disko
+        ./nixos/hosts/el2
+      ];
       nix-cache = mkNixosHost "x86_64-linux" [./nixos/hosts/nix-cache];
       misc0-jp = mkNixosHost "x86_64-linux" [
         disko.nixosModules.disko
@@ -391,6 +395,7 @@
     );
 
     # deploy-rs configuration
+    deploy.nodes.el2 = mkDeployNode "x86_64-linux" "192.168.93.98" self.nixosConfigurations.el2;
     deploy.nodes.nix-cache = mkDeployNode "x86_64-linux" "100.64.1.25" self.nixosConfigurations.nix-cache;
     deploy.nodes.misc0-jp = mkDeployNode "x86_64-linux" "misc0-jp.ts.gaof.net" self.nixosConfigurations.misc0-jp;
     deploy.nodes.oracle2 = mkDeployNode "aarch64-linux" "oracle2.ts.gaof.net" self.nixosConfigurations.oracle2;
