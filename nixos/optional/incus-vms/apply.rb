@@ -39,14 +39,19 @@ def apply(spec, state)
   failed = []
 
   spec.each do |name, vm|
-    puts "Applying VM config: #{name}"
+    puts "Applying instance config: #{name}"
 
     begin
       unless state[name]
         image = vm["image"]
         raise "instance is missing and no image is declared" unless image
 
-        puts "Creating VM #{name} from #{IMAGE_REMOTE}:#{image}"
+        remotes = JSON.parse(incus("remote", "list", "-f", "json"))
+        unless remotes.key?(IMAGE_REMOTE)
+          incus("remote", "add", IMAGE_REMOTE, IMAGE_REMOTE_URL, "--protocol=simplestreams", "--public")
+        end
+
+        puts "Creating virtual machine #{name} from #{IMAGE_REMOTE}:#{image}"
         incus("init", "#{IMAGE_REMOTE}:#{image}", name, "--vm")
         state = instances
       end
@@ -65,11 +70,20 @@ def apply(spec, state)
       profile.fetch("devices").each_key do |device_name|
         incus("config", "device", "remove", name, device_name) if local_devices.key?(device_name)
       end
-
-      incus("start", name) unless current["status"] == "Running"
     rescue => e
       warn "#{name}: #{e.message}"
       failed << name
+    end
+
+    # The first pass never stops a VM. Even when part of its config failed,
+    # start any instance that exists so the failure does not become an
+    # avoidable service outage.
+    begin
+      current = instances[name]
+      incus("start", name) if current && current["status"] != "Running"
+    rescue => e
+      warn "#{name}: failed to start: #{e.message}"
+      failed << name unless failed.include?(name)
     end
   end
 
@@ -79,28 +93,16 @@ end
 restart = !ARGV.delete("--no-restart")
 spec = JSON.parse(File.read(VM_SPEC))
 
-begin
-  incus("info")
-rescue
-  puts "Incus is not ready; skipping declarative VM setup"
-  exit 0
-end
-
-if spec.values.any? { |vm| vm["image"] }
-  remotes = JSON.parse(incus("remote", "list", "-f", "json"))
-  unless remotes.key?(IMAGE_REMOTE)
-    incus("remote", "add", IMAGE_REMOTE, IMAGE_REMOTE_URL, "--protocol=simplestreams", "--public")
-  end
-end
+incus("info")
 
 failed = apply(spec, instances)
 exit 0 if failed.empty?
 
-puts "Pending restart to apply VM config: #{failed.join(" ")}"
-exit 0 unless restart
+warn "Failed to apply complete VM config: #{failed.join(" ")}"
+exit 1 unless restart
 
 print "Stop and restart all pending VMs now? [y/N] "
-exit 0 unless STDIN.gets&.strip&.match?(/\A(?:y|yes)\z/i)
+exit 1 unless STDIN.gets&.strip&.match?(/\A(?:y|yes)\z/i)
 
 failed = failed.filter do |name|
   incus("stop", name, "--timeout", "60")
