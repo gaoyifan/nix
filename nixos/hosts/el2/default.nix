@@ -3,6 +3,7 @@
     ./disk-config.nix
     ./hardware-configuration.nix
     ./networking.nix
+    ./services.nix
     ./tailscale.nix
     ./wg-iplc.nix
     ./wg0.nix
