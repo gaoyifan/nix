@@ -15,6 +15,8 @@
 
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
+  # Favor routing throughput over protection from CPU speculative-execution vulnerabilities.
+  boot.kernelParams = ["mitigations=off"];
   # Enable runtime ZFS support and pool import; the Btrfs root initrd does not include ZFS.
   boot.supportedFilesystems = ["zfs"];
   boot.zfs.extraPools = [
