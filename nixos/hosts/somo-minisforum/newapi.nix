@@ -15,8 +15,7 @@
     image = "docker.io/calciumion/new-api:v1.0.0-rc.20";
     volumes = ["/var/lib/new-api:/data"];
     environment.TZ = "Asia/Shanghai";
-    # Host networking, same as the other containers on this host (wlt,
-    # diverge): nftables owns the ruleset, so no bridged port publishing.
+    # nftables owns the ruleset, so do not publish ports through a bridge.
     # Listens on :3000.
     extraOptions = ["--network=host"];
   };

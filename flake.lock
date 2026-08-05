@@ -120,6 +120,26 @@
         "type": "github"
       }
     },
+    "diverge": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1785956117,
+        "narHash": "sha256-no9oaHADxY2MoNHJpLwpEhhH4952Fkg2XcksofZda+E=",
+        "owner": "gaoyifan",
+        "repo": "diverge-rs",
+        "rev": "c0c97b52ac83d6dbc53062637e766934e4f86aa0",
+        "type": "github"
+      },
+      "original": {
+        "owner": "gaoyifan",
+        "repo": "diverge-rs",
+        "type": "github"
+      }
+    },
     "flake-compat": {
       "flake": false,
       "locked": {
@@ -441,6 +461,7 @@
         "chnroutes2": "chnroutes2",
         "deploy-rs": "deploy-rs",
         "disko": "disko",
+        "diverge": "diverge",
         "flake-compat": "flake-compat",
         "flake-utils": "flake-utils",
         "hermes-agent": "hermes-agent",
@@ -452,7 +473,8 @@
         "system-manager": "system-manager",
         "systems": "systems_2",
         "userborn": "userborn",
-        "witr": "witr"
+        "witr": "witr",
+        "wlt": "wlt"
       }
     },
     "system-manager": {
@@ -582,6 +604,26 @@
       "original": {
         "owner": "pranshuparmar",
         "repo": "witr",
+        "type": "github"
+      }
+    },
+    "wlt": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1785956117,
+        "narHash": "sha256-vya4EgUzx0IIfVqp43EiBfQ+X0+d54c5OPiqnSYV470=",
+        "owner": "gaoyifan",
+        "repo": "wlt",
+        "rev": "f17f796a1f7bda78e6dd70bf1090aa52bcce8900",
+        "type": "github"
+      },
+      "original": {
+        "owner": "gaoyifan",
+        "repo": "wlt",
         "type": "github"
       }
     }

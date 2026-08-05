@@ -2,6 +2,7 @@
 # behind networking.homeRouter.wlt's small interface.
 {
   config,
+  inputs,
   lib,
   pkgs,
   ...
@@ -16,14 +17,9 @@
     ${lib.optionalString (cfg.defaultOutlet.ipv6 == "disabled") ''fib saddr oifname ${lanInterfaceSet} ip6 daddr != @cn6 meta mark 0 meta mark set ${disabledIpv6Mark}''}
   '';
 
-  image = "ghcr.io/gaoyifan/wlt@sha256:f805f9ec0b5ffae8dddcfd9666707a6785ceccd204b485543928316b3f2dcf6d";
   configD = "/var/lib/wlt/config.d";
   persistDir = "/var/lib/wlt/persist";
   snapshotFile = "${persistDir}/wlt_src2mark.conf";
-  runtimeDir = "/run/wlt";
-  sshHostKeyRuntime = "${runtimeDir}/ssh_host_key";
-  tlsCertRuntime = "${runtimeDir}/tls/server.pem";
-  tlsKeyRuntime = "${runtimeDir}/tls/server-key.pem";
   wltSecrets = config.services.secrets.nixos.wlt;
   portalIpv4 = homeRouter.serviceAddresses.ipv4;
   portalIpv6 = homeRouter.serviceAddresses.ipv6;
@@ -37,15 +33,15 @@
 
     [web.https]
     listen = ["${portalIpv4}:443", "[${portalIpv6}]:443"]
-    cert = "/data/tls/server.pem"
-    key = "/data/tls/server-key.pem"
+    cert = "${wltSecrets.tls.certFile}"
+    key = "${wltSecrets.tls.keyFile}"
 
     [ssh]
     listen = ["[::]:2222"]
-    host_key = "/data/ssh_host_key"
+    host_key = "${wltSecrets.sshHostKeyFile}"
 
     [persist]
-    path = "/etc/nftables/wlt_src2mark.conf"
+    path = "${snapshotFile}"
     interval = 300
 
     [nftables]
@@ -80,6 +76,8 @@
     "禁用 IPv6" = 0xff
   '';
 in {
+  imports = [inputs.wlt.nixosModules.default];
+
   options.networking.homeRouter.wlt = {
     enable = lib.mkEnableOption "WLT outlet selector";
     domain = lib.mkOption {
@@ -110,38 +108,10 @@ in {
         }
       ];
 
-      virtualisation.oci-containers = {
-        backend = "podman";
-        containers.wlt = {
-          inherit image;
-          volumes = [
-            "${wltConfig}:/app/config.toml:ro"
-            "${configD}:/app/config.d:ro"
-            "${persistDir}:/etc/nftables"
-            "${sshHostKeyRuntime}:/data/ssh_host_key:ro"
-            "${tlsCertRuntime}:/data/tls/server.pem:ro"
-            "${tlsKeyRuntime}:/data/tls/server-key.pem:ro"
-          ];
-          extraOptions = [
-            "--network=host"
-            "--cap-add=NET_ADMIN"
-          ];
-        };
-      };
-
-      systemd.services.podman-wlt.serviceConfig = {
-        RuntimeDirectory = lib.mkForce "wlt";
-        RuntimeDirectoryMode = "0700";
-        ExecStartPre = lib.mkAfter [
-          (pkgs.writeShellScript "wlt-install-runtime-secrets" ''
-            set -euo pipefail
-
-            ${pkgs.coreutils}/bin/install -d -m 0700 ${runtimeDir}/tls
-            ${pkgs.coreutils}/bin/install -m 0600 ${wltSecrets.sshHostKeyFile} ${sshHostKeyRuntime}
-            ${pkgs.coreutils}/bin/install -m 0644 ${wltSecrets.tls.certFile} ${tlsCertRuntime}
-            ${pkgs.coreutils}/bin/install -m 0600 ${wltSecrets.tls.keyFile} ${tlsKeyRuntime}
-          '')
-        ];
+      services.wlt = {
+        enable = true;
+        configFile = wltConfig;
+        configDirectory = configD;
       };
 
       systemd.tmpfiles.rules = [

@@ -1,8 +1,11 @@
-{
+{inputs}: {
   name = "home-router";
+
+  node.specialArgs = {inherit inputs;};
 
   nodes.router = {
     config,
+    lib,
     pkgs,
     ...
   }: let
@@ -136,7 +139,7 @@
       dnsmasq.domain = "test.invalid";
     };
 
-    virtualisation.oci-containers.containers.wlt.autoStart = false;
+    services.wlt.enable = lib.mkForce false;
 
     systemd.network.networks."50-vm-access" = {
       matchConfig.Name = "vm-access0";

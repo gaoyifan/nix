@@ -55,6 +55,16 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    wlt = {
+      url = "github:gaoyifan/wlt";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    diverge = {
+      url = "github:gaoyifan/diverge-rs";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # China IP lists for the wlt outlet selector's nftables CN/overseas
     # destination split (same sources as el2): chnroutes2 for IPv4,
     # china-operator-ip (ip-lists branch) for IPv6.
@@ -431,7 +441,7 @@
       deployChecks = builtins.mapAttrs (_system: deployLib: deployLib.deployChecks deployForChecks) deploy-rs.lib;
     in
       nixpkgs.lib.recursiveUpdate deployChecks {
-        x86_64-linux.home-router = ((pkgsFor "x86_64-linux").extend overlay).testers.runNixOSTest (import ./nixos/tests/home-router.nix);
+        x86_64-linux.home-router = ((pkgsFor "x86_64-linux").extend overlay).testers.runNixOSTest (import ./nixos/tests/home-router.nix {inherit inputs;});
       };
   };
 }
