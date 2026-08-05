@@ -231,8 +231,8 @@ in {
         ip6 nexthdr icmpv6 accept
 
         tcp dport 22 accept
-        tcp dport { 10000-10003, 29979-29980 } accept
-        udp dport { 2197, 3478, 6622, 6627 } accept
+        tcp dport { 5201, 10000-10003, 29979-29980 } accept
+        udp dport { 2197, 3478, 5201, 6622, 6627 } accept
         udp dport 61001-61999 accept
 
         iifname "${internalInterface}" udp dport { 53, 67 } accept
