@@ -229,7 +229,7 @@ in {
 
         Prefer delegating programming tasks to the Codex CLI through the codex skill.
 
-        Terminal commands run inside a Podman container isolated by gVisor's KVM platform. /workspace and /root are persistent for the task; other container filesystem changes may disappear when the container is replaced. The container does not run systemd, so manage processes directly rather than using systemctl.
+        Terminal commands run inside a Podman container isolated by gVisor's KVM platform. /workspace is persistent and shared with the Dashboard and Hermes Desktop. Save every file intended for the user to download under /workspace. /root is persistent for the terminal task but is not accessible to the Dashboard or Hermes Desktop. Other container filesystem changes may disappear when the container is replaced. The container does not run systemd, so manage processes directly rather than using systemctl.
       '';
       web.backend = "exa";
       telegram.extra.rich_messages = true;

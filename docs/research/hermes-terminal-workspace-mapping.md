@@ -16,8 +16,58 @@ profile 级文件隔离；terminal 中的代码可以直接修改或删除该用
 风险边界仍限于该用户实例，符合此部署的共享工作区目标
 （[`hermes-nspawn.nix:170–199`](../nixos/optional/hermes-nspawn.nix#L170-L199)）。
 
-本报告针对 flake 锁定的 Hermes rev
-[`3ef6bbd201263d354fd83ec55b3c306ded2eb72a`](../flake.lock#L223-L246)。
+本报告针对 flake 当前锁定的 Hermes rev
+[`3c27eb6234bf91b8ceee9e9071591b31e9b148cb`](../flake.lock#L223-L246)（tag
+`v2026.8.3`）。下文较早调查留下的固定链接仍指向当时的
+`3ef6bbd201263d354fd83ec55b3c306ded2eb72a`；本次针对 `/root` 与 `/workspace`
+定位的结论已在当前锁定版本重新核对，见下一节。
+
+## 官方对 `/root` 与 `/workspace` 的定位
+
+官方把它们设计成两个独立路径，而不是同一目录的两个名字：持久模式创建
+`<sandbox>/home` 和 `<sandbox>/workspace` 两个宿主目录，分别 bind mount 到 `/root`
+和 `/workspace`。`/root` 是容器 root 用户的 home，也是 Docker backend 的默认 cwd；
+`/workspace` 是工作区，并且是官方提供给用户挂入启动目录或其他宿主项目的接口
+（[`docker.py:835–876,926–973`](https://github.com/NousResearch/hermes-agent/blob/3c27eb6234bf91b8ceee9e9071591b31e9b148cb/tools/environments/docker.py#L835-L876)、
+[`terminal_tool.py:1498–1533`](https://github.com/NousResearch/hermes-agent/blob/3c27eb6234bf91b8ceee9e9071591b31e9b148cb/tools/terminal_tool.py#L1498-L1533)）。
+官方 volume 文档也把 `/workspace` 用于接收 agent 生成的文件和共享工作区；启用
+`docker_mount_cwd_to_workspace` 后，file tools 与 terminal 会看到同一份项目
+（[`configuration.md:470–504,538–561`](https://github.com/NousResearch/hermes-agent/blob/3c27eb6234bf91b8ceee9e9071591b31e9b148cb/website/docs/user-guide/configuration.md#L470-L504)）。
+
+两者的持久化开关相同，但目录仍然分离：`container_persistent=true` 时两个目录均为
+bind mount；关闭时 `/root` 与 `/workspace` 分别使用 tmpfs，清理后消失
+（[`docker.py:958–982`](https://github.com/NousResearch/hermes-agent/blob/3c27eb6234bf91b8ceee9e9071591b31e9b148cb/tools/environments/docker.py#L958-L982)、
+[`security.md:480–483`](https://github.com/NousResearch/hermes-agent/blob/3c27eb6234bf91b8ceee9e9071591b31e9b148cb/website/docs/user-guide/security.md#L480-L483)）。
+普通 session、`/new` 和 `delegate_task` 子 agent 的 task id 会折叠为 `default`，所以共用
+一个容器、一个 `/workspace` 和一套安装状态；只有带 backend/image override 的评测 task
+才得到独立 sandbox。profile 则有独立 `HERMES_HOME`，Docker 容器的复用与清理也同时按
+task id 和 profile label 隔离
+（[`terminal_tool.py:1274–1306`](https://github.com/NousResearch/hermes-agent/blob/3c27eb6234bf91b8ceee9e9071591b31e9b148cb/tools/terminal_tool.py#L1274-L1306)、
+[`configuration.md:260–286`](https://github.com/NousResearch/hermes-agent/blob/3c27eb6234bf91b8ceee9e9071591b31e9b148cb/website/docs/user-guide/configuration.md#L260-L286)、
+[`profiles.py:1–19`](https://github.com/NousResearch/hermes-agent/blob/3c27eb6234bf91b8ceee9e9071591b31e9b148cb/hermes_cli/profiles.py#L1-L19)）。
+
+因此，不建议把整个 `/root` 与 `/workspace` 映射到同一目录或互相软链接：
+
+- 上游没有这样的配置模式或建议；源码有意把 `home` 与 `workspace` 建成 sibling 目录。
+- backend 始终自动挂载 `/root`，但只为显式 `/workspace` mount 提供跳过默认挂载的检测；
+  再用 `docker_volumes` 挂 `/root` 会形成重复目标，而不是受支持的“合并 home”开关
+  （[`docker.py:931–988`](https://github.com/NousResearch/hermes-agent/blob/3c27eb6234bf91b8ceee9e9071591b31e9b148cb/tools/environments/docker.py#L931-L988)）。
+- 镜像内把 `/root` 做成软链接也不会生效，因为运行时 bind mount 会覆盖该路径；在宿主侧
+  人为把 `home` 与 `workspace` 链到一起则会把 shell、包管理器和工具的 home 状态混入用户
+  项目，并放大 Dashboard/Desktop 可读取的目录范围。
+
+技术上可以修改 backend，或在容器外人为安排两个 mount 使用同一 source，但这偏离官方
+布局，且没有解决文件交付所需的最小问题。合理做法仍是保留 `/root` 作为 terminal home，
+只把待交付文件写入 `/workspace`。还需区分：官方并不保证容器 `/workspace` 天生对
+Dashboard/gateway 可见，甚至建议消息附件使用单独的宿主可见 `/output` mount；本部署之所以
+能从 Dashboard/Desktop 下载 `/workspace` 文件，是
+`/var/lib/hermes/workspace:/workspace` 这条显式共享契约
+（[`configuration.md:488–496`](https://github.com/NousResearch/hermes-agent/blob/3c27eb6234bf91b8ceee9e9071591b31e9b148cb/website/docs/user-guide/configuration.md#L488-L496)）。
+
+截至上游 main
+[`25c7827ec95c5f41cc90b1eeb147b92f0032ad3d`](https://github.com/NousResearch/hermes-agent/commit/25c7827ec95c5f41cc90b1eeb147b92f0032ad3d)
+（2026-08-05），`docker.py`、sandbox directory 实现及上述 workspace/profile 文档相对
+flake 锁定 rev 均无相关语义变化；其间改动集中在其他 terminal 行为和辅助任务配置。
 
 ## 两个 workspace 的语义
 
