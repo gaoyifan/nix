@@ -21,6 +21,11 @@ on:
         required: false
         default: false
         type: boolean
+      allow-large-prune:
+        description: "Allow pruning more than 40% of R2 objects"
+        required: false
+        default: false
+        type: boolean
 
 env:
   AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
@@ -247,7 +252,7 @@ jobs:
           echo "orphans to delete: $orphan / $total"
           # Safety: refuse to delete an implausibly large share of the bucket
           # (e.g. a systematic key-format mismatch between the listing and R2).
-          if [ "$total" -gt 0 ] && [ "$((orphan * 100))" -gt "$((total * 40))" ]; then
+          if [ "$total" -gt 0 ] && [ "${{ inputs.allow-large-prune }}" != "true" && [ "$((orphan * 100))" -gt "$((total * 40))" ]; then
             echo "Refusing to prune: would delete $orphan of $total objects (>40%)"
             exit 1
           fi
