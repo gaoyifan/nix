@@ -2,7 +2,7 @@ name: Bump Hermes
 
 on:
   schedule:
-    - cron: "47 * * * *"
+    - cron: "47 0 * * *"
   workflow_dispatch:
 
 permissions:
