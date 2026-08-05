@@ -230,10 +230,12 @@ in {
         ip protocol icmp accept
         ip6 nexthdr icmpv6 accept
 
-        tcp dport 22 accept
-        tcp dport { 5201, 10000-10003, 29979-29980 } accept
-        udp dport { 2197, 3478, 5201, 6622, 6627 } accept
-        udp dport 61001-61999 accept
+        # Public TCP services: SSH (22), Nix cache (8501), iperf (5201),
+        # DERP (10000-10003), and container application ports (29979-29980).
+        tcp dport { 22, 5201, 8501, 10000-10003, 29979-29980 } accept
+        # Public UDP services: Hysteria (2197), STUN (3478), iperf (5201),
+        # Nylon (6622), Tailscale (6627), and WireGuard (61001-61999).
+        udp dport { 2197, 3478, 5201, 6622, 6627, 61001-61999 } accept
 
         iifname "${internalInterface}" udp dport { 53, 67 } accept
         iifname "${internalInterface}" tcp dport { 53, 80, 443, 2222 } accept

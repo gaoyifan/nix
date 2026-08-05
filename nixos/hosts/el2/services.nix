@@ -34,6 +34,23 @@ in {
   services.openssh.settings.MaxStartups = 100;
   services.fail2ban.enable = true;
   services.diverge.enable = true;
+  services.ncps = {
+    enable = true;
+    analytics.reporting.enable = false;
+    cache = {
+      hostName = "ncps";
+      storage.local = "/pool1/nix-cache";
+      maxSize = "45G";
+      lru.schedule = "0 11 * * *";
+      signNarinfo = false;
+      upstream = {
+        urls = ["https://cache.nixos.org"];
+        publicKeys = [
+          "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+        ];
+      };
+    };
+  };
   services.acmeCertificates = {
     enable = true;
     restartServices = map (name: "derp-${name}") (lib.attrNames derps) ++ ["podman-light-single"];

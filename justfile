@@ -322,5 +322,6 @@ sync-and-rebuild target:
     )"
     sudo nixos-rebuild switch --accept-flake-config \
         --flake "path:$repo#$target" \
+        --option substituters https://cache.nixos.org \
         --option extra-substituters "$internal_substituters $default_substituters"
     REMOTE
