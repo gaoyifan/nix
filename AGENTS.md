@@ -22,6 +22,7 @@
 ## Remote Commands
 
 - Before using SSH, verify the target hostname, FQDN, and addresses are not local; run local targets directly, using `sudo` when needed.
+- For remote deployments to devices without restricted internet access, prefer `just sync-and-rebuild <target>` to avoid SSH-NG closure-transfer overhead.
 - Avoid nested escaped shell strings across SSH, containers, or VMs. Pass complex scripts through standard input with a quoted heredoc at each boundary.
 
 ## Coding Style
