@@ -1,5 +1,5 @@
 {...}: {
-  imports = [../xtom];
+  imports = [../../optional/xtom];
 
   networking.hostName = "xtom-sjc";
 

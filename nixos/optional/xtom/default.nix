@@ -1,8 +1,8 @@
 {...}: {
   imports = [
-    ../../optional/qemu-guest.nix
-    ../../optional/tailscale-gnet.nix
-    ../../optional/nylon.nix
+    ../qemu-guest.nix
+    ../tailscale-gnet.nix
+    ../nylon.nix
     ./disk-config.nix
   ];
 
