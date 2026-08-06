@@ -39,6 +39,7 @@
     hexdump = {};
     iostat = from "sysstat";
     mcat = {};
+    ncdu = {};
     node = from "nodejs-slim";
     npm = from ["nodejs-slim" "npm"];
     npx = npm;
