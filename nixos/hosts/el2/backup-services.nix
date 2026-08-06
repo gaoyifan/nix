@@ -50,7 +50,7 @@
 
     restic-123pan-backend = {
       autoStart = false;
-      image = "ghcr.io/gaoyifan/restic-123pan:latest";
+      image = "ghcr.io/gaoyifan/restic-123pan@sha256:97470ece224bb71913bf93be105abcf4feab4be288b4af94da8cc36f89470328";
       environment = {
         LISTEN_ADDR = "0.0.0.0";
         LISTEN_PORT = "8000";
