@@ -1,0 +1,227 @@
+{
+  lib,
+  pkgs,
+  ...
+}: let
+  encryptedDatasets = [
+    "pool0/backup"
+    "pool0/docker"
+    "pool0/footage"
+    "pool0/kopia"
+    "pool0/media0"
+    "pool0/media1"
+    "pool0/playground"
+    "pool0/syncthing"
+  ];
+in {
+  environment.systemPackages = [
+    (pkgs.writeShellApplication {
+      name = "unlock-pool0";
+      runtimeInputs = [
+        pkgs.systemd
+        pkgs.zfs
+      ];
+      text = ''
+        if (( EUID != 0 )); then
+          echo "Run this command with sudo." >&2
+          exit 1
+        fi
+
+        read -r -s -p "Passphrase for pool0 encrypted datasets: " passphrase
+        echo
+        trap 'unset passphrase' EXIT
+
+        for dataset in ${lib.escapeShellArgs encryptedDatasets}; do
+          if [[ "$(zfs get -H -o value keystatus "$dataset")" == unavailable ]]; then
+            printf '%s\n' "$passphrase" | zfs load-key "$dataset"
+          fi
+        done
+
+        unset passphrase
+        trap - EXIT
+
+        systemctl --no-ask-password start mount-el2-encrypted-datasets.service
+        systemctl --no-ask-password --no-block start el2-services.target
+      '';
+    })
+  ];
+
+  virtualisation.oci-containers.containers = {
+    plex = {
+      autoStart = false;
+      image = "docker.io/plexinc/pms-docker:latest";
+      environment = {
+        TZ = "Asia/Shanghai";
+        PLEX_UID = "1000";
+        PLEX_GID = "100";
+        CHANGE_CONFIG_DIR_OWNERSHIP = "false";
+        ADVERTISE_IP = "http://el2.ts.gaof.net:32400";
+      };
+      volumes = [
+        "/pool0/docker/plex/config:/config"
+        "/pool0/docker/plex/transcode:/transcode"
+        "/pool0/media0:/data:ro"
+        "/pool0/media1:/data1:ro"
+      ];
+      extraOptions = ["--network=host"];
+      podman.sdnotify = "healthy";
+    };
+
+    metatube = {
+      autoStart = false;
+      image = "ghcr.io/metatube-community/metatube-server:latest";
+      ports = ["8080:8080"];
+      volumes = ["/pool0/docker/metatube:/cache"];
+      cmd = [
+        "-dsn"
+        "/cache/metatube.db"
+        "-port"
+        "8080"
+      ];
+    };
+
+    openlist = {
+      autoStart = false;
+      image = "ghcr.io/openlistteam/openlist-git:v4.1.8";
+      user = "1000:1000";
+      environment = {
+        UMASK = "022";
+        RUN_ARIA2 = "false";
+      };
+      volumes = [
+        "/pool0/docker/openlist:/opt/openlist/data"
+        "/pool0:/mnt/pool0-ro:ro"
+        "/pool0/media0:/mnt/pool0/media0"
+        "/pool0/media1:/mnt/pool0/media1"
+      ];
+      extraOptions = ["--network=host"];
+    };
+
+    immich-postgres = {
+      autoStart = false;
+      image = "ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0@sha256:bcf63357191b76a916ae5eb93464d65c07511da41e3bf7a8416db519b40b1c23";
+      environment = {
+        POSTGRES_DB = "immich";
+        POSTGRES_INITDB_ARGS = "--data-checksums";
+        POSTGRES_USER = "postgres";
+        DB_STORAGE_TYPE = "SSD";
+      };
+      environmentFiles = ["/var/lib/private/immich/database.env"];
+      volumes = ["/pool1/immich-postgres:/var/lib/postgresql/data"];
+      extraOptions = [
+        "--network=immich"
+        "--network-alias=database"
+        "--shm-size=128m"
+      ];
+    };
+
+    immich-redis = {
+      autoStart = false;
+      image = "docker.io/valkey/valkey:9@sha256:3b55fbaa0cd93cf0d9d961f405e4dfcc70efe325e2d84da207a0a8e6d8fde4f9";
+      extraOptions = [
+        "--network=immich"
+        "--network-alias=redis"
+      ];
+    };
+
+    immich-server = {
+      autoStart = false;
+      image = "ghcr.io/immich-app/immich-server:v2.7.5";
+      dependsOn = [
+        "immich-postgres"
+        "immich-redis"
+      ];
+      environment = {
+        TZ = "Asia/Shanghai";
+        DB_HOSTNAME = "database";
+        DB_USERNAME = "postgres";
+        DB_DATABASE_NAME = "immich";
+        REDIS_HOSTNAME = "redis";
+        IMMICH_MACHINE_LEARNING_URL = "http://100.64.110.33:3003";
+      };
+      environmentFiles = ["/var/lib/private/immich/database.env"];
+      ports = ["127.0.0.1:2283:2283"];
+      volumes = [
+        "/pool0/docker/immich/library:/data"
+        "/pool0/footage:/mnt/media/footage:ro"
+        "/etc/localtime:/etc/localtime:ro"
+      ];
+      extraOptions = ["--network=immich"];
+    };
+  };
+
+  systemd.services.podman-network-immich = {
+    description = "Create the Immich Podman network";
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = "${pkgs.podman}/bin/podman network create --ignore immich";
+    };
+  };
+
+  systemd.services.mount-el2-encrypted-datasets = {
+    description = "Mount manually unlocked pool0 datasets used by el2 services";
+    after = ["zfs-import-pool0.service"];
+    requires = ["zfs-import-pool0.service"];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    script = ''
+      set -euo pipefail
+      ${pkgs.zfs}/bin/zfs set readonly=on pool0/backup pool0/footage
+      for dataset in ${lib.escapeShellArgs encryptedDatasets}; do
+        if [[ "$(${pkgs.zfs}/bin/zfs get -H -o value mounted "$dataset")" == no ]]; then
+          ${pkgs.zfs}/bin/zfs mount "$dataset"
+        fi
+      done
+    '';
+  };
+
+  systemd.services.podman-immich-postgres = {
+    wantedBy = ["el2-services.target"];
+    requires = [
+      "mount-el2-encrypted-datasets.service"
+      "podman-network-immich.service"
+    ];
+    after = [
+      "mount-el2-encrypted-datasets.service"
+      "podman-network-immich.service"
+    ];
+  };
+
+  systemd.services.podman-immich-redis = {
+    wantedBy = ["el2-services.target"];
+    requires = ["podman-network-immich.service"];
+    after = ["podman-network-immich.service"];
+  };
+
+  systemd.services.podman-immich-server = {
+    wantedBy = ["el2-services.target"];
+    requires = [
+      "mount-el2-encrypted-datasets.service"
+      "podman-network-immich.service"
+    ];
+    after = [
+      "mount-el2-encrypted-datasets.service"
+      "podman-network-immich.service"
+    ];
+  };
+
+  systemd.services.podman-plex = {
+    wantedBy = ["el2-services.target"];
+    requires = ["mount-el2-encrypted-datasets.service"];
+    after = ["mount-el2-encrypted-datasets.service"];
+    serviceConfig.TimeoutStartSec = lib.mkForce "2min";
+  };
+  systemd.services.podman-metatube = {
+    wantedBy = ["el2-services.target"];
+    requires = ["mount-el2-encrypted-datasets.service"];
+    after = ["mount-el2-encrypted-datasets.service"];
+  };
+  systemd.services.podman-openlist = {
+    wantedBy = ["el2-services.target"];
+    requires = ["mount-el2-encrypted-datasets.service"];
+    after = ["mount-el2-encrypted-datasets.service"];
+  };
+}

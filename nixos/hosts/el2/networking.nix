@@ -237,10 +237,10 @@ in {
         # Nylon (6622), Tailscale (6627), and WireGuard (61001-61999).
         udp dport { 2197, 3478, 5201, 6622, 6627, 61001-61999 } accept
 
-        iifname "${internalInterface}" udp dport { 53, 67 } accept
-        iifname "${internalInterface}" tcp dport { 53, 80, 443, 2222 } accept
-        iifname { "tailscale0", "wg0" } udp dport 53 accept
-        iifname { "tailscale0", "wg0" } tcp dport { 53, 80, 443, 2222 } accept
+        iifname { "${internalInterface}", "tailscale0", "wg0" } udp dport 53 accept
+        iifname { "${internalInterface}", "tailscale0", "wg0" } tcp dport { 53, 80, 443, 2222, 32400 } accept
+        iifname "${internalInterface}" udp dport 67 accept
+        iifname "podman*" meta l4proto { tcp, udp } th dport 53 accept
       }
 
       chain forward {

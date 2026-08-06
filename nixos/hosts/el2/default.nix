@@ -2,6 +2,7 @@
   imports = [
     ./disk-config.nix
     ./hardware-configuration.nix
+    ./media-services.nix
     ./networking.nix
     ./services.nix
     ./tailscale.nix
@@ -24,12 +25,19 @@
     "pool1"
   ];
   boot.zfs.forceImportRoot = false;
+  boot.zfs.requestEncryptionCredentials = false;
 
   users.users.root.openssh.authorizedKeys.keys = [
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIE0YEmRhF27t46boAwcyDGn1VrEuK9ydNhu24o7RO4Sr root@nfs"
   ];
 
   environment.systemPackages = [pkgs.mbuffer];
+
+  systemd.targets.el2-services = {
+    description = "Services using manually unlocked pool0 datasets";
+    requires = ["mount-el2-encrypted-datasets.service"];
+    after = ["mount-el2-encrypted-datasets.service"];
+  };
 
   system.stateVersion = "26.05";
 }
