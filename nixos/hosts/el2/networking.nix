@@ -192,7 +192,7 @@ in {
 
         ip6 daddr @cn6 meta mark set 93 return
         ip6 daddr != @cn6 icmpv6 type echo-request return
-        ip6 daddr != @cn6 meta mark set 0xff
+        ip6 daddr != @cn6 reject with icmpx type admin-prohibited
       }
 
       chain prerouting {
