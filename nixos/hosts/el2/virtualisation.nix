@@ -1,4 +1,67 @@
-{...}: {
+{
+  config,
+  lib,
+  pkgs,
+  username,
+  ...
+}: let
+  pveEdk2Share = "${pkgs.pve-edk2-firmware-ovmf}/usr/share/pve-edk2-firmware";
+  ovmf2MB = pkgs.OVMF.override {
+    secureBoot = true;
+    fdSize2MB = true;
+  };
+  incusEdk2 = pkgs.linkFarm "incus-pve-ovmf" [
+    {
+      name = "OVMF_CODE.fd";
+      path = "${ovmf2MB.fd}/FV/OVMF_CODE.fd";
+    }
+    {
+      name = "OVMF_VARS.fd";
+      path = "${ovmf2MB.fd}/FV/OVMF_VARS.fd";
+    }
+    {
+      name = "OVMF_VARS.ms.fd";
+      path = "${ovmf2MB.fd}/FV/OVMF_VARS.fd";
+    }
+    {
+      name = "OVMF_CODE.4MB.fd";
+      path = "${pveEdk2Share}/OVMF_CODE_4M.secboot.fd";
+    }
+    {
+      name = "OVMF_VARS.4MB.fd";
+      path = "${pveEdk2Share}/OVMF_VARS_4M.fd";
+    }
+    {
+      name = "OVMF_VARS.4MB.ms.fd";
+      path = "${pveEdk2Share}/OVMF_VARS_4M.ms.fd";
+    }
+    {
+      name = "seabios.bin";
+      path = "${pkgs.seabios-qemu}/share/seabios/bios.bin";
+    }
+  ];
+
+  legacyVm = {
+    macAddress,
+    rootSize,
+    cpu,
+    memory,
+    extraDevices,
+  }: {
+    inherit macAddress rootSize extraDevices;
+    vlan = 642;
+    rootConfig = {
+      "boot.priority" = "10";
+      "io.bus" = "virtio-scsi";
+    };
+    config = {
+      "limits.cpu" = cpu;
+      "limits.memory" = memory;
+      "security.csm" = "true";
+      "security.secureboot" = "false";
+    };
+  };
+in {
   imports = [../../optional/incus-vms];
 
   virtualisation.incusVms = {
@@ -42,5 +105,190 @@
         readonly = "true";
       };
     };
+
+    instances.git-automesh-org = legacyVm {
+      macAddress = "BC:24:11:2D:50:BF";
+      rootSize = "50GiB";
+      cpu = "8";
+      memory = "24GiB";
+      extraDevices = {
+        cloudinit = {
+          type = "disk";
+          source = "/dev/zvol/pool1/vm-113-cloudinit";
+          readonly = "true";
+        };
+        data = {
+          type = "disk";
+          source = "/dev/zvol/pool1/vm-113-disk-1";
+        };
+      };
+    };
+
+    instances.source-automesh-org = legacyVm {
+      macAddress = "BC:24:11:5D:13:8A";
+      rootSize = "20GiB";
+      cpu = "8";
+      memory = "16GiB";
+      extraDevices = {
+        cloudinit = {
+          type = "disk";
+          source = "/dev/zvol/pool1/vm-118-cloudinit";
+          readonly = "true";
+        };
+        data = {
+          type = "disk";
+          source = "/dev/zvol/pool1/vm-118-disk-1";
+        };
+      };
+    };
+
+    instances.debian21 = legacyVm {
+      macAddress = "BC:24:11:9F:EE:B3";
+      rootSize = "40GiB";
+      cpu = "20";
+      memory = "32GiB";
+      extraDevices = {
+        cloudinit = {
+          type = "disk";
+          source = "/dev/zvol/pool1/vm-2021-cloudinit";
+          readonly = "true";
+        };
+        data1 = {
+          type = "disk";
+          source = "/dev/zvol/pool1/vm-2021-disk-3";
+        };
+        data2 = {
+          type = "disk";
+          source = "/dev/zvol/pool1/vm-2021-disk-2";
+        };
+      };
+    };
+
+    instances.debian24-openclaw-aran = legacyVm {
+      macAddress = "BC:24:11:2A:77:F1";
+      rootSize = "50GiB";
+      cpu = "16";
+      memory = "16GiB";
+      extraDevices = {
+        cloudinit = {
+          type = "disk";
+          source = "/dev/zvol/pool1/vm-2024-cloudinit";
+          readonly = "true";
+        };
+      };
+    };
+
+    instances.debian41 = legacyVm {
+      macAddress = "BC:24:11:6D:1C:82";
+      rootSize = "100GiB";
+      cpu = "40";
+      memory = "32GiB";
+      extraDevices = {
+        cloudinit = {
+          type = "disk";
+          source = "/dev/zvol/pool1/vm-2041-cloudinit";
+          readonly = "true";
+        };
+      };
+    };
+
+    instances.debian43 = legacyVm {
+      macAddress = "BC:24:11:C5:76:8C";
+      rootSize = "40GiB";
+      cpu = "4";
+      memory = "16GiB";
+      extraDevices = {
+        cloudinit = {
+          type = "disk";
+          source = "/dev/zvol/pool1/vm-2042-cloudinit";
+          readonly = "true";
+        };
+      };
+    };
+
+    instances.debian52 = legacyVm {
+      macAddress = "BC:24:11:95:83:D8";
+      rootSize = "10GiB";
+      cpu = "4";
+      memory = "4GiB";
+      extraDevices = {
+        cloudinit = {
+          type = "disk";
+          source = "/dev/zvol/pool1/vm-2052-cloudinit";
+          readonly = "true";
+        };
+      };
+    };
+
+    instances.debian70-zdgroup = legacyVm {
+      macAddress = "BC:24:11:41:DF:6F";
+      rootSize = "20GiB";
+      cpu = "8";
+      memory = "8GiB";
+      extraDevices = {
+        cloudinit = {
+          type = "disk";
+          source = "/dev/zvol/pool1/vm-2070-cloudinit";
+          readonly = "true";
+        };
+      };
+    };
+
+    instances.windows60 = {
+      vlan = 642;
+      macAddress = "BC:24:11:D9:BB:7D";
+      rootSize = "64GiB";
+      rootConfig = {
+        "boot.priority" = "10";
+        "io.bus" = "virtio-scsi";
+        "io.cache" = "unsafe";
+      };
+      config = {
+        "limits.cpu" = "16";
+        "limits.memory" = "16GiB";
+        "security.csm" = "false";
+        "security.secureboot" = "true";
+        "raw.qemu.conf" = ''
+          [machine]
+          type = "pc-q35-10.1"
+        '';
+      };
+      extraDevices = {
+        downloads = {
+          type = "disk";
+          source = "/pool0/media1/downloads";
+          path = "/mnt/downloads";
+          "io.bus" = "virtiofs";
+        };
+        tpm.type = "tpm";
+      };
+    };
+  };
+
+  users.users.${username}.extraGroups = ["incus-admin"];
+
+  systemd.services.incus.environment.INCUS_EDK2_PATH = lib.mkForce incusEdk2;
+
+  systemd.services.start-pool0-dependent-vms = {
+    description = "Restore Incus VMs that require manually unlocked pool0 datasets";
+    wantedBy = ["el2-services.target"];
+    requires = [
+      "incus.service"
+      "mount-el2-encrypted-datasets.service"
+    ];
+    after = [
+      "incus.service"
+      "mount-el2-encrypted-datasets.service"
+    ];
+    serviceConfig.Type = "oneshot";
+    script = ''
+      set -euo pipefail
+      for instance in windows60; do
+        if [[ "$(${config.virtualisation.incus.package}/bin/incus config get "$instance" volatile.last_state.power)" == RUNNING ]] \
+          && [[ "$(${config.virtualisation.incus.package}/bin/incus list "$instance" --format csv -c s)" == STOPPED ]]; then
+          ${config.virtualisation.incus.package}/bin/incus start "$instance"
+        fi
+      done
+    '';
   };
 }

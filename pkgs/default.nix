@@ -13,6 +13,7 @@
   cursor-cli = import ./cursor-cli.nix {inherit pkgs;};
   pi-coding-agent = import ./pi-coding-agent.nix {inherit pkgs;};
   playwright-cli = import ./playwright-cli.nix {inherit pkgs;};
+  pve-edk2-firmware-ovmf = import ./pve-edk2-firmware-ovmf.nix {inherit pkgs;};
   tssh = import ./tssh.nix {inherit pkgs;};
   htop = import ./htop.nix {inherit pkgs;};
   tailscale = import ./tailscale.nix {inherit pkgs;};
