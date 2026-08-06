@@ -241,6 +241,7 @@ in {
         iifname { "${internalInterface}", "tailscale0", "wg0" } tcp dport { 53, 80, 443, 2222, 32400 } accept
         iifname "${internalInterface}" udp dport 67 accept
         iifname "podman*" meta l4proto { tcp, udp } th dport 53 accept
+        iifname "podman*" tcp dport 8000 accept
       }
 
       chain forward {
