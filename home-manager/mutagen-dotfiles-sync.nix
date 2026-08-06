@@ -276,7 +276,6 @@
     name = "mutagen-dotfiles-force-beta";
     runtimeInputs = with pkgs; [
       coreutils
-      gnutar
       mutagen
       rsync
     ];
@@ -288,32 +287,24 @@
 
       ${lib.getExe reconcileScript}
 
-      tmpdir="$(mktemp -d)"
       cleanup() {
-        rm -rf "$tmpdir"
         mutagen sync resume "$session_name" >/dev/null 2>&1 || true
       }
       trap cleanup EXIT
 
       mutagen sync pause "$session_name" >/dev/null
 
-      # Stream a snapshot over SSH so the remote endpoint doesn't need rsync.
-      ${sshWrapper}/bin/ssh \
-        -F /dev/null \
-        -p ${toString cfg.port} \
-        ${lib.escapeShellArg "${cfg.user}@${cfg.host}"} \
-        "cd ${lib.escapeShellArg cfg.remotePath} && tar -cf - ." \
-        | tar -xf - -C "$tmpdir"
-
       mkdir -p ${lib.escapeShellArg localPath}
-      rsync -a --delete "$tmpdir"/ ${lib.escapeShellArg "${localPath}/"}
+      rsync -a --delete \
+        -e "${sshWrapper}/bin/ssh -F /dev/null -p ${toString cfg.port}" \
+        ${lib.escapeShellArg "${cfg.user}@${cfg.host}:${cfg.remotePath}/"} \
+        ${lib.escapeShellArg "${localPath}/"}
 
       mutagen sync reset "$session_name" >/dev/null
       mutagen sync resume "$session_name" >/dev/null
       mutagen sync flush "$session_name" >/dev/null
 
       trap - EXIT
-      rm -rf "$tmpdir"
     '';
   };
   uploadKeyScript = pkgs.writeShellApplication {
