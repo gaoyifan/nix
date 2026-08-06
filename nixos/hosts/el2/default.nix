@@ -2,6 +2,7 @@
   imports = [
     ./disk-config.nix
     ./hardware-configuration.nix
+    ./backup-services.nix
     ./media-services.nix
     ./networking.nix
     ./services.nix

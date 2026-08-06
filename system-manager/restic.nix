@@ -52,9 +52,6 @@ in {
         Group = "root";
         EnvironmentFile = cfg.envFile;
         ExecStart = "${lib.getExe pkgs.restic} backup --exclude-file /etc/restic/exclude.txt /";
-        # Daily prune can OOM-kill small hosts while repacking the shared repo.
-        # Run prune manually or from a larger host when space reclamation is needed.
-        ExecStartPost = "${lib.getExe pkgs.restic} forget --keep-daily 7 --keep-weekly 4 --keep-monthly 12";
       };
     };
 
