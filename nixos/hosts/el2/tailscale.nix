@@ -15,5 +15,12 @@ in {
     extraSetFlags = flags;
     extraUpFlags = flags;
     port = 6627;
+    serve = {
+      enable = true;
+      services = {
+        immich2.endpoints."tcp:80" = "tcp://127.0.0.1:2283";
+        restic-nas.endpoints."tcp:80" = "http://127.0.0.1:8000";
+      };
+    };
   };
 }

@@ -1,5 +1,4 @@
 {
-  config,
   lib,
   pkgs,
   ...
@@ -93,21 +92,6 @@
     wantedBy = ["multi-user.target"];
     requires = ["zfs-mount.service"];
     after = ["zfs-mount.service"];
-  };
-
-  systemd.services.tailscale-serve-restic-nas = {
-    description = "Advertise the restic-nas Tailscale Service";
-    wantedBy = ["multi-user.target"];
-    requires = ["podman-restic-server.service"];
-    after = [
-      "tailscaled.service"
-      "podman-restic-server.service"
-    ];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      ExecStart = "${config.services.tailscale.package}/bin/tailscale serve --yes --service=svc:restic-nas --http=80 127.0.0.1:8000";
-    };
   };
 
   systemd.services.podman-restic-115-backend = {
