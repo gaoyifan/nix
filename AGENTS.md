@@ -14,6 +14,7 @@
 ## Commands
 
 - `just` / `just darwin` / `just home` / `just system`: Apply configuration (auto-detects OS; `system` runs system-manager on non-NixOS Linux)
+- Prefer the repository's `just` subcommands for switching configurations. Invoke `nixos-rebuild`, `darwin-rebuild`, or `home-manager` directly only when necessary, and include flake submodules with `.?submodules=1`.
 - `just deploy <target>`: Deploy NixOS via deploy-rs
 - `just deploy-rebuild <target>`: Deploy NixOS via target-side `nixos-rebuild switch` with explicit substituters
 - `just fmt`: Format with `alejandra`
