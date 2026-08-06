@@ -1,8 +1,15 @@
 {
+  inputs,
   lib,
   pkgs,
   ...
 }: {
+  imports = [
+    inputs.restic-115.nixosModules.default
+    inputs.restic-123pan.nixosModules.default
+    inputs.restic-sync.nixosModules.default
+  ];
+
   environment.systemPackages = [
     pkgs.kopia
     pkgs.rclone
@@ -17,74 +24,65 @@
       volumes = ["/pool0/restic:/data"];
       extraOptions = ["--network=host"];
     };
-
-    restic-115-backend = {
-      autoStart = false;
-      image = "ghcr.io/gaoyifan/restic-115:latest";
-      environment = {
-        LISTEN_ADDR = "0.0.0.0";
-        LISTEN_PORT = "8000";
-        RUST_LOG = "info";
-        DB_PATH = "/app/cache/cache-115.db";
-      };
-      environmentFiles = ["/pool0/docker/restic-sync-115/backend.env"];
-      volumes = ["/pool0/docker/restic-sync-115/cache:/app/cache"];
-      extraOptions = [
-        "--network=restic-sync"
-        "--network-alias=backend-115"
-      ];
-    };
-
-    restic-115-sync = {
-      autoStart = false;
-      image = "ghcr.io/gaoyifan/restic-sync:latest";
-      dependsOn = ["restic-115-backend"];
-      environment = {
-        REST_SYNC_SOURCE = "http://host.containers.internal:8000/";
-        REST_SYNC_DEST = "http://backend-115:8000";
-        REST_SYNC_CRON = "0 50 * * * *";
-        RUST_LOG = "info";
-      };
-      extraOptions = ["--network=restic-sync"];
-    };
-
-    restic-123pan-backend = {
-      autoStart = false;
-      image = "ghcr.io/gaoyifan/restic-123pan@sha256:97470ece224bb71913bf93be105abcf4feab4be288b4af94da8cc36f89470328";
-      environment = {
-        LISTEN_ADDR = "0.0.0.0";
-        LISTEN_PORT = "8000";
-        RUST_LOG = "info";
-        DB_PATH = "/app/cache/cache-123pan.db";
-      };
-      environmentFiles = ["/pool0/docker/restic-sync-123pan/backend.env"];
-      volumes = ["/pool0/docker/restic-sync-123pan/cache:/app/cache"];
-      extraOptions = [
-        "--network=restic-sync"
-        "--network-alias=backend-123pan"
-      ];
-    };
-
-    restic-123pan-sync = {
-      autoStart = false;
-      image = "ghcr.io/gaoyifan/restic-sync:latest";
-      dependsOn = ["restic-123pan-backend"];
-      environment = {
-        REST_SYNC_SOURCE = "http://host.containers.internal:8000/";
-        REST_SYNC_DEST = "http://backend-123pan:8000";
-        REST_SYNC_CRON = "0 20 * * * *";
-        RUST_LOG = "info";
-      };
-      extraOptions = ["--network=restic-sync"];
-    };
   };
 
-  systemd.services.podman-network-restic-sync = {
-    description = "Create the Restic sync Podman network";
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      ExecStart = "${pkgs.podman}/bin/podman network create --ignore restic-sync";
+  services.restic-115 = {
+    enable = true;
+    environmentFile = "/pool0/docker/restic-sync-115/backend.env";
+    cacheDirectory = "/pool0/docker/restic-sync-115/cache";
+    listenPort = 8001;
+    user = "yifan";
+    group = "users";
+    wantedBy = ["el2-services.target"];
+  };
+
+  services.restic-123pan = {
+    enable = true;
+    environmentFile = "/pool0/docker/restic-sync-123pan/backend.env";
+    cacheDirectory = "/pool0/docker/restic-sync-123pan/cache";
+    listenPort = 8002;
+    user = "yifan";
+    group = "users";
+    wantedBy = ["el2-services.target"];
+  };
+
+  services.restic-sync = {
+    enable = true;
+    instances = {
+      "115" = {
+        source = "http://127.0.0.1:8000/";
+        destination = "http://127.0.0.1:8001/";
+        cron = "0 50 * * * *";
+        user = "yifan";
+        group = "users";
+        requires = [
+          "podman-restic-server.service"
+          "restic-115.service"
+        ];
+        after = [
+          "network-online.target"
+          "podman-restic-server.service"
+          "restic-115.service"
+        ];
+        wantedBy = ["el2-services.target"];
+      };
+      "123pan" = {
+        source = "http://127.0.0.1:8000/";
+        destination = "http://127.0.0.1:8002/";
+        cron = "0 20 * * * *";
+        user = "yifan";
+        group = "users";
+        requires = [
+          "podman-restic-server.service"
+          "restic-123pan.service"
+        ];
+        after = [
+          "network-online.target"
+          "podman-restic-server.service"
+          "restic-123pan.service"
+        ];
+        wantedBy = ["el2-services.target"];
+      };
     };
   };
 
@@ -94,43 +92,13 @@
     after = ["zfs-mount.service"];
   };
 
-  systemd.services.podman-restic-115-backend = {
-    wantedBy = ["el2-services.target"];
-    requires = [
-      "mount-el2-encrypted-datasets.service"
-      "podman-network-restic-sync.service"
-    ];
-    after = [
-      "mount-el2-encrypted-datasets.service"
-      "podman-network-restic-sync.service"
-    ];
+  systemd.services.restic-115 = {
+    requires = ["mount-el2-encrypted-datasets.service"];
+    after = ["mount-el2-encrypted-datasets.service"];
   };
-  systemd.services.podman-restic-115-sync = {
-    wantedBy = ["el2-services.target"];
-    requires = ["podman-network-restic-sync.service"];
-    after = [
-      "podman-network-restic-sync.service"
-      "podman-restic-server.service"
-    ];
-  };
-  systemd.services.podman-restic-123pan-backend = {
-    wantedBy = ["el2-services.target"];
-    requires = [
-      "mount-el2-encrypted-datasets.service"
-      "podman-network-restic-sync.service"
-    ];
-    after = [
-      "mount-el2-encrypted-datasets.service"
-      "podman-network-restic-sync.service"
-    ];
-  };
-  systemd.services.podman-restic-123pan-sync = {
-    wantedBy = ["el2-services.target"];
-    requires = ["podman-network-restic-sync.service"];
-    after = [
-      "podman-network-restic-sync.service"
-      "podman-restic-server.service"
-    ];
+  systemd.services.restic-123pan = {
+    requires = ["mount-el2-encrypted-datasets.service"];
+    after = ["mount-el2-encrypted-datasets.service"];
   };
 
   systemd.services.kopia-alipan-maintenance = {

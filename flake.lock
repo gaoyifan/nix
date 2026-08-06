@@ -453,6 +453,66 @@
         "type": "github"
       }
     },
+    "restic-115": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1786058097,
+        "narHash": "sha256-Y5WZtpCK/a3CybKrDeApmL5UIJ8XbvAevoFTC9aEuQA=",
+        "owner": "gaoyifan",
+        "repo": "restic-115",
+        "rev": "45ec531160d65a4c99b0e870c6315ba0e65da6e2",
+        "type": "github"
+      },
+      "original": {
+        "owner": "gaoyifan",
+        "repo": "restic-115",
+        "type": "github"
+      }
+    },
+    "restic-123pan": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1786058097,
+        "narHash": "sha256-6SdEU670IS+AixJIAI+oI15oL6ZtLxbDgv2RWmfGGMg=",
+        "owner": "gaoyifan",
+        "repo": "restic-123pan",
+        "rev": "c2caa4d3818b229dbb029436de3eada631e5b55a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "gaoyifan",
+        "repo": "restic-123pan",
+        "type": "github"
+      }
+    },
+    "restic-sync": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1786058097,
+        "narHash": "sha256-evrbRVhaoFtrTmTxWCOjuGAqAKc4QHM+UuaYEhjPd98=",
+        "owner": "gaoyifan",
+        "repo": "restic-sync",
+        "rev": "b18fced91f95695b9867a6367be95b37bda93042",
+        "type": "github"
+      },
+      "original": {
+        "owner": "gaoyifan",
+        "repo": "restic-sync",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "anthropic-skills": "anthropic-skills",
@@ -470,6 +530,9 @@
         "nix-darwin": "nix-darwin",
         "nixpkgs": "nixpkgs",
         "nixpkgs-darwin": "nixpkgs-darwin",
+        "restic-115": "restic-115",
+        "restic-123pan": "restic-123pan",
+        "restic-sync": "restic-sync",
         "system-manager": "system-manager",
         "systems": "systems_2",
         "userborn": "userborn",

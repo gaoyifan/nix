@@ -60,6 +60,21 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    restic-115 = {
+      url = "github:gaoyifan/restic-115";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    restic-123pan = {
+      url = "github:gaoyifan/restic-123pan";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    restic-sync = {
+      url = "github:gaoyifan/restic-sync";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     diverge = {
       url = "github:gaoyifan/diverge-rs";
       inputs.nixpkgs.follows = "nixpkgs";
