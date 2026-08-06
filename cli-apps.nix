@@ -1,76 +1,83 @@
 {lib}: let
   from = packagePath: {packagePath = lib.toList packagePath;};
-  appSpecs = rec {
-    agy = {};
-    ansible = from "ansible";
-    ansible-config = ansible;
-    ansible-console = ansible;
-    ansible-doc = ansible;
-    ansible-galaxy = ansible;
-    ansible-inventory = ansible;
-    ansible-playbook = ansible;
-    ansible-pull = ansible;
-    ansible-test = ansible;
-    ansible-vault = ansible;
-    bmon = {};
-    cargo = rustup;
-    cargo-clippy = rustup;
-    cargo-fmt = rustup;
-    cargo-miri = rustup;
-    clippy-driver = rustup;
-    codex = {};
-    copilot = {
-      packagePath = ["copilot-cli"];
-      wrapperArgs = ["--yolo"];
-    };
-    copilot-cli = {
-      enableWrapper = false;
-      program = "copilot";
-    };
-    cursor-agent = from "cursor-cli";
-    cursor-cli = {
-      enableWrapper = false;
-      program = "cursor-agent";
-    };
-    difftastic = {
-      program = "difft";
-      wrapperName = "difft";
-    };
-    fd = {};
-    file = {};
-    gh = {};
-    go = from "go";
-    gofmt = go;
-    hexdump = {};
-    iostat = from "sysstat";
-    mcat = {};
-    ncdu = {};
-    node = from "nodejs-slim";
-    npm = from ["nodejs-slim" "npm"];
-    npx = npm;
-    pi = from "pi-coding-agent";
-    pi-baseline = {
-      packagePath = ["pi-coding-agent-baseline"];
-      program = "pi";
-    };
-    playwright-cli = {};
-    redis-cli = from "redis";
-    rls = rustup;
-    ruby = {};
-    rust-analyzer = rustup;
-    rust-gdb = rustup;
-    rust-gdbgui = rustup;
-    rust-lldb = rustup;
-    rustc = rustup;
-    rustdoc = rustup;
-    rustfmt = rustup;
-    rustup = from "rustup";
-    sqlite3 = from "sqlite";
-    telnet = from "inetutils";
-    tig = {};
-    tokei = {};
-    yazi = from "yazi-unwrapped";
-  };
+  fromMany = packagePath: names:
+    lib.genAttrs names (_: from packagePath);
+  appSpecs =
+    {
+      agy = {};
+      bmon = {};
+      codex = {};
+      copilot = {
+        packagePath = ["copilot-cli"];
+        wrapperArgs = ["--yolo"];
+      };
+      copilot-cli = {
+        enableWrapper = false;
+        program = "copilot";
+      };
+      cursor-agent = from "cursor-cli";
+      cursor-cli = {
+        enableWrapper = false;
+        program = "cursor-agent";
+      };
+      difftastic = {
+        program = "difft";
+        wrapperName = "difft";
+      };
+      fd = {};
+      file = {};
+      gh = {};
+      go = from "go";
+      gofmt = from "go";
+      hexdump = {};
+      iostat = from "sysstat";
+      mcat = {};
+      ncdu = {};
+      node = from "nodejs-slim";
+      npm = from ["nodejs-slim" "npm"];
+      npx = from ["nodejs-slim" "npm"];
+      pi = from "pi-coding-agent";
+      pi-baseline = {
+        packagePath = ["pi-coding-agent-baseline"];
+        program = "pi";
+      };
+      playwright-cli = {};
+      redis-cli = from "redis";
+      ruby = {};
+      sqlite3 = from "sqlite";
+      telnet = from "inetutils";
+      tig = {};
+      tokei = {};
+      yazi = from "yazi-unwrapped";
+    }
+    // fromMany "ansible" [
+      "ansible"
+      "ansible-config"
+      "ansible-console"
+      "ansible-doc"
+      "ansible-galaxy"
+      "ansible-inventory"
+      "ansible-playbook"
+      "ansible-pull"
+      "ansible-test"
+      "ansible-vault"
+    ]
+    // fromMany "rustup" [
+      "cargo"
+      "cargo-clippy"
+      "cargo-fmt"
+      "cargo-miri"
+      "clippy-driver"
+      "rls"
+      "rust-analyzer"
+      "rust-gdb"
+      "rust-gdbgui"
+      "rust-lldb"
+      "rustc"
+      "rustdoc"
+      "rustfmt"
+      "rustup"
+    ];
   packagePathOf = name: spec: spec.packagePath or [name];
   availableSpecs = platform: packages:
     lib.filterAttrs (
