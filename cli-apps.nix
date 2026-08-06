@@ -13,6 +13,11 @@
     ansible-test = ansible;
     ansible-vault = ansible;
     bmon = {};
+    cargo = rustup;
+    cargo-clippy = rustup;
+    cargo-fmt = rustup;
+    cargo-miri = rustup;
+    clippy-driver = rustup;
     codex = {};
     copilot = {
       packagePath = ["copilot-cli"];
@@ -50,7 +55,16 @@
     };
     playwright-cli = {};
     redis-cli = from "redis";
+    rls = rustup;
     ruby = {};
+    rust-analyzer = rustup;
+    rust-gdb = rustup;
+    rust-gdbgui = rustup;
+    rust-lldb = rustup;
+    rustc = rustup;
+    rustdoc = rustup;
+    rustfmt = rustup;
+    rustup = from "rustup";
     sqlite3 = from "sqlite";
     telnet = from "inetutils";
     tig = {};
