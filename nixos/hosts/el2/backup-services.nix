@@ -151,6 +151,7 @@
 
   systemd.services.kopia-alipan-maintenance = {
     description = "Run full maintenance for the Aliyun Drive Kopia repository";
+    path = [pkgs.rclone];
     serviceConfig = {
       Type = "oneshot";
       User = "yifan";
@@ -162,6 +163,7 @@
 
   systemd.services.kopia-alipan-snapshot = {
     description = "Back up pool0/backup and pool0/footage to Aliyun Drive with Kopia";
+    path = [pkgs.rclone];
     unitConfig.RequiresMountsFor = [
       "/pool0/backup"
       "/pool0/footage"
