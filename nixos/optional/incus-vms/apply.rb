@@ -75,22 +75,12 @@ def apply(spec, state)
       failed << name
     end
 
-    # The first pass never stops a VM. Even when part of its config failed,
-    # start any instance that exists so the failure does not become an
-    # avoidable service outage.
-    begin
-      current = instances[name]
-      incus("start", name) if current && current["status"] != "Running"
-    rescue => e
-      warn "#{name}: failed to start: #{e.message}"
-      failed << name unless failed.include?(name)
-    end
   end
 
   failed
 end
 
-restart = !ARGV.delete("--no-restart")
+systemd = ARGV.delete("--systemd")
 spec = JSON.parse(File.read(VM_SPEC))
 
 incus("info")
@@ -99,14 +89,18 @@ failed = apply(spec, instances)
 exit 0 if failed.empty?
 
 warn "Failed to apply complete VM config: #{failed.join(" ")}"
-exit 1 unless restart
+exit 1 if systemd
 
 print "Stop and restart all pending VMs now? [y/N] "
 exit 1 unless STDIN.gets&.strip&.match?(/\A(?:y|yes)\z/i)
 
 failed = failed.filter do |name|
-  incus("stop", name, "--timeout", "60")
-  !apply(spec.slice(name), instances).empty?
+  current = instances[name]
+  incus("stop", name, "--timeout", "60") if current && current["status"] != "Stopped"
+  next true unless apply(spec.slice(name), instances).empty?
+
+  incus("start", name)
+  false
 end
 
 abort "Still failed: #{failed.join(" ")}" unless failed.empty?

@@ -48,7 +48,7 @@
         config =
           vm.config
           // {
-            "boot.autostart" = "false";
+            "boot.autostart" = "last-state";
           }
           // lib.optionalAttrs vm.headless {
             "raw.qemu.conf" = headlessQemuConfig;
@@ -277,7 +277,7 @@ in {
           Environment = ["HOME=/root"];
         };
         script = ''
-          ${applyDeclarativeVms}/bin/incus-apply-declarative-vms --no-restart
+          ${applyDeclarativeVms}/bin/incus-apply-declarative-vms --systemd
         '';
       };
     }
