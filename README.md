@@ -63,8 +63,11 @@ just darwin
 # Format all Nix files
 just fmt
 
-# Validate the flake
+# Evaluate the configuration used by this machine
 just check
+
+# Validate every flake output across all supported platforms
+just check-all
 
 # Deploy a NixOS target through deploy-rs
 just deploy <target>
@@ -117,5 +120,5 @@ See [`docs/secrets.md`](docs/secrets.md) for setup, migration, and adding new se
 ## Development Notes
 
 - Run `just fmt` before committing.
-- Run `just check` before opening a PR.
+- Run `just check` before opening a PR. Use `just check-all` when a full flake evaluation is needed.
 - Do not commit `result/` symlinks or build outputs.

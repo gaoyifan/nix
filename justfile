@@ -227,9 +227,25 @@ push:
     set -euo pipefail
     git push --recurse-submodules=on-demand
 
-# Check flake
+# Check the configuration used by this machine
 [group('dev')]
 check:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source <({{ self_just }} _emit_nix_env)
+    if [ "$(uname)" = "Darwin" ]; then
+        nix eval --accept-flake-config --raw ".#darwinConfigurations.$(hostname -s).system.drvPath" >/dev/null
+    elif [ -e /etc/NIXOS ]; then
+        nix eval --accept-flake-config --raw ".#nixosConfigurations.$(hostname -s).config.system.build.toplevel.drvPath" >/dev/null
+    else
+        system="$(nix eval --impure --raw --expr builtins.currentSystem)"
+        nix eval --accept-flake-config --raw ".#legacyPackages.$system.homeConfigurations.$(whoami).activationPackage.drvPath" >/dev/null
+        nix eval --accept-flake-config --raw ".#systemConfigs.$system.default.drvPath" >/dev/null
+    fi
+
+# Check every flake output across all supported platforms
+[group('dev')]
+check-all:
     #!/usr/bin/env bash
     set -euo pipefail
     source <({{ self_just }} _emit_nix_env)
