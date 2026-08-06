@@ -25,11 +25,6 @@
   ];
   boot.zfs.forceImportRoot = false;
 
-  fileSystems."/pool1/nix-cache" = {
-    device = "pool1/nix-cache";
-    fsType = "zfs";
-  };
-
   users.users.root.openssh.authorizedKeys.keys = [
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIE0YEmRhF27t46boAwcyDGn1VrEuK9ydNhu24o7RO4Sr root@nfs"
   ];
