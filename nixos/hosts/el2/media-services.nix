@@ -137,7 +137,7 @@ in {
         DB_USERNAME = "postgres";
         DB_DATABASE_NAME = "immich";
         REDIS_HOSTNAME = "redis";
-        IMMICH_MACHINE_LEARNING_URL = "http://100.64.110.33:3003";
+        IMMICH_MACHINE_LEARNING_URL = "http://100.127.110.112:3003";
       };
       environmentFiles = ["/var/lib/private/immich/database.env"];
       ports = ["127.0.0.1:2283:2283"];
