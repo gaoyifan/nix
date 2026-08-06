@@ -94,10 +94,7 @@ in {
   };
 
   services.resolved.settings.Resolve = {
-    DNS = [
-      "1.1.1.1"
-      "1.0.0.1"
-    ];
+    DNS = [config.networking.homeRouter.serviceAddresses.ipv4];
     Domains = ["~."];
   };
   services.resolved.dnsDelegates = {
