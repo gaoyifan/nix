@@ -173,6 +173,9 @@ in {
           wants = serviceDependencies;
           after = [secretsService] ++ serviceDependencies;
           restartTriggers = [(newApiTokenFile userName)];
+          # Give systemd-nspawn time to release its veth pair before retrying
+          # after a failed stop/start. A 100 ms retry can hit "File exists".
+          serviceConfig.RestartSec = "5s";
         };
       })
       cfg.containers
