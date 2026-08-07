@@ -33,7 +33,6 @@
     listenPort = 8001;
     user = "yifan";
     group = "users";
-    wantedBy = ["el2-services.target"];
   };
 
   services.restic-123pan = {
@@ -43,7 +42,6 @@
     listenPort = 8002;
     user = "yifan";
     group = "users";
-    wantedBy = ["el2-services.target"];
   };
 
   services.restic-sync = {
@@ -52,36 +50,24 @@
       "115" = {
         source = "http://127.0.0.1:8000/";
         destination = "http://127.0.0.1:8001/";
-        cron = "0 50 * * * *";
+        schedule = "*-*-* *:50:00";
         user = "yifan";
         group = "users";
-        requires = [
+        dependsOn = [
           "podman-restic-server.service"
           "restic-115.service"
         ];
-        after = [
-          "network-online.target"
-          "podman-restic-server.service"
-          "restic-115.service"
-        ];
-        wantedBy = ["el2-services.target"];
       };
       "123pan" = {
         source = "http://127.0.0.1:8000/";
         destination = "http://127.0.0.1:8002/";
-        cron = "0 20 * * * *";
+        schedule = "*-*-* *:20:00";
         user = "yifan";
         group = "users";
-        requires = [
+        dependsOn = [
           "podman-restic-server.service"
           "restic-123pan.service"
         ];
-        after = [
-          "network-online.target"
-          "podman-restic-server.service"
-          "restic-123pan.service"
-        ];
-        wantedBy = ["el2-services.target"];
       };
     };
   };
@@ -93,13 +79,18 @@
   };
 
   systemd.services.restic-115 = {
+    wantedBy = ["el2-services.target"];
     requires = ["mount-el2-encrypted-datasets.service"];
     after = ["mount-el2-encrypted-datasets.service"];
   };
   systemd.services.restic-123pan = {
+    wantedBy = ["el2-services.target"];
     requires = ["mount-el2-encrypted-datasets.service"];
     after = ["mount-el2-encrypted-datasets.service"];
   };
+
+  systemd.timers.restic-sync-115.wantedBy = lib.mkForce ["el2-services.target"];
+  systemd.timers.restic-sync-123pan.wantedBy = lib.mkForce ["el2-services.target"];
 
   systemd.services.kopia-alipan-maintenance = {
     description = "Run full maintenance for the Aliyun Drive Kopia repository";

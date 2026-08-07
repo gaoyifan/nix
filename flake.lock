@@ -460,11 +460,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1786058097,
-        "narHash": "sha256-Y5WZtpCK/a3CybKrDeApmL5UIJ8XbvAevoFTC9aEuQA=",
+        "lastModified": 1786062158,
+        "narHash": "sha256-vRGzG//2bgt9FNqD9tH7iOdJmoYQf0R6lVfXC5pMGD8=",
         "owner": "gaoyifan",
         "repo": "restic-115",
-        "rev": "45ec531160d65a4c99b0e870c6315ba0e65da6e2",
+        "rev": "49919974f4f2e64e741bfb9c1f6d16a0b4aad789",
         "type": "github"
       },
       "original": {
@@ -480,11 +480,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1786058097,
-        "narHash": "sha256-6SdEU670IS+AixJIAI+oI15oL6ZtLxbDgv2RWmfGGMg=",
+        "lastModified": 1786062158,
+        "narHash": "sha256-nbcAcnwN5sxL8RPDnApOk0hCurMnQTC+0m4ZDzTQY2I=",
         "owner": "gaoyifan",
         "repo": "restic-123pan",
-        "rev": "c2caa4d3818b229dbb029436de3eada631e5b55a",
+        "rev": "a4922ebfd693e448dd2c91579d326d34034771c0",
         "type": "github"
       },
       "original": {
@@ -500,11 +500,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1786058097,
-        "narHash": "sha256-evrbRVhaoFtrTmTxWCOjuGAqAKc4QHM+UuaYEhjPd98=",
+        "lastModified": 1786062158,
+        "narHash": "sha256-mqrx6qcP87oKpDGxvQGaPorTon+gfVX37aGtRYa0VwI=",
         "owner": "gaoyifan",
         "repo": "restic-sync",
-        "rev": "b18fced91f95695b9867a6367be95b37bda93042",
+        "rev": "f83822167c9d7105d27c29180787cdb53a512ed0",
         "type": "github"
       },
       "original": {
