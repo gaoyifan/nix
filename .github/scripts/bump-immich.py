@@ -17,15 +17,9 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 TARGET = ROOT / "nixos/hosts/el2/media-services.nix"
 RELEASE_API = "https://api.github.com/repos/immich-app/immich/releases/latest"
 IMAGE_PATTERNS = {
-    "server": re.compile(
-        r'(?m)^(\s*image = ")(?=ghcr\.io/immich-app/immich-server:)[^"]+(";)'
-    ),
-    "redis": re.compile(
-        r'(?m)^(\s*image = ")(?=docker\.io/valkey/valkey:)[^"]+(";)'
-    ),
-    "postgres": re.compile(
-        r'(?m)^(\s*image = ")(?=ghcr\.io/immich-app/postgres:)[^"]+(";)'
-    ),
+    "server": re.compile(r'(?m)^(\s*image = ")(?=ghcr\.io/immich-app/immich-server:)[^"]+(";)'),
+    "redis": re.compile(r'(?m)^(\s*image = ")(?=docker\.io/valkey/valkey:)[^"]+(";)'),
+    "postgres": re.compile(r'(?m)^(\s*image = ")(?=ghcr\.io/immich-app/postgres:)[^"]+(";)'),
 }
 
 
@@ -115,9 +109,7 @@ def main():
     if changed:
         TARGET.write_text(updated)
 
-    summary = "Immich images: " + ", ".join(
-        f"{name}={images[name]}" for name in ("server", "redis", "postgres")
-    )
+    summary = "Immich images: " + ", ".join(f"{name}={images[name]}" for name in ("server", "redis", "postgres"))
     set_output("changed", "true" if changed else "false")
     set_output("files", str(TARGET.relative_to(ROOT)))
     set_output("tag", tag)

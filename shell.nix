@@ -1,7 +1,8 @@
 # Development shell for working on this flake
-# Provides: Nix, nh, nil (LSP), alejandra (formatter), just, home-manager, darwin-rebuild
+# Provides Nix tooling, the repository formatter, and configuration switch commands.
 {
   pkgs,
+  formatter,
   home-manager,
   nix-darwin,
   deploy-rs,
@@ -13,8 +14,8 @@ pkgs.mkShell {
       pkgs.nh
       pkgs.nil
       pkgs.nixd
-      pkgs.alejandra
       pkgs.just
+      formatter
       deploy-rs.packages.${pkgs.stdenv.hostPlatform.system}.deploy-rs
       home-manager.packages.${pkgs.stdenv.hostPlatform.system}.default
     ]

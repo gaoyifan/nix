@@ -153,9 +153,7 @@ class WeixinChannelPluginTest(unittest.IsolatedAsyncioTestCase):
 
             def make_image(self, *, image_factory):
                 self.image_factory = image_factory
-                return types.SimpleNamespace(
-                    save=lambda output: output.write(b"\x89PNG\r\n\x1a\nimage")
-                )
+                return types.SimpleNamespace(save=lambda output: output.write(b"\x89PNG\r\n\x1a\nimage"))
 
         qrcode.QRCode = QRCode
         image = types.ModuleType("qrcode.image")
@@ -195,9 +193,7 @@ class WeixinChannelPluginTest(unittest.IsolatedAsyncioTestCase):
             ),
             patch.object(plugin, "_render_qr", return_value=image_path),
         ):
-            result = json.loads(
-                await plugin._handle_weixin_channel({"action": "connect"})
-            )
+            result = json.loads(await plugin._handle_weixin_channel({"action": "connect"}))
 
         self.assertEqual(result["state"], "awaiting_scan")
         self.assertEqual(result["media_tag"], f"MEDIA:{image_path}")
@@ -235,12 +231,8 @@ class WeixinChannelPluginTest(unittest.IsolatedAsyncioTestCase):
                 AsyncMock(return_value='{"state": "awaiting_scan"}'),
             ) as create_login,
         ):
-            connected = json.loads(
-                await plugin._handle_weixin_channel({"action": "connect"})
-            )
-            reconnect = json.loads(
-                await plugin._handle_weixin_channel({"action": "reconnect"})
-            )
+            connected = json.loads(await plugin._handle_weixin_channel({"action": "connect"}))
+            reconnect = json.loads(await plugin._handle_weixin_channel({"action": "reconnect"}))
 
         self.assertEqual(connected["state"], "already_connected")
         self.assertEqual(reconnect["state"], "awaiting_scan")
@@ -270,9 +262,7 @@ class WeixinChannelPluginTest(unittest.IsolatedAsyncioTestCase):
             patch.object(plugin, "get_hermes_home", return_value=self.home),
             patch.object(plugin, "_create_login", AsyncMock()) as create_login,
         ):
-            result = json.loads(
-                await plugin._handle_weixin_channel({"action": "connect"})
-            )
+            result = json.loads(await plugin._handle_weixin_channel({"action": "connect"}))
 
         self.assertEqual(result["state"], "awaiting_scan")
         self.assertEqual(result["media_tag"], f"MEDIA:{image_path}")
@@ -291,13 +281,9 @@ class WeixinChannelPluginTest(unittest.IsolatedAsyncioTestCase):
             patch.object(plugin, "get_hermes_home", return_value=self.home),
             patch.object(plugin, "_create_login", side_effect=create_login),
         ):
-            first = asyncio.create_task(
-                plugin._handle_weixin_channel({"action": "reconnect"})
-            )
+            first = asyncio.create_task(plugin._handle_weixin_channel({"action": "reconnect"}))
             await started.wait()
-            second = json.loads(
-                await plugin._handle_weixin_channel({"action": "reconnect"})
-            )
+            second = json.loads(await plugin._handle_weixin_channel({"action": "reconnect"}))
             release.set()
             await first
 

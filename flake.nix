@@ -109,6 +109,11 @@
       inputs.userborn.follows = "userborn";
     };
 
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     disko = {
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -175,6 +180,7 @@
       };
     cliApps = import ./cli-apps.nix {lib = nixpkgs.lib;};
     overlay = _final: prev: customPackages prev;
+    treefmtEval = forAllSystems (system: inputs.treefmt-nix.lib.evalModule (pkgsFor system) ./treefmt.nix);
     domainArgs =
       inputs
       // {
@@ -189,6 +195,7 @@
           customPackages
           cliApps
           overlay
+          treefmtEval
           ;
       };
   in

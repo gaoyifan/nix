@@ -53,7 +53,19 @@ BASELINE_PKGS = [
 ]
 
 # Identifiers that appear in package lists but are not packages.
-SKIP_IDENTIFIERS = {"with", "pkgs", "lib", "let", "in", "ps", "rec", "inputs", "config", "isDarwin", "stdenv"}
+SKIP_IDENTIFIERS = {
+    "with",
+    "pkgs",
+    "lib",
+    "let",
+    "in",
+    "ps",
+    "rec",
+    "inputs",
+    "config",
+    "isDarwin",
+    "stdenv",
+}
 
 console = Console()
 
@@ -264,9 +276,7 @@ def main():
 
     unavailable = [pkg for pkg, closure, _ in results if closure < 0]
     if unavailable:
-        console.print(
-            f"\n[dim]N/A (not in local store, skipped): {', '.join(unavailable)}[/dim]"
-        )
+        console.print(f"\n[dim]N/A (not in local store, skipped): {', '.join(unavailable)}[/dim]")
 
     if large:
         console.print("\n[bold red]Large marginal cost (>50MB):[/bold red]")

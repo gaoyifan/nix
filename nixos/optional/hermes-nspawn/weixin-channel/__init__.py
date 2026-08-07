@@ -177,9 +177,7 @@ def _read_weixin_env(home: Path) -> dict[str, str]:
 
 def _atomic_write(path: Path, data: bytes, mode: int) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    fd, temporary_path = tempfile.mkstemp(
-        dir=path.parent, prefix=f".{path.stem}-", suffix=".tmp"
-    )
+    fd, temporary_path = tempfile.mkstemp(dir=path.parent, prefix=f".{path.stem}-", suffix=".tmp")
     try:
         os.fchmod(fd, mode)
         with os.fdopen(fd, "wb") as output:
@@ -200,11 +198,7 @@ def _write_weixin_env(home: Path, updates: dict[str, str]) -> None:
     path = home / ".env"
     path.parent.mkdir(parents=True, exist_ok=True)
     original_mode = stat.S_IMODE(path.stat().st_mode) if path.exists() else 0o600
-    lines = (
-        path.read_text(encoding="utf-8-sig").splitlines(keepends=True)
-        if path.exists()
-        else []
-    )
+    lines = path.read_text(encoding="utf-8-sig").splitlines(keepends=True) if path.exists() else []
     updated_keys = set(updates)
     lines = [line for line in lines if _env_line_key(line) not in updated_keys]
 
@@ -286,9 +280,7 @@ async def _create_login(
         base_url=weixin.ILINK_BASE_URL,
         image_path=str(image_path),
         created_at=now,
-        expires_at=expires_at
-        if expires_at is not None
-        else now + LOGIN_TIMEOUT_SECONDS,
+        expires_at=expires_at if expires_at is not None else now + LOGIN_TIMEOUT_SECONDS,
         refresh_count=refresh_count,
     )
     _save_pending(home, state)
@@ -316,13 +308,8 @@ async def _restart_gateway() -> bool:
         if not isinstance(runtime, dict) or runtime.get("pid") != new_pid:
             continue
         platforms = runtime.get("platforms", {})
-        weixin_runtime = (
-            platforms.get("weixin", {}) if isinstance(platforms, dict) else {}
-        )
-        if (
-            isinstance(weixin_runtime, dict)
-            and weixin_runtime.get("state") == "connected"
-        ):
+        weixin_runtime = platforms.get("weixin", {}) if isinstance(platforms, dict) else {}
+        if isinstance(weixin_runtime, dict) and weixin_runtime.get("state") == "connected":
             return True
     return False
 
@@ -378,9 +365,7 @@ async def _check_status(home: Path, state: _PendingLogin) -> str:
             message="二维码登录已超时，请重新发起连接。",
         )
 
-    poll_deadline = time.monotonic() + min(
-        STATUS_WAIT_SECONDS, expires_at - time.time()
-    )
+    poll_deadline = time.monotonic() + min(STATUS_WAIT_SECONDS, expires_at - time.time())
     scanned = False
     async with _WeixinLoginClient() as client:
         while time.monotonic() < poll_deadline:
@@ -492,11 +477,7 @@ async def _handle_weixin_channel(args: dict[str, Any], **_kwargs: Any) -> str:
                     return await _check_status(home, state)
 
                 credentials = _read_weixin_env(home)
-                if (
-                    action == "connect"
-                    and credentials.get("WEIXIN_ACCOUNT_ID")
-                    and credentials.get("WEIXIN_TOKEN")
-                ):
+                if action == "connect" and credentials.get("WEIXIN_ACCOUNT_ID") and credentials.get("WEIXIN_TOKEN"):
                     return tool_result(
                         state="already_connected",
                         account_id=credentials["WEIXIN_ACCOUNT_ID"],

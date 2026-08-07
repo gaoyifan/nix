@@ -32,7 +32,9 @@ PACKAGES = {
             "aarch64-linux": "linux-arm/cli_linux_arm64.tar.gz",
             "aarch64-darwin": "darwin-arm/cli_mac_arm64.tar.gz",
         },
-        "url": lambda version, asset: f"https://storage.googleapis.com/antigravity-public/antigravity-cli/{version}/{asset}",
+        "url": lambda version, asset: (
+            f"https://storage.googleapis.com/antigravity-public/antigravity-cli/{version}/{asset}"
+        ),
     },
     "copilot-cli": {
         "path": ROOT / "pkgs/copilot-cli.nix",
@@ -126,7 +128,10 @@ def latest_github_release(config):
 
 def latest_cursor_cli():
     script = fetch_text("https://cursor.com/install", user_agent="curl/8.0")
-    match = re.search(r"https://downloads\.cursor\.com/lab/([^/]+)/\$\{OS\}/\$\{ARCH\}/agent-cli-package\.tar\.gz", script)
+    match = re.search(
+        r"https://downloads\.cursor\.com/lab/([^/]+)/\$\{OS\}/\$\{ARCH\}/agent-cli-package\.tar\.gz",
+        script,
+    )
     if not match:
         raise RuntimeError("could not find Cursor CLI version in install script")
     return match.group(1)
@@ -136,7 +141,12 @@ def latest_antigravity(config):
     releases = set()
 
     for manifest in config["manifests"].values():
-        data = json.loads(fetch_text(f"{config['manifest_base']}/manifests/{manifest}.json", user_agent="curl/8.0"))
+        data = json.loads(
+            fetch_text(
+                f"{config['manifest_base']}/manifests/{manifest}.json",
+                user_agent="curl/8.0",
+            )
+        )
         match = re.search(r"/antigravity-cli/([^/]+)/", data.get("url", ""))
         if not match:
             raise RuntimeError(f"could not find Antigravity release in {manifest} manifest")
@@ -166,7 +176,16 @@ def prefetch_hash(url):
 def update_package(name, config, version):
     if config.get("nix_update"):
         subprocess.run(
-            ["nix", "run", "nixpkgs#nix-update", "--", "--flake", name, "--version", version],
+            [
+                "nix",
+                "run",
+                "nixpkgs#nix-update",
+                "--",
+                "--flake",
+                name,
+                "--version",
+                version,
+            ],
             cwd=ROOT,
             check=True,
         )
@@ -181,7 +200,7 @@ def update_package(name, config, version):
     for system, asset in config["assets"].items():
         hash_value = prefetch_hash(config["url"](version, asset))
         pattern = (
-            rf'({re.escape(system)} = \{{\n'
+            rf"({re.escape(system)} = \{{\n"
             rf'(?:        [a-z]+ = "[^"]+";\n)+'
             rf'        hash = ")[^"]+(";)'
         )
@@ -250,7 +269,10 @@ def main():
 
     set_output("changed", "true" if changed else "false")
     set_output("packages", " ".join(name for name, _, _ in changed))
-    set_output("files", " ".join(str(PACKAGES[name]["path"].relative_to(ROOT)) for name, _, _ in changed))
+    set_output(
+        "files",
+        " ".join(str(PACKAGES[name]["path"].relative_to(ROOT)) for name, _, _ in changed),
+    )
     set_output("summary", "; ".join(summaries))
     set_output("commit_subject", commit_subject(changed) if changed else "")
     set_output("commit_body", commit_body(changed) if changed else "")

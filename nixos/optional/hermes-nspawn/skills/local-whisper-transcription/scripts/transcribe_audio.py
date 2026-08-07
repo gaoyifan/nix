@@ -9,7 +9,6 @@ import mimetypes
 import os
 import shutil
 import subprocess
-import sys
 import time
 import uuid
 from pathlib import Path
@@ -49,10 +48,7 @@ def _multipart_body(fields: dict[str, str], file_path: Path) -> tuple[bytes, str
     chunks.extend(
         [
             f"--{boundary}\r\n".encode(),
-            (
-                'Content-Disposition: form-data; name="file"; '
-                f'filename="{file_path.name}"\r\n'
-            ).encode(),
+            (f'Content-Disposition: form-data; name="file"; filename="{file_path.name}"\r\n').encode(),
             f"Content-Type: {content_type}\r\n\r\n".encode(),
             file_path.read_bytes(),
             b"\r\n",
@@ -134,9 +130,7 @@ def transcribe(args: argparse.Namespace) -> dict:
             attempts.append({"base_url": base_url, "error": f"HTTP {exc.code}: {detail}"})
             continue
         except URLError as exc:
-            attempts.append(
-                {"base_url": base_url, "error": f"Connection failed: {exc.reason}"}
-            )
+            attempts.append({"base_url": base_url, "error": f"Connection failed: {exc.reason}"})
             continue
         except TimeoutError:
             attempts.append(

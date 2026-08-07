@@ -24,7 +24,7 @@ set -e
 
 elapsed_seconds=$(($(date +%s) - started_seconds))
 printf '%s\t%s\t%d\t%d\n' \
-  "$phase" "$started_at" "$elapsed_seconds" "$exit_code" \
-  | tee -a "$timings_file"
+  "$phase" "$started_at" "$elapsed_seconds" "$exit_code" |
+  tee -a "$timings_file"
 
 exit "$exit_code"

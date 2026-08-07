@@ -40,9 +40,24 @@ logger = logging.getLogger(__name__)
 API_MODEL = "gpt-image-2"
 
 _MODELS: Dict[str, Dict[str, Any]] = {
-    "gpt-image-2-low": {"display": "GPT Image 2 (Low)", "speed": "~15s", "strengths": "Fast iteration, lowest cost", "quality": "low"},
-    "gpt-image-2-medium": {"display": "GPT Image 2 (Medium)", "speed": "~40s", "strengths": "Balanced — default", "quality": "medium"},
-    "gpt-image-2-high": {"display": "GPT Image 2 (High)", "speed": "~2min", "strengths": "Highest fidelity, strongest prompt adherence", "quality": "high"},
+    "gpt-image-2-low": {
+        "display": "GPT Image 2 (Low)",
+        "speed": "~15s",
+        "strengths": "Fast iteration, lowest cost",
+        "quality": "low",
+    },
+    "gpt-image-2-medium": {
+        "display": "GPT Image 2 (Medium)",
+        "speed": "~40s",
+        "strengths": "Balanced — default",
+        "quality": "medium",
+    },
+    "gpt-image-2-high": {
+        "display": "GPT Image 2 (High)",
+        "speed": "~2min",
+        "strengths": "Highest fidelity, strongest prompt adherence",
+        "quality": "high",
+    },
 }
 
 DEFAULT_MODEL = "gpt-image-2-medium"
@@ -60,9 +75,7 @@ _INSTRUCTIONS = (
 # provider and the gpt-image-2 Responses input contract.
 _MAX_REFERENCE_IMAGES = 16
 _MAX_INPUT_IMAGE_BYTES = 25 * 1024 * 1024
-_ACCEPTED_INPUT_MIME = frozenset(
-    {"image/png", "image/jpeg", "image/gif", "image/webp"}
-)
+_ACCEPTED_INPUT_MIME = frozenset({"image/png", "image/jpeg", "image/gif", "image/webp"})
 
 
 def _get_setting(name: str) -> Optional[str]:
@@ -180,20 +193,24 @@ def _build_payload(
         "store": False,
         "stream": True,
         "instructions": _INSTRUCTIONS,
-        "input": [{
-            "type": "message",
-            "role": "user",
-            "content": content,
-        }],
-        "tools": [{
-            "type": "image_generation",
-            "model": API_MODEL,
-            "size": size,
-            "quality": quality,
-            "output_format": "png",
-            "background": "opaque",
-            "partial_images": 1,
-        }],
+        "input": [
+            {
+                "type": "message",
+                "role": "user",
+                "content": content,
+            }
+        ],
+        "tools": [
+            {
+                "type": "image_generation",
+                "model": API_MODEL,
+                "size": size,
+                "quality": quality,
+                "output_format": "png",
+                "background": "opaque",
+                "partial_images": 1,
+            }
+        ],
         "tool_choice": {
             "type": "allowed_tools",
             "mode": "required",
@@ -240,7 +257,7 @@ def _iter_sse_json(response: Any):
                     pass
             continue
         if line.startswith("data:"):
-            data_lines.append(line[len("data:"):].lstrip())
+            data_lines.append(line[len("data:") :].lstrip())
 
 
 def _collect_image_b64(base_url: str, api_key: str, payload: Dict[str, Any]) -> Optional[str]:
@@ -293,7 +310,13 @@ class NewApiCodexImageGenProvider(ImageGenProvider):
 
     def list_models(self) -> List[Dict[str, Any]]:
         return [
-            {"id": mid, "display": m["display"], "speed": m["speed"], "strengths": m["strengths"], "price": "varies"}
+            {
+                "id": mid,
+                "display": m["display"],
+                "speed": m["speed"],
+                "strengths": m["strengths"],
+                "price": "varies",
+            }
             for mid, m in _MODELS.items()
         ]
 

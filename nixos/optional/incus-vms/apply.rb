@@ -9,6 +9,7 @@ VM_SPEC = ENV.fetch("VM_SPEC")
 def incus(*args)
   out, status = Open3.capture2e(INCUS, *args)
   raise out unless status.success?
+
   out
 end
 
@@ -74,7 +75,6 @@ def apply(spec, state)
       warn "#{name}: #{e.message}"
       failed << name
     end
-
   end
 
   failed
