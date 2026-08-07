@@ -152,35 +152,6 @@
     ];
     forAllSystems = nixpkgs.lib.genAttrs systems;
     forAllLinuxSystems = nixpkgs.lib.genAttrs linuxSystems;
-    resticBackupHosts = [
-      "CJIA-GW.gaof.net"
-      "bitmagnet"
-      "blog"
-      "debian21"
-      "debian41"
-      "do"
-      "docker"
-      "docker22"
-      "el2"
-      "el2.gaof.net"
-      "gw-el"
-      "misc0-61"
-      "misc0-sz"
-      "misc1"
-      "nfs"
-      "nfs2"
-      "oracle"
-    ];
-    tailscaleUserspaceHosts = [
-      "debian20"
-      "debian21"
-      "debian22"
-      "debian23-hermes"
-      "debian40"
-      "debian41"
-      "debian42"
-    ];
-    systemManagerHosts = nixpkgs.lib.unique (resticBackupHosts ++ tailscaleUserspaceHosts);
     nixpkgsForSystem = system:
       if nixpkgs.lib.hasSuffix "darwin" system
       then nixpkgs-darwin
@@ -197,13 +168,6 @@
         target="$1"
         [ -n "$target" ] && mv "$target" "$target.${homeManagerBackupExtension}"
       '';
-    darwinHosts = [
-      "Yifans-MacBook-Air-2022"
-      "YifansMacStudio"
-      "Yans-Mac-mini"
-      "openclaw"
-      "default"
-    ];
     customPackages = pkgs:
       import ./pkgs {inherit pkgs inputs;}
       // {
@@ -211,259 +175,32 @@
       };
     cliApps = import ./cli-apps.nix {lib = nixpkgs.lib;};
     overlay = _final: prev: customPackages prev;
-    internalSubstitutersFor = hostname:
-      import ./secrets/internal-substituters.nix {
-        hostname = builtins.head (nixpkgs.lib.splitString "." hostname);
+    domainArgs =
+      inputs
+      // {
+        inherit
+          inputs
+          forAllSystems
+          forAllLinuxSystems
+          nixpkgsForSystem
+          pkgsFor
+          username
+          mkHomeManagerBackupCommand
+          customPackages
+          cliApps
+          overlay
+          ;
       };
-    # NixOS host builder: shared nixpkgs setup, common modules, and
-    # home-manager integration. Hosts only list their own modules.
-    mkNixosHost = system: hostModules:
-      nixpkgs.lib.nixosSystem {
-        inherit system;
-        specialArgs = {inherit inputs username mkHomeManagerBackupCommand;};
-        modules =
-          [
-            {
-              nixpkgs.overlays = [overlay];
-              nixpkgs.config.allowUnfree = true;
-            }
-            ./nixos/common
-            home-manager.nixosModules.home-manager
-          ]
-          ++ hostModules;
-      };
-    # Build through the local Nix coordinator. Deployment commands delegate
-    # cross-architecture derivations to matching distributed builders.
-    mkDeployNode = system: hostname: nixosConfig: {
-      inherit hostname;
-      sshUser = "root";
-      profiles.system = {
-        user = "root";
-        path = deploy-rs.lib.${system}.activate.nixos nixosConfig;
-        remoteBuild = false;
-      };
-    };
-    mkLinuxSystemConfig = system: hostname: extraModules:
-      system-manager.lib.makeSystemConfig {
-        overlays = [overlay];
-        specialArgs = {
-          inherit username;
-          internalSubstituters = internalSubstitutersFor hostname;
-        };
-        modules =
-          [
-            ./system-manager/nix.nix
-            ./system-manager/restic.nix
-            ./system-manager/tailscale.nix
-            # system-manager imports NixOS nginx without the full NixOS module
-            # list. This nixpkgs pin's nginx still references security.dhparams;
-            # drop this once the pin has nginx sslDhparam removed or system-manager
-            # imports the matching dependency itself.
-            "${nixpkgs}/nixos/modules/security/dhparams.nix"
-            ({pkgs, ...}: {
-              nixpkgs.hostPlatform = system;
-              nixpkgs.config.allowUnfree = true;
-              environment.systemPackages = [
-                pkgs.tsshd
-              ];
-            })
-          ]
-          ++ extraModules;
-      };
-  in {
-    # Custom packages: nix build .#lazyssh
-    packages = forAllSystems (system: let
-      pkgs = pkgsFor system;
-      nixosProfiles = nixpkgs.lib.attrValues (
-        nixpkgs.lib.filterAttrs (_: node: node.profiles.system.path.system == system) self.deploy.nodes
-      );
-    in
-      (cliApps.mkPackages {
-        inherit pkgs;
-        customPackages = customPackages pkgs;
-      })
-      // nixpkgs.lib.optionalAttrs (!(nixpkgs.lib.hasSuffix "darwin" system)) {
-        system-manager = system-manager.packages.${system}.default;
-        nixos-hosts-cache = pkgs.releaseTools.aggregate {
-          name = "nixos-hosts-cache";
-          constituents = map (node: node.profiles.system.path) nixosProfiles;
-        };
-      }
-      // nixpkgs.lib.optionalAttrs (system == "aarch64-linux") {
-        somo-nanopi-r4s-image = self.nixosConfigurations.somo-nanopi-r4s.config.system.build.sdImage;
-      });
-
-    # On-demand CLI apps used by lazy Home Manager wrappers to keep closures small.
-    apps = forAllSystems (system: cliApps.mkApps self.packages.${system});
-
-    # nix fmt
-    formatter = forAllSystems (system: (nixpkgsForSystem system).legacyPackages.${system}.alejandra);
-
-    # Overlay to make custom packages available as pkgs.lazyssh
-    overlays.default = overlay;
-
-    # nix develop
-    devShells = forAllSystems (system: {
-      default = import ./shell.nix {
-        pkgs = (nixpkgsForSystem system).legacyPackages.${system};
-        inherit home-manager nix-darwin deploy-rs;
-      };
-    });
-
-    # Standalone home-manager for non-darwin systems
-    # Usage: home-manager switch --flake .#yifan
-    legacyPackages = forAllSystems (system:
-      if nixpkgs.lib.hasSuffix "darwin" system
-      then {}
-      else {
-        homeConfigurations.${username} = home-manager.lib.homeManagerConfiguration {
-          pkgs = import nixpkgs {
-            inherit system;
-            overlays = [overlay];
-            config.allowUnfree = true;
-          };
-          extraSpecialArgs = {inherit inputs;};
-          modules = [
-            ./home-manager
-            {home.username = username;}
-          ];
-        };
-      });
-
-    # macOS system configuration with integrated home-manager
-    # Usage: darwin-rebuild switch --flake .
-    darwinConfigurations = nixpkgs.lib.genAttrs darwinHosts (
-      hostname:
-        nix-darwin.lib.darwinSystem {
-          specialArgs = {
-            inherit inputs username;
-            darwinProfile =
-              if hostname == "openclaw"
-              then "openclaw"
-              else if hostname == "YifansMacStudio"
-              then "yifansmacstudio"
-              else "default";
-          };
-          modules =
-            [
-              # Apply overlay and allow unfree packages
-              {
-                nixpkgs.hostPlatform = "aarch64-darwin";
-                nixpkgs.overlays = [overlay];
-                nixpkgs.config.allowUnfree = true;
-              }
-              ./darwin/configuration.nix
-              ./darwin/auto-pause-cemu.nix
-
-              # Integrate home-manager as a darwin module
-              home-manager.darwinModules.home-manager
-              ({pkgs, ...}: {
-                home-manager = {
-                  useGlobalPkgs = true; # Use system nixpkgs instead of standalone
-                  useUserPackages = true; # Install to /etc/profiles instead of ~/.nix-profile
-                  backupCommand = mkHomeManagerBackupCommand pkgs;
-                  extraSpecialArgs = {inherit inputs;};
-                  users.${username} = import ./home-manager;
-                };
-              })
-            ]
-            ++ nixpkgs.lib.optional (hostname == "YifansMacStudio") ./darwin/whisper-server.nix;
-        }
+  in
+    nixpkgs.lib.foldl' nixpkgs.lib.recursiveUpdate {} (
+      map (path: import path domainArgs) [
+        ./flake/packages.nix
+        ./flake/formatter.nix
+        ./flake/devshell.nix
+        ./flake/darwin-home.nix
+        ./flake/nixos.nix
+        ./flake/system-manager.nix
+        ./flake/checks.nix
+      ]
     );
-
-    # NixOS configurations
-    nixosConfigurations = {
-      el2 = mkNixosHost "x86_64-linux" [
-        disko.nixosModules.disko
-        ./nixos/hosts/el2
-      ];
-      el2-install = mkNixosHost "x86_64-linux" [
-        disko.nixosModules.disko
-        ./nixos/hosts/el2
-        ./nixos/hosts/el2/install.nix
-      ];
-      misc0-jp = mkNixosHost "x86_64-linux" [
-        disko.nixosModules.disko
-        ./nixos/hosts/misc0-jp
-      ];
-      oracle2 = mkNixosHost "aarch64-linux" [
-        disko.nixosModules.disko
-        ./nixos/hosts/oracle2
-      ];
-      somo-minisforum = mkNixosHost "x86_64-linux" [./nixos/hosts/somo-minisforum];
-      somo-nanopi-r4s = mkNixosHost "aarch64-linux" [./nixos/hosts/somo-nanopi-r4s];
-      somo-gw = mkNixosHost "x86_64-linux" [
-        disko.nixosModules.disko
-        ./nixos/hosts/somo-gw
-      ];
-      xtom-hkg = mkNixosHost "x86_64-linux" [
-        disko.nixosModules.disko
-        ./nixos/hosts/xtom-hkg
-      ];
-      xtom-sjc = mkNixosHost "x86_64-linux" [
-        disko.nixosModules.disko
-        ./nixos/hosts/xtom-sjc
-      ];
-      xtom-syd = mkNixosHost "x86_64-linux" [
-        disko.nixosModules.disko
-        ./nixos/hosts/xtom-syd
-      ];
-    };
-
-    # Linux system configuration for non-NixOS hosts.
-    # Usage: system-manager switch --flake .
-    systemConfigs = forAllLinuxSystems (
-      system:
-        {
-          default = mkLinuxSystemConfig system "default" [];
-        }
-        // nixpkgs.lib.genAttrs systemManagerHosts (
-          host:
-            mkLinuxSystemConfig system host (
-              nixpkgs.lib.optional (builtins.elem host resticBackupHosts) {
-                services.resticBackup.enable = true;
-              }
-              ++ nixpkgs.lib.optional (builtins.elem host tailscaleUserspaceHosts) {
-                services.tailscale.interfaceName = "userspace-networking";
-              }
-            )
-        )
-    );
-
-    # deploy-rs configuration
-    deploy.nodes.el2 = mkDeployNode "x86_64-linux" "el2.ts.gaof.net" self.nixosConfigurations.el2;
-    deploy.nodes.misc0-jp = mkDeployNode "x86_64-linux" "misc0-jp.ts.gaof.net" self.nixosConfigurations.misc0-jp;
-    deploy.nodes.oracle2 = mkDeployNode "aarch64-linux" "oracle2.ts.gaof.net" self.nixosConfigurations.oracle2;
-    deploy.nodes.somo-minisforum = mkDeployNode "x86_64-linux" "somo-minisforum.ts.gaof.net" self.nixosConfigurations.somo-minisforum;
-    deploy.nodes.somo-nanopi-r4s = mkDeployNode "aarch64-linux" "somo-nanopi-r4s.ts.gaof.net" self.nixosConfigurations.somo-nanopi-r4s;
-    deploy.nodes.somo-gw = mkDeployNode "x86_64-linux" "somo-gw.ts.gaof.net" self.nixosConfigurations.somo-gw;
-    deploy.nodes.xtom-hkg = mkDeployNode "x86_64-linux" "xtom-hkg.ts.gaof.net" self.nixosConfigurations.xtom-hkg;
-    deploy.nodes.xtom-sjc = mkDeployNode "x86_64-linux" "xtom-sjc.ts.gaof.net" self.nixosConfigurations.xtom-sjc;
-    deploy.nodes.xtom-syd = mkDeployNode "x86_64-linux" "xtom-syd.ts.gaof.net" self.nixosConfigurations.xtom-syd;
-    checks = let
-      # Hermes currently reads package manifests from lib.fileset.toSource
-      # results during evaluation. `nix flake check --no-build` uses a
-      # read-only store, so these computed source paths are not materialized;
-      # deployChecks then forces this host's profile and fails with "path is
-      # not valid" on a cold or garbage-collected store. This source filtering
-      # was introduced by https://github.com/NousResearch/hermes-agent/pull/65237.
-      #
-      # Replace only the path seen by deploy-rs checks. The real self.deploy
-      # output still contains the NixOS activation path used for deployments.
-      # Remove this workaround once Hermes no longer reads filtered sources
-      # during evaluation.
-      deployForChecks =
-        nixpkgs.lib.updateManyAttrsByPath [
-          {
-            path = ["nodes" "somo-minisforum" "profiles" "system" "path"];
-            update = _: deploy-rs.lib.x86_64-linux.activate.noop (pkgsFor "x86_64-linux").emptyDirectory;
-          }
-        ]
-        self.deploy;
-      deployChecks = builtins.mapAttrs (_system: deployLib: deployLib.deployChecks deployForChecks) deploy-rs.lib;
-    in
-      nixpkgs.lib.recursiveUpdate deployChecks {
-        x86_64-linux.home-router = ((pkgsFor "x86_64-linux").extend overlay).testers.runNixOSTest (import ./nixos/tests/home-router.nix {inherit inputs;});
-      };
-  };
 }
