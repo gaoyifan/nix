@@ -33,9 +33,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: uv run --script .github/scripts/bump-immich.py
 
-      - name: Format configuration
+      - name: Format changed files
         if: steps.bump.outputs.changed == 'true'
-        run: nix run nixpkgs#alejandra -- ${{ steps.bump.outputs.files }}
+        run: nix fmt --accept-flake-config -- ${{ steps.bump.outputs.files }}
 
       - name: Validate flake
         if: steps.bump.outputs.changed == 'true'

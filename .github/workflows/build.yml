@@ -72,6 +72,10 @@ jobs:
           purge: true
           purge-prefixes: nix-${{ runner.os }}-${{ runner.arch }}-
 
+      - name: Check formatting and source lint
+        if: matrix.system == 'x86_64-linux'
+        run: nix build --accept-flake-config .#checks.${{ matrix.system }}.formatting
+
       - name: Build configuration
         run: nix build --accept-flake-config .#${{ matrix.target }}
 

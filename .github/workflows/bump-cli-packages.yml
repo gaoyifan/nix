@@ -54,9 +54,9 @@ jobs:
           timeout_minutes: 10
           command: python3 .github/scripts/bump-cli-packages.py --package "$REQUESTED_PACKAGE" --version "$REQUESTED_VERSION"
 
-      - name: Format package
+      - name: Format changed files
         if: steps.bump.outputs.changed == 'true'
-        run: nix run nixpkgs#alejandra -- ${{ steps.bump.outputs.files }}
+        run: nix fmt --accept-flake-config -- ${{ steps.bump.outputs.files }}
 
       - name: Validate packages
         if: steps.bump.outputs.changed == 'true'

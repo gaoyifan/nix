@@ -212,13 +212,22 @@ darwin hostname='':
     fi
     sudo launchctl kickstart -k system/systems.determinate.nix-daemon
 
-# Format all nix files
+# Format all supported files
 [group('dev')]
 fmt:
     #!/usr/bin/env bash
     set -euo pipefail
     source <({{ self_just }} _emit_nix_env)
-    nix fmt .
+    nix fmt --accept-flake-config
+
+# Check formatting without changing files
+[group('dev')]
+fmt-check:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source <({{ self_just }} _emit_nix_env)
+    system="$(nix eval --impure --raw --expr builtins.currentSystem)"
+    nix build --accept-flake-config --no-link ".#checks.$system.formatting"
 
 # Push this repository and any submodule commits it references
 [group('dev')]
@@ -252,11 +261,10 @@ check-all:
     if [ "$(uname)" = "Darwin" ]; then
         arch="$(uname -m)"
         case "$arch" in
-            arm64) system="aarch64-darwin" ;;
-            x86_64) system="x86_64-darwin" ;;
+            arm64) check_system="aarch64-darwin" ;;
             *) echo "Unsupported macOS arch: $arch" >&2; exit 1 ;;
         esac
-        nix flake check --accept-flake-config --system "$system" --no-build
+        nix flake check --accept-flake-config --system "$check_system" --no-build
     else
         nix flake check --accept-flake-config --all-systems --no-build
     fi
