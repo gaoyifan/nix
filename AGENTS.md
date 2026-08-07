@@ -2,7 +2,8 @@
 
 ## Project Structure
 
-- `flake.nix`: Flake entrypoint with packages, apps, devShells, homeConfigurations, darwinConfigurations, nixosConfigurations, systemConfigs
+- `flake.nix`: Flake entrypoint and shared output helpers
+- `flake/`: Outputs split by packages, formatter, dev shell, Darwin/Home Manager, NixOS/deploy, system-manager, and checks
 - `darwin/configuration.nix`: nix-darwin system config (macOS) - Homebrew packages/casks, system settings
 - `home-manager/`: Home Manager config (shared across platforms) - shell, neovim, packages
 - `nixos/`: NixOS configurations - `common/` modules shared by all hosts, `hosts/<name>/` per host
@@ -16,9 +17,10 @@
 - `just` / `just darwin` / `just home` / `just system`: Apply configuration (auto-detects OS; `system` runs system-manager on non-NixOS Linux)
 - Prefer the repository's `just` subcommands for switching configurations. Invoke `nixos-rebuild`, `darwin-rebuild`, or `home-manager` directly only when necessary, and include flake submodules with `.?submodules=1`.
 - `just deploy <target>`: Deploy NixOS via deploy-rs
-- `just deploy-rebuild <target>`: Deploy NixOS via target-side `nixos-rebuild switch` with explicit substituters
-- `just fmt`: Format with `alejandra`
-- `just check`: Validate flake with `--no-build` (`--all-systems` on Linux, host system only on Darwin)
+- `just sync-and-rebuild <target>`: Sync the repository and run target-side `nixos-rebuild switch` with explicit substituters
+- `just fmt`: Format all supported languages through treefmt
+- `just fmt-check`: Check formatting without changing files
+- `just check`: Evaluate the current machine's configuration
 
 ## Remote Commands
 

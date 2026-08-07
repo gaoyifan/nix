@@ -60,8 +60,11 @@ just system
 # Apply the nix-darwin system on macOS
 just darwin
 
-# Format all Nix files
+# Format all supported files
 just fmt
+
+# Check formatting without changing files
+just fmt-check
 
 # Evaluate the configuration used by this machine
 just check
