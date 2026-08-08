@@ -27,6 +27,7 @@ in {
     isNormalUser = true;
     description = username;
     extraGroups = ["wheel"];
+    linger = true;
     shell = pkgs.zsh;
     openssh.authorizedKeys.keys = sshKeys;
   };

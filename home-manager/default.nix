@@ -5,10 +5,12 @@
   config,
   pkgs,
   lib,
+  osConfig ? null,
   ...
 }: let
   isDarwin = pkgs.stdenv.isDarwin;
   isLinux = pkgs.stdenv.isLinux;
+  isStandaloneLinux = isLinux && osConfig == null;
   rimeIce = pkgs.fetchFromGitHub {
     owner = "iDvel";
     repo = "rime-ice";
@@ -189,7 +191,7 @@ in {
 
   # Keep the user manager alive for runtime-mounted secrets on headless Linux
   # hosts, including sessions created by tssh rather than pam_systemd.
-  home.activation.enableLinger = lib.mkIf isLinux (
+  home.activation.enableLinger = lib.mkIf isStandaloneLinux (
     lib.hm.dag.entryBetween ["linkGeneration"] ["writeBoundary"] ''
       PATH="/run/current-system/sw/bin:/usr/bin:/bin:$PATH" \
         run loginctl enable-linger ${lib.escapeShellArg config.home.username}
