@@ -1,5 +1,6 @@
 {
   config,
+  lib,
   pkgs,
   username,
   ...
@@ -112,6 +113,9 @@ in {
   };
 
   networking.wg-quick.interfaces.wg-cloudflare.configFile = "/etc/wireguard/wg-cloudflare.conf";
+  systemd.services.wg-quick-wg-cloudflare.preStop = lib.mkForce ''
+    ${pkgs.wireguard-tools}/bin/wg-quick down /etc/wireguard/wg-cloudflare.conf
+  '';
 
   services.nylon = {
     enable = true;
