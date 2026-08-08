@@ -1,4 +1,5 @@
 {
+  config,
   inputs,
   lib,
   pkgs,
@@ -9,6 +10,14 @@
     inputs.restic-123pan.nixosModules.default
     inputs.restic-sync.nixosModules.default
   ];
+
+  age.secrets = lib.mkIf config.services.secrets.hasRealFiles {
+    restic-115-access-token.file = config.services.secrets.filesDir + "/nixos/el2/restic-115-access-token.age";
+    restic-115-refresh-token.file = config.services.secrets.filesDir + "/nixos/el2/restic-115-refresh-token.age";
+    restic-123pan-username.file = config.services.secrets.filesDir + "/nixos/el2/restic-123pan-username.age";
+    restic-123pan-password.file = config.services.secrets.filesDir + "/nixos/el2/restic-123pan-password.age";
+    restic-backups-shared-repository-password.file = config.services.secrets.filesDir + "/nixos/el2/restic-backups-shared-repository-password.age";
+  };
 
   environment.systemPackages = [
     pkgs.kopia
@@ -28,20 +37,28 @@
 
   services.restic-115 = {
     enable = true;
-    environmentFile = "/pool0/docker/restic-sync-115/backend.env";
-    cacheDirectory = "/pool0/docker/restic-sync-115/cache";
-    listenPort = 8001;
-    user = "yifan";
-    group = "users";
+    instances.pool0-restic = {
+      accessTokenFile = "/run/agenix/restic-115-access-token";
+      refreshTokenFile = "/run/agenix/restic-115-refresh-token";
+      repositoryPath = "/pool0-restic";
+      cacheDirectory = "/pool0/docker/restic-sync-115/cache";
+      listenPort = 8001;
+      user = "yifan";
+      group = "users";
+    };
   };
 
   services.restic-123pan = {
     enable = true;
-    environmentFile = "/pool0/docker/restic-sync-123pan/backend.env";
-    cacheDirectory = "/pool0/docker/restic-sync-123pan/cache";
-    listenPort = 8002;
-    user = "yifan";
-    group = "users";
+    instances.pool0-restic = {
+      usernameFile = "/run/agenix/restic-123pan-username";
+      passwordFile = "/run/agenix/restic-123pan-password";
+      repositoryPath = "/pool0-restic";
+      cacheDirectory = "/pool0/docker/restic-sync-123pan/cache";
+      listenPort = 8002;
+      user = "yifan";
+      group = "users";
+    };
   };
 
   services.restic-sync = {
@@ -55,7 +72,7 @@
         group = "users";
         dependsOn = [
           "podman-restic-server.service"
-          "restic-115.service"
+          "restic-115-pool0-restic.service"
         ];
       };
       "123pan" = {
@@ -66,7 +83,7 @@
         group = "users";
         dependsOn = [
           "podman-restic-server.service"
-          "restic-123pan.service"
+          "restic-123pan-pool0-restic.service"
         ];
       };
     };
@@ -78,12 +95,12 @@
     after = ["zfs-mount.service"];
   };
 
-  systemd.services.restic-115 = {
+  systemd.services.restic-115-pool0-restic = {
     wantedBy = ["el2-services.target"];
     requires = ["mount-el2-encrypted-datasets.service"];
     after = ["mount-el2-encrypted-datasets.service"];
   };
-  systemd.services.restic-123pan = {
+  systemd.services.restic-123pan-pool0-restic = {
     wantedBy = ["el2-services.target"];
     requires = ["mount-el2-encrypted-datasets.service"];
     after = ["mount-el2-encrypted-datasets.service"];
@@ -165,12 +182,14 @@
   };
 
   services.restic.backups.shared-repository-prune = {
-    environmentFile = "/home/yifan/.config/restic/env";
+    repository = "rest:http://restic-nas.ts.gaof.net/";
+    passwordFile = "/run/agenix/restic-backups-shared-repository-password";
     backupPrepareCommand = ''
       #!${pkgs.runtimeShell}
       ${lib.getExe' pkgs.coreutils "install"} -d -m 0700 -o root -g root /pool0/restic-prune-tmp
     '';
     pruneOpts = [
+      "--pack-size 128"
       "--keep-daily 7"
       "--keep-weekly 4"
       "--keep-monthly 12"
