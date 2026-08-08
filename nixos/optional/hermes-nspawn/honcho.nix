@@ -6,6 +6,7 @@
 }: let
   cfg = config.services.hermes-nspawn;
   honcho = cfg.honcho;
+  newApiTokenRestartTriggers = lib.optional (honcho.newApiTokenFileSource != null) honcho.newApiTokenFileSource;
   allowedInterfaces = ["lo"] ++ config.networking.homeRouter.internalInterfaces;
   honchoImage = "ghcr.io/plastic-labs/honcho:v3.0.12@sha256:1e9dbc40136d3f9213ce7482b0eecac914b630ee3e714ea961bd763945f94be5";
   litellmImage = "docker.litellm.ai/berriai/litellm:v1.93.0@sha256:a1745e629abfb17d434426ff48b115f54f4f4c4a0f5af241de569e93c63c411e";
@@ -57,6 +58,11 @@ in {
       type = lib.types.path;
       description = "NewAPI token used by the shared Honcho backend.";
     };
+    newApiTokenFileSource = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      description = "Encrypted source file used to restart Honcho after token changes.";
+    };
 
     apiPort = lib.mkOption {
       type = lib.types.port;
@@ -98,7 +104,7 @@ in {
 
       honcho-runtime-env = {
         description = "Prepare the Honcho runtime environment";
-        restartTriggers = [honcho.newApiTokenFile];
+        restartTriggers = newApiTokenRestartTriggers;
         path = [
           pkgs.coreutils
           pkgs.openssl
@@ -218,11 +224,11 @@ in {
           "honcho-database-init.service"
           "redis-honcho.service"
         ];
-        restartTriggers = [honcho.newApiTokenFile];
+        restartTriggers = newApiTokenRestartTriggers;
       };
 
       podman-honcho-deriver = {
-        restartTriggers = [honcho.newApiTokenFile];
+        restartTriggers = newApiTokenRestartTriggers;
       };
     };
 

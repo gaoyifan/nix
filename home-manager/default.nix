@@ -8,6 +8,7 @@
   ...
 }: let
   isDarwin = pkgs.stdenv.isDarwin;
+  isLinux = pkgs.stdenv.isLinux;
   rimeIce = pkgs.fetchFromGitHub {
     owner = "iDvel";
     repo = "rime-ice";
@@ -22,6 +23,7 @@
   cursorCliConfigTarget = "${config.home.homeDirectory}/.cursor/cli-config.json";
 in {
   imports = [
+    inputs.agenix.homeManagerModules.default
     ./shell.nix
     ./ssh-auth-sock.nix
     ./htop.nix
@@ -39,7 +41,7 @@ in {
   );
   home.stateVersion = "26.05";
 
-  i18n.glibcLocales = lib.mkIf (!isDarwin) (pkgs.glibcLocales.override {
+  i18n.glibcLocales = lib.mkIf isLinux (pkgs.glibcLocales.override {
     allLocales = false;
     locales = ["en_US.UTF-8/UTF-8"];
   });
@@ -72,7 +74,7 @@ in {
       pkgs.lazyssh
       pkgs.tssh
     ]
-    ++ lib.optionals (!isDarwin) [jip];
+    ++ lib.optionals isLinux [jip];
 
   # Cargo binaries (rust tools installed via cargo install)
   home.sessionPath =
@@ -82,7 +84,7 @@ in {
       "${config.home.homeDirectory}/.local/bin"
       "${config.home.homeDirectory}/.bun/bin"
     ]
-    ++ lib.optionals (!isDarwin) [
+    ++ lib.optionals isLinux [
       # Keep setuid wrappers (sudo, ...) ahead of the plain copies in
       # /run/current-system/sw/bin, which fail with "must be owned by uid 0".
       "/run/wrappers/bin"
@@ -91,10 +93,15 @@ in {
     ];
 
   # nh (nix helper) configuration
-  home.sessionVariables = {
-    NH_FLAKE = "${config.home.homeDirectory}/nix";
-    BUN_INSTALL = "${config.home.homeDirectory}/.bun";
-  };
+  home.sessionVariables =
+    {
+      NH_FLAKE = "${config.home.homeDirectory}/nix";
+      BUN_INSTALL = "${config.home.homeDirectory}/.bun";
+    }
+    // lib.optionalAttrs isLinux {
+      XDG_RUNTIME_DIR = "\${XDG_RUNTIME_DIR:-/run/user/\$(id -u)}";
+      DBUS_SESSION_BUS_ADDRESS = "\${DBUS_SESSION_BUS_ADDRESS:-unix:path=\${XDG_RUNTIME_DIR:-/run/user/\$(id -u)}/bus}";
+    };
 
   programs.git = {
     enable = true;
@@ -134,7 +141,7 @@ in {
       ".copilot/config.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.copilot/config.json";
       ".copilot/settings.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.copilot/settings.json";
     })
-    (lib.mkIf (config.services.mutagen.dotfileSync.enable && !isDarwin) {
+    (lib.mkIf (config.services.mutagen.dotfileSync.enable && isLinux) {
       ".config/cursor/auth.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.config/cursor/auth.json";
     })
   ];
@@ -180,6 +187,15 @@ in {
     fi
   '');
 
+  # Keep the user manager alive for runtime-mounted secrets on headless Linux
+  # hosts, including sessions created by tssh rather than pam_systemd.
+  home.activation.enableLinger = lib.mkIf isLinux (
+    lib.hm.dag.entryBetween ["linkGeneration"] ["writeBoundary"] ''
+      PATH="/run/current-system/sw/bin:/usr/bin:/bin:$PATH" \
+        run loginctl enable-linger ${lib.escapeShellArg config.home.username}
+    ''
+  );
+
   # Enable atuin sync key deployment from secrets module
   services.secrets.atuin.enable = true;
 
@@ -192,5 +208,5 @@ in {
   };
 
   # Auto gc on Linux only - darwin handles this at system level
-  nix.gc.automatic = !isDarwin;
+  nix.gc.automatic = isLinux;
 }

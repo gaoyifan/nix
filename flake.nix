@@ -119,6 +119,14 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    agenix = {
+      url = "github:ryantm/agenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.home-manager.follows = "home-manager";
+      inputs.darwin.follows = "nix-darwin";
+      inputs.systems.follows = "systems";
+    };
+
     hermes-agent = {
       url = "github:NousResearch/hermes-agent/v2026.8.3";
       inputs.nixpkgs.follows = "nixpkgs";

@@ -212,6 +212,18 @@ darwin hostname='':
     fi
     sudo launchctl kickstart -k system/systems.determinate.nix-daemon
 
+# Edit an agenix secret relative to the invocation directory
+[group('dev')]
+[working-directory(justfile_directory() + "/secrets/files")]
+edit-secret path:
+    RULES=./secrets.nix agenix -e "$(realpath --relative-to=. "{{ invocation_directory() }}/{{ path }}")"
+
+# Re-encrypt all agenix secrets with the current recipient rules
+[group('dev')]
+[working-directory(justfile_directory() + "/secrets/files")]
+rekey:
+    RULES=./secrets.nix agenix --rekey
+
 # Format all supported files
 [group('dev')]
 fmt:

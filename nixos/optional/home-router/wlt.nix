@@ -20,7 +20,13 @@
   configD = "/var/lib/wlt/config.d";
   persistDir = "/var/lib/wlt/persist";
   snapshotFile = "${persistDir}/wlt_src2mark.conf";
-  wltSecrets = config.services.secrets.nixos.wlt;
+  wltSecrets = {
+    sshHostKeyFile = "/run/agenix/wlt-ssh-host-key";
+    tls = {
+      certFile = config.services.secrets.filesDir + "/nixos/wlt-server.pem";
+      keyFile = "/run/agenix/wlt-server-key";
+    };
+  };
   portalIpv4 = homeRouter.serviceAddresses.ipv4;
   portalIpv6 = homeRouter.serviceAddresses.ipv6;
   geoSets = pkgs.nft-geo-sets;

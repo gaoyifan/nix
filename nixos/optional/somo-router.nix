@@ -8,7 +8,7 @@
   homeRouter = config.networking.homeRouter;
   lanDomain = "somo.gaof.net";
   usbWanGroup = 6505;
-  wgIplc = config.services.secrets.nixos.${config.networking.hostName}.wgIplc;
+  wgIplc = import (config.services.secrets.filesDir + "/nixos/${config.networking.hostName}/wg-iplc.nix");
   guestInterface = homeRouter.lans.guest.interface;
   somoInterface = homeRouter.lans.somo.interface;
   subnet = offset: toString (cfg.lanSubnetBase + offset);

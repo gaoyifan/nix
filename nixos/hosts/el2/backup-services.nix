@@ -165,7 +165,7 @@
   };
 
   services.restic.backups.shared-repository-prune = {
-    environmentFile = "/home/yifan/nix/secrets/files/home/restic-env";
+    environmentFile = "/home/yifan/.config/restic/env";
     backupPrepareCommand = ''
       #!${pkgs.runtimeShell}
       ${lib.getExe' pkgs.coreutils "install"} -d -m 0700 -o root -g root /pool0/restic-prune-tmp

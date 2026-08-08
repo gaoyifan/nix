@@ -22,9 +22,9 @@ in {
       description = "Telegram API application ID.";
     };
 
-    apiHash = lib.mkOption {
-      type = lib.types.str;
-      description = "Telegram API application hash.";
+    apiHashEnvironmentFile = lib.mkOption {
+      type = lib.types.path;
+      description = "Runtime EnvironmentFile containing TELEGRAM_API_HASH.";
     };
 
     apiPort = lib.mkOption {
@@ -54,7 +54,6 @@ in {
       wants = ["network-online.target"];
       environment = {
         TELEGRAM_API_ID = toString telegramBotApi.apiId;
-        TELEGRAM_API_HASH = telegramBotApi.apiHash;
       };
       serviceConfig = {
         User = "telegram-bot-api";
@@ -63,6 +62,7 @@ in {
         StateDirectoryMode = "0750";
         RuntimeDirectory = "telegram-bot-api";
         RuntimeDirectoryMode = "0700";
+        EnvironmentFile = telegramBotApi.apiHashEnvironmentFile;
         ExecStart = lib.escapeShellArgs [
           (lib.getExe telegramBotApi.package)
           "--http-ip-address=${cfg.listenAddress}"

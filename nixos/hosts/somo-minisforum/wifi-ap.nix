@@ -1,12 +1,17 @@
 # WiFi AP on the onboard MediaTek MT7921, attached to the homeRouter switch.
 {
   config,
+  lib,
   utils,
   ...
 }: let
   bridge = config.networking.homeRouter.switch.name;
   bridgeDevice = "sys-subsystem-net-devices-${utils.escapeSystemdPath bridge}.device";
 in {
+  age.secrets = lib.mkIf config.services.secrets.hasRealFiles {
+    somo-minisforum-wifi-password.file = config.services.secrets.filesDir + "/nixos/somo-minisforum/wifi-password.age";
+  };
+
   # A wireless interface can join a bridge only after hostapd switches it to
   # AP mode. networkd then attaches it and applies the switch-port VLANs.
   systemd.network.networks."31-wlp6s0".matchConfig.WLANInterfaceType = "ap";
@@ -41,7 +46,7 @@ in {
       networks.wlp6s0 = {
         ssid = "SOMO Workstation";
         authentication = let
-          passwordFile = "${config.services.secrets.filesDir}/nixos/somo-minisforum/wifi-password";
+          passwordFile = "/run/agenix/somo-minisforum-wifi-password";
         in {
           mode = "wpa3-sae-transition";
           wpaPasswordFile = passwordFile;

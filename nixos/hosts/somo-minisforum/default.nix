@@ -1,10 +1,34 @@
 # somo-minisforum - Minisforum mini PC, always-on Incus (KVM) host.
-{config, ...}: let
-  newApiTokenDirectory = builtins.path {
-    path = config.services.secrets.filesDir + "/nixos/somo-minisforum/new-api-tokens";
-    name = "hermes-new-api-tokens";
-  };
+{
+  config,
+  lib,
+  ...
+}: let
+  filesDir = config.services.secrets.filesDir;
+  tokenDirectory = filesDir + "/nixos/somo-minisforum/new-api-tokens";
+  newApiTokenDirectory = "/run/agenix/new-api-tokens";
+  newApiTokens =
+    if config.services.secrets.hasRealFiles
+    then
+      lib.mapAttrs' (fileName: _: let
+        tokenName = lib.removeSuffix ".age" fileName;
+      in
+        lib.nameValuePair tokenName {
+          file = tokenDirectory + "/${fileName}";
+          path = "${newApiTokenDirectory}/${tokenName}";
+        })
+      (lib.filterAttrs (name: _: lib.hasSuffix ".age" name) (builtins.readDir tokenDirectory))
+    else {};
 in {
+  age.secrets = lib.mkIf config.services.secrets.hasRealFiles (
+    {
+      telegram-api-hash.file = filesDir + "/nixos/somo-minisforum/telegram-api-hash.age";
+    }
+    // lib.mapAttrs' (tokenName: secret:
+      lib.nameValuePair "new-api-token-${tokenName}" secret)
+    newApiTokens
+  );
+
   imports = [
     ../../optional/bare-metal.nix
     ../../optional/hermes-nspawn.nix
@@ -25,15 +49,18 @@ in {
   services.hermes-nspawn = {
     enable = true;
     defaultLan = "somo";
-    containers = config.services.secrets.nixos."somo-minisforum".hermesNspawn;
+    containers = import (filesDir + "/nixos/somo-minisforum/hermes-nspawn.nix");
     inherit newApiTokenDirectory;
+    newApiTokenRestartTriggers = lib.mapAttrs (_: secret: secret.file) newApiTokens;
     dashboardDomain = "hermes.dengdengli.com";
     honcho = {
       newApiTokenFile = "${newApiTokenDirectory}/honcho";
+      newApiTokenFileSource = lib.attrByPath ["honcho" "file"] null newApiTokens;
     };
     telegramBotApi = {
       enable = true;
-      inherit (config.services.secrets.nixos."somo-minisforum".telegramBotApi) apiId apiHash;
+      inherit (import (filesDir + "/nixos/somo-minisforum/telegram-bot-api.nix")) apiId;
+      apiHashEnvironmentFile = "/run/agenix/telegram-api-hash";
     };
   };
 

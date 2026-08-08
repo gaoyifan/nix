@@ -2,19 +2,24 @@
 {
   config,
   lib,
+  pkgs,
+  darwinHost ? null,
   ...
 }: let
   realSecretsDir = ./files;
-  exampleSecretsDir = ./files-example;
   hasRealSecrets = builtins.pathExists (realSecretsDir + "/.gitkeep");
+  hasRegisteredUserKey =
+    !pkgs.stdenv.isDarwin
+    || darwinHost == "Yifans-MacBook-Air-2022";
   hasAtuinSecrets =
     hasRealSecrets
-    && builtins.pathExists (realSecretsDir + "/home/atuin-key")
-    && builtins.pathExists (realSecretsDir + "/home/atuin-password");
-  secretsDir =
-    if hasRealSecrets
-    then realSecretsDir
-    else exampleSecretsDir;
+    && hasRegisteredUserKey
+    && builtins.pathExists (realSecretsDir + "/home/atuin-key.age")
+    && builtins.pathExists (realSecretsDir + "/home/atuin-password.age");
+  hasResticSecrets =
+    hasRealSecrets
+    && hasRegisteredUserKey
+    && builtins.pathExists (realSecretsDir + "/home/restic-env.age");
   cfg = config.services.secrets;
 in {
   options.services.secrets = {
@@ -24,13 +29,6 @@ in {
       description = "Whether the real secrets submodule is available locally";
       internal = true;
       readOnly = true;
-    };
-
-    filesDir = lib.mkOption {
-      type = lib.types.path;
-      default = secretsDir;
-      description = "Path to the directory containing secret files";
-      internal = true;
     };
 
     atuin = {
@@ -43,13 +41,19 @@ in {
         readOnly = true;
       };
       keyFile = lib.mkOption {
-        type = lib.types.path;
-        default = "${cfg.filesDir}/home/atuin-key";
+        type = lib.types.str;
+        default =
+          if hasAtuinSecrets
+          then config.age.secrets."atuin-key".path
+          else "/run/agenix/atuin-key";
         description = "Path to the Atuin encryption key file";
       };
       passwordFile = lib.mkOption {
-        type = lib.types.path;
-        default = "${cfg.filesDir}/home/atuin-password";
+        type = lib.types.str;
+        default =
+          if hasAtuinSecrets
+          then config.age.secrets."atuin-password".path
+          else "/run/agenix/atuin-password";
         description = "Path to the Atuin password file";
       };
     };
@@ -57,20 +61,36 @@ in {
     restic = {
       envFile = lib.mkOption {
         type = lib.types.str;
-        default = "${cfg.filesDir}/home/restic-env";
+        default =
+          if hasResticSecrets
+          then config.age.secrets."restic-env".path
+          else "${config.home.homeDirectory}/.config/restic/env";
         description = "Path to the Restic environment file for systemd EnvironmentFile";
       };
     };
   };
 
-  config = lib.mkIf (cfg.atuin.enable && cfg.atuin.available) {
-    home.file.".local/share/atuin/key" = {
-      source = cfg.atuin.keyFile;
-      force = true;
-    };
-    home.file.".local/share/atuin/password" = {
-      source = cfg.atuin.passwordFile;
-      force = true;
-    };
-  };
+  config = lib.mkMerge [
+    (lib.mkIf (cfg.atuin.enable && cfg.atuin.available) {
+      age.secrets = {
+        "atuin-key" = {
+          file = realSecretsDir + "/home/atuin-key.age";
+          path = "${config.home.homeDirectory}/.local/share/atuin/key";
+          mode = "0600";
+        };
+        "atuin-password" = {
+          file = realSecretsDir + "/home/atuin-password.age";
+          path = "${config.home.homeDirectory}/.local/share/atuin/password";
+          mode = "0600";
+        };
+      };
+    })
+    (lib.mkIf hasResticSecrets {
+      age.secrets."restic-env" = {
+        file = realSecretsDir + "/home/restic-env.age";
+        path = "${config.home.homeDirectory}/.config/restic/env";
+        mode = "0600";
+      };
+    })
+  ];
 }

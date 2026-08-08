@@ -21,7 +21,7 @@ in {
 
   services.tailscale = {
     enable = true;
-    authKeyFile = lib.mkDefault config.services.secrets.nixos.tailscale.authKeyFile;
+    authKeyFile = lib.mkDefault "/run/agenix/tailscale-auth-key";
     useRoutingFeatures = "server";
     extraUpFlags = gnetFlags;
     extraSetFlags = gnetFlags;

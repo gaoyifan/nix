@@ -1,9 +1,18 @@
-{config, ...}: let
-  wg = config.services.secrets.nixos."somo-nanopi-r4s".wgIplc;
+{
+  config,
+  lib,
+  ...
+}: let
+  filesDir = config.services.secrets.filesDir;
+  wg = import (filesDir + "/nixos/somo-nanopi-r4s/wg-iplc.nix");
 in {
+  age.secrets = lib.mkIf config.services.secrets.hasRealFiles {
+    somo-nanopi-r4s-wg-iplc-private-key.file = filesDir + "/nixos/somo-nanopi-r4s/wg-iplc-private-key.age";
+  };
+
   networking.wireguard.interfaces.${wg.interfaceName} = {
     ips = wg.ips;
-    privateKeyFile = wg.privateKeyFile;
+    privateKeyFile = "/run/agenix/somo-nanopi-r4s-wg-iplc-private-key";
     mtu = wg.mtu;
     table = wg.routeTable;
     fwMark = wg.socketMark;

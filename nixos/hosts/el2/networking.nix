@@ -1,5 +1,6 @@
 {
   config,
+  lib,
   pkgs,
   ...
 }: let
@@ -11,6 +12,11 @@
   wgIplcMark = "0x100";
   wgIplcTable = "5110";
 in {
+  age.secrets = lib.mkIf config.services.secrets.hasRealFiles {
+    wlt-server-key.file = config.services.secrets.filesDir + "/nixos/wlt-server-key.pem.age";
+    wlt-ssh-host-key.file = config.services.secrets.filesDir + "/nixos/wlt-ssh-host-key.age";
+  };
+
   imports = [
     ../../optional/home-router
     ../../optional/nylon.nix

@@ -19,7 +19,7 @@ It is a personal flake covering:
 - [`system-manager/`](system-manager): Linux system services
 - [`nixos/`](nixos): NixOS hosts and modules
 - [`pkgs/`](pkgs): custom packages exposed by the flake overlay
-- [`secrets/`](secrets): secret modules and CI-safe placeholders
+- [`secrets/`](secrets): secret modules and CI-safe metadata
 
 ## Quick Start
 
@@ -107,8 +107,9 @@ nix build .#darwinConfigurations.default.system
 
 The main repository is public. Real secrets live in a private submodule:
 
-- `secrets/files/`: private submodule with real secrets
-- `secrets/files-example/`: tracked placeholders used in CI and public builds
+- `secrets/files/`: private submodule with encrypted secrets
+- `secrets/files/secrets.nix`: private recipient registry and agenix authorization matrix
+- `secrets/files-example/`: non-secret metadata used in CI and public builds
 
 When the private submodule is absent, the public repo automatically falls back to `files-example`, so CI and external readers can still evaluate and build the flake safely.
 

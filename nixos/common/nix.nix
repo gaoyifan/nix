@@ -6,11 +6,14 @@
   ...
 }: let
   cacheSettings = import ../../nix-cache.nix;
+  internalSubstituters = import ../../secrets/internal-substituters.nix {
+    hostname = config.networking.hostName;
+  };
 in {
   nix.settings = {
     experimental-features = ["nix-command" "flakes"];
     extra-substituters =
-      config.services.secrets.nixos.internalSubstituters
+      internalSubstituters
       ++ cacheSettings.extra-substituters;
     extra-trusted-public-keys = cacheSettings.extra-trusted-public-keys;
     trusted-users = ["root" username];

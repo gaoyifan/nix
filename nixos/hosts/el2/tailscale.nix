@@ -1,4 +1,8 @@
-{config, ...}: let
+{
+  config,
+  lib,
+  ...
+}: let
   flags = [
     "--advertise-connector"
     # The control plane intentionally leaves 192.168.93.0/24 unapproved; it is
@@ -10,8 +14,12 @@
 in {
   imports = [../../optional/tailscale-gnet.nix];
 
+  age.secrets = lib.mkIf config.services.secrets.hasRealFiles {
+    tailscale-auth-key.file = config.services.secrets.filesDir + "/nixos/tailscale-auth-key.age";
+  };
+
   services.tailscale = {
-    authKeyFile = "${config.services.secrets.filesDir}/nixos/tailscale-auth-key";
+    authKeyFile = "/run/agenix/tailscale-auth-key";
     extraSetFlags = flags;
     extraUpFlags = flags;
     port = 6627;

@@ -21,6 +21,7 @@
 - `just fmt`: Format all supported languages through treefmt
 - `just fmt-check`: Check formatting without changing files
 - `just check`: Evaluate the current machine's configuration
+- `just rekey`: Re-encrypt all agenix secrets with the current recipient rules
 
 ## Remote Commands
 

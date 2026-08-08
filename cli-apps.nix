@@ -5,6 +5,7 @@
   appSpecs =
     {
       agy = {};
+      agenix = {};
       bmon = {};
       codex = {};
       copilot = {

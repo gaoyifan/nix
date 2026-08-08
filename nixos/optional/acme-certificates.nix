@@ -58,7 +58,7 @@ in {
             StateDirectory = "acme-certificates";
             RuntimeDirectory = "acme-certificates";
             UMask = "0077";
-            ExecStartPre = "${lib.getExe' pkgs.coreutils "install"} -m 0600 ${config.services.secrets.nixos.acmeCertificates.sshPrivateKeyFile} ${runtimeKey}";
+            ExecStartPre = "${lib.getExe' pkgs.coreutils "install"} -m 0600 /run/agenix/acme-repository-pull-key ${runtimeKey}";
             ExecStart = updateScript;
           };
         };

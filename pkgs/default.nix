@@ -3,6 +3,7 @@
   pkgs,
 }:
 {
+  agenix = inputs.agenix.packages.${pkgs.stdenv.hostPlatform.system}.default;
   lazyssh = import ./lazyssh.nix {inherit pkgs;};
   dcv = import ./dcv.nix {inherit pkgs;};
   restic = import ./restic.nix {inherit pkgs;};

@@ -5,7 +5,9 @@
   pkgs,
   ...
 }: let
-  caddySecrets = config.services.secrets.nixos."somo-gw".caddy;
+  filesDir = config.services.secrets.filesDir;
+  hermesNspawn = import (filesDir + "/nixos/somo-minisforum/hermes-nspawn.nix");
+  caddySecrets = import (filesDir + "/nixos/somo-gw/caddy.nix") {inherit hermesNspawn;};
   publicInterface = "ens*";
 in {
   imports = [
@@ -13,6 +15,10 @@ in {
     ../../optional/tailscale-gnet.nix
     ./disk-config.nix
   ];
+
+  age.secrets = lib.mkIf config.services.secrets.hasRealFiles {
+    tailscale-auth-key.file = filesDir + "/nixos/tailscale-auth-key.age";
+  };
 
   networking.hostName = "somo-gw";
   networking.useDHCP = lib.mkDefault true;

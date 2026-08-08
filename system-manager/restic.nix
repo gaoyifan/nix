@@ -12,7 +12,7 @@ in {
 
     envFile = lib.mkOption {
       type = lib.types.str;
-      default = "/home/${username}/nix/secrets/files/home/restic-env";
+      default = "/home/${username}/.config/restic/env";
       description = "Path to the Restic environment file used by the systemd service.";
     };
   };

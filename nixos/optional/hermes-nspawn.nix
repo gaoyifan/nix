@@ -59,6 +59,11 @@ in {
       type = lib.types.path;
       description = "Directory containing New API tokens named hermes-<user>.";
     };
+    newApiTokenRestartTriggers = lib.mkOption {
+      type = lib.types.attrsOf lib.types.path;
+      default = {};
+      description = "Encrypted New API token files used as service restart triggers.";
+    };
     listenAddress = lib.mkOption {
       type = lib.types.str;
       default = homeRouter.serviceAddresses.ipv4;
@@ -172,7 +177,7 @@ in {
           requires = [secretsService];
           wants = serviceDependencies;
           after = [secretsService] ++ serviceDependencies;
-          restartTriggers = [(newApiTokenFile userName)];
+          restartTriggers = lib.optional (cfg.newApiTokenRestartTriggers ? "hermes-${userName}") cfg.newApiTokenRestartTriggers."hermes-${userName}";
           # Give systemd-nspawn time to release its veth pair before retrying
           # after a failed stop/start. A 100 ms retry can hit "File exists".
           serviceConfig.RestartSec = "5s";

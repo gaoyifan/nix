@@ -62,7 +62,10 @@ in {
                 useGlobalPkgs = true;
                 useUserPackages = true;
                 backupCommand = mkHomeManagerBackupCommand pkgs;
-                extraSpecialArgs = {inherit inputs;};
+                extraSpecialArgs = {
+                  inherit inputs;
+                  darwinHost = hostname;
+                };
                 users.${username} = import ../home-manager;
               };
             })

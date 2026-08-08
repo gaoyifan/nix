@@ -26,6 +26,10 @@
     };
   };
 in {
+  age.secrets = lib.mkIf config.services.secrets.hasRealFiles {
+    acme-repository-pull-key.file = config.services.secrets.filesDir + "/nixos/acme-repository-pull-key.age";
+  };
+
   imports = [
     ../../optional/acme-certificates.nix
     ../../optional/diverge.nix

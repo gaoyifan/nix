@@ -5,6 +5,8 @@
   ...
 }: let
   hasAtuinSecrets = config.services.secrets.atuin.available;
+  isDarwin = pkgs.stdenv.isDarwin;
+  isLinux = pkgs.stdenv.isLinux;
   cliApps = import ../cli-apps.nix {inherit lib;};
   dynamicCli = cliApps.mkHomeManager pkgs;
   zsh-codex-mode = pkgs.fetchFromGitHub {
@@ -19,6 +21,30 @@
     rev = "16a37c5f59243a68cd662a8cb70497cbcfaa10b2";
     hash = "sha256-vxGOr4jTAI0w4Y9Gz/1iEGT2YIq76DJiYIQ+vl4M7qA=";
   };
+  atuinLoginScript = pkgs.writeShellScript "atuin-login" ''
+    ${lib.optionalString isDarwin ''
+      for _ in $(${pkgs.coreutils}/bin/seq 30); do
+        if [ -f "${config.services.secrets.atuin.passwordFile}" ] \
+          && [ -f "${config.services.secrets.atuin.keyFile}" ]; then
+          break
+        fi
+        ${pkgs.coreutils}/bin/sleep 1
+      done
+    ''}
+
+    if [ -f "${config.services.secrets.atuin.passwordFile}" ] \
+      && [ -f "${config.services.secrets.atuin.keyFile}" ]; then
+      if ! ${pkgs.atuin}/bin/atuin status 2>/dev/null | grep -q "Username: ${config.home.username}"; then
+        echo "Atuin not logged in. Attempting automated login..."
+        ${pkgs.coreutils}/bin/timeout 10s ${pkgs.atuin}/bin/atuin login -u ${config.home.username} \
+          -p "$(${pkgs.coreutils}/bin/cat "${config.services.secrets.atuin.passwordFile}")" \
+          -k "$(${pkgs.coreutils}/bin/cat "${config.services.secrets.atuin.keyFile}")" \
+          || echo "Atuin login failed (non-blocking)"
+      else
+        echo "Atuin is already logged in."
+      fi
+    fi
+  '';
 in {
   # The home.packages option allows you to install Nix packages into your
   # environment.
@@ -58,20 +84,32 @@ in {
   };
 
   # Atuin Login Automation (failures are non-blocking to avoid breaking deployment)
-  home.activation.atuinLogin = lib.hm.dag.entryAfter ["linkGeneration"] ''
-    if [ "${lib.boolToString hasAtuinSecrets}" = "true" ] \
-      && [ -f "${config.services.secrets.atuin.passwordFile}" ] \
-      && [ -f "${config.services.secrets.atuin.keyFile}" ]; then
-      if ! ${pkgs.atuin}/bin/atuin status 2>/dev/null | grep -q "Username: ${config.home.username}"; then
-        echo "Atuin not logged in. Attempting automated login..."
-        ${pkgs.coreutils}/bin/timeout 10s ${pkgs.atuin}/bin/atuin login -u ${config.home.username} \
-          -p "$(<"${config.services.secrets.atuin.passwordFile}")" \
-          -k "$(<"${config.services.secrets.atuin.keyFile}")" || echo "Atuin login failed (non-blocking)"
-      else
-        echo "Atuin is already logged in."
-      fi
-    fi
-  '';
+  systemd.user.services.atuin-login = lib.mkIf (hasAtuinSecrets && isLinux) {
+    Unit = {
+      Description = "Log in to Atuin after agenix mounts credentials";
+      Wants = ["agenix.service"];
+      After = ["agenix.service"];
+      X-Restart-Triggers = [
+        "${config.age.secrets."atuin-key".file}"
+        "${config.age.secrets."atuin-password".file}"
+      ];
+    };
+    Service = {
+      Type = "oneshot";
+      ExecStart = atuinLoginScript;
+    };
+    Install.WantedBy = ["default.target"];
+  };
+
+  launchd.agents.atuin-login = lib.mkIf (hasAtuinSecrets && isDarwin) {
+    enable = true;
+    config = {
+      ProgramArguments = [atuinLoginScript];
+      RunAtLoad = true;
+      KeepAlive = {SuccessfulExit = false;};
+      ProcessType = "Background";
+    };
+  };
 
   programs.direnv = {
     enable = true;
