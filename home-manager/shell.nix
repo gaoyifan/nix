@@ -9,6 +9,7 @@
   isLinux = pkgs.stdenv.isLinux;
   cliApps = import ../cli-apps.nix {inherit lib;};
   dynamicCli = cliApps.mkHomeManager pkgs;
+  codexWrapperPath = "${dynamicCli.relBinDir}/codex";
   zsh-codex-mode = pkgs.fetchFromGitHub {
     owner = "gaoyifan";
     repo = "zsh-codex-mode";
@@ -55,7 +56,15 @@ in {
     jq
   ];
 
-  home.file = dynamicCli.wrapperFiles;
+  home.file =
+    dynamicCli.wrapperFiles
+    // lib.optionalAttrs config.services.mutagen.dotfileSync.enable {
+      "${codexWrapperPath}".source = pkgs.writeShellScript "codex" ''
+        export CODEX_HOME=${lib.escapeShellArg "${config.home.homeDirectory}/.syncd-dotfiles/.codex"}
+        export CODEX_SQLITE_HOME=${lib.escapeShellArg "${config.home.homeDirectory}/.codex"}
+        exec ${dynamicCli.wrapperFiles.${codexWrapperPath}.source} "$@"
+      '';
+    };
 
   programs.powerline-go.enable = true;
 
