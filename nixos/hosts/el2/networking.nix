@@ -77,7 +77,7 @@ in {
 
     avahi.enable = false;
     dnsmasq = {
-      domain = "lab.gaof.net";
+      domain = "el2.gaof.net";
       servers = [
         "/cjia.gaof.net/100.65.1.254"
         "127.0.0.1#1054"
