@@ -10,6 +10,7 @@
   cliApps = import ../cli-apps.nix {inherit lib;};
   dynamicCli = cliApps.mkHomeManager pkgs;
   codexWrapperPath = "${dynamicCli.relBinDir}/codex";
+  codexReindexWrapperPath = "${dynamicCli.relBinDir}/codex-reindex";
   zsh-codex-mode = pkgs.fetchFromGitHub {
     owner = "gaoyifan";
     repo = "zsh-codex-mode";
@@ -63,6 +64,11 @@ in {
         export CODEX_HOME=${lib.escapeShellArg "${config.home.homeDirectory}/.syncd-dotfiles/.codex"}
         export CODEX_SQLITE_HOME=${lib.escapeShellArg "${config.home.homeDirectory}/.codex"}
         exec ${dynamicCli.wrapperFiles.${codexWrapperPath}.source} "$@"
+      '';
+      "${codexReindexWrapperPath}".source = pkgs.writeShellScript "codex-reindex" ''
+        export CODEX_HOME=${lib.escapeShellArg "${config.home.homeDirectory}/.syncd-dotfiles/.codex"}
+        export CODEX_SQLITE_HOME=${lib.escapeShellArg "${config.home.homeDirectory}/.codex"}
+        exec ${dynamicCli.wrapperFiles.${codexReindexWrapperPath}.source} "$@"
       '';
     };
 

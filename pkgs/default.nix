@@ -2,7 +2,7 @@
   inputs,
   pkgs,
 }:
-{
+rec {
   agenix = inputs.agenix.packages.${pkgs.stdenv.hostPlatform.system}.default;
   lazyssh = import ./lazyssh.nix {inherit pkgs;};
   dcv = import ./dcv.nix {inherit pkgs;};
@@ -11,6 +11,9 @@
   agy = import ./antigravity-cli.nix {inherit pkgs;};
   copilot-cli = import ./copilot-cli.nix {inherit pkgs;};
   codex = import ./codex.nix {inherit pkgs;};
+  codex-reindex = import ./codex-reindex.nix {
+    inherit pkgs codex;
+  };
   cursor-cli = import ./cursor-cli.nix {inherit pkgs;};
   pi-coding-agent = import ./pi-coding-agent.nix {inherit pkgs;};
   playwright-cli = import ./playwright-cli.nix {inherit pkgs;};

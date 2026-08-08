@@ -8,6 +8,7 @@
       agenix = {};
       bmon = {};
       codex = {};
+      codex-reindex = {};
       copilot = {
         packagePath = ["copilot-cli"];
         wrapperArgs = ["--yolo"];
