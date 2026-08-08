@@ -159,7 +159,7 @@
     # System Tools
     "raycast" # Spotlight replacement
     "topnotch" # Hide MacBook notch
-    "appcleaner" # Remove apps and leftover files
+    "pearcleaner" # Remove apps and leftover files
     "balenaetcher" # USB/SD flasher
     "raspberry-pi-imager"
     "pvetui" # Proxmox VE TUI
