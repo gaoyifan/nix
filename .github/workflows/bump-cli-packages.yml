@@ -52,6 +52,7 @@ jobs:
           max_attempts: 5
           retry_wait_seconds: 1
           timeout_minutes: 10
+          on_retry_command: git restore --source=HEAD --staged --worktree -- .
           command: python3 .github/scripts/bump-cli-packages.py --package "$REQUESTED_PACKAGE" --version "$REQUESTED_VERSION"
 
       - name: Format changed files
