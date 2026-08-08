@@ -231,7 +231,7 @@ in {
           meta mark != 0 return
           udp sport ${toString config.services.nylon.udpPort} return
           ip daddr != @cn meta mark set ${wgIplc.mark}
-          ip6 daddr != @cn6 icmpv6 type echo-request return
+          ip6 daddr != @cn6 meta l4proto ipv6-icmp return
           ip6 daddr != @cn6 meta l4proto tcp reject with tcp reset
           ip6 daddr != @cn6 reject with icmpv6 type no-route
         }
