@@ -42,6 +42,13 @@ in {
     else "/home/${config.home.username}"
   );
   home.stateVersion = "26.05";
+  home.extraDependencies = [
+    (
+      if isDarwin
+      then inputs.nixpkgs-darwin.outPath
+      else inputs.nixpkgs.outPath
+    )
+  ];
 
   i18n.glibcLocales = lib.mkIf isLinux (pkgs.glibcLocales.override {
     allLocales = false;
