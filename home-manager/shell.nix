@@ -104,7 +104,7 @@ in {
   launchd.agents.atuin-login = lib.mkIf (hasAtuinSecrets && isDarwin) {
     enable = true;
     config = {
-      ProgramArguments = [atuinLoginScript];
+      ProgramArguments = ["${atuinLoginScript}"];
       RunAtLoad = true;
       KeepAlive = {SuccessfulExit = false;};
       ProcessType = "Background";
