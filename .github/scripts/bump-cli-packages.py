@@ -81,14 +81,6 @@ PACKAGES = {
         },
         "url": lambda version, asset: f"https://github.com/earendil-works/pi/releases/download/v{version}/{asset}",
     },
-    "pi-coding-agent-baseline": {
-        "path": ROOT / "pkgs/pi-coding-agent-baseline.nix",
-        "release_api": "https://api.github.com/repos/earendil-works/pi/releases?per_page=100",
-        "tag_pattern": r"^v[0-9]+\.[0-9]+\.[0-9]+$",
-        "version_from_tag": lambda tag: tag.removeprefix("v"),
-        "assets": {"source": "pi-{version}-source.tar.gz"},
-        "nix_update": True,
-    },
 }
 
 

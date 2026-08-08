@@ -27,9 +27,6 @@
   jip = import ./jip.nix {inherit pkgs;};
   nylon = import ./nylon.nix {inherit pkgs;};
 }
-// pkgs.lib.optionalAttrs (pkgs.stdenv.hostPlatform.system == "x86_64-linux") {
-  pi-coding-agent-baseline = import ./pi-coding-agent-baseline.nix {inherit pkgs;};
-}
 // pkgs.lib.optionalAttrs (pkgs.stdenv.hostPlatform.system == "aarch64-linux") {
   nanopi-r4s-uboot = import ./nanopi-r4s-uboot.nix {inherit pkgs;};
 }
