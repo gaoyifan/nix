@@ -15,7 +15,6 @@
       in
         lib.nameValuePair tokenName {
           file = tokenDirectory + "/${fileName}";
-          path = "${newApiTokenDirectory}/${tokenName}";
         })
       (lib.filterAttrs (name: _: lib.hasSuffix ".age" name) (builtins.readDir tokenDirectory))
     else {};
@@ -25,7 +24,7 @@ in {
       telegram-api-hash.file = filesDir + "/nixos/somo-minisforum/telegram-api-hash.age";
     }
     // lib.mapAttrs' (tokenName: secret:
-      lib.nameValuePair "new-api-token-${tokenName}" secret)
+      lib.nameValuePair "new-api-tokens/${tokenName}" secret)
     newApiTokens
   );
 
