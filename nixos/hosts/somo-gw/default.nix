@@ -66,7 +66,7 @@ in {
           ct state established,related accept
           iifname "lo" accept
           ip protocol icmp accept
-          ip6 nexthdr icmpv6 accept
+          meta l4proto ipv6-icmp accept
 
           # DHCP client renewals from the cloud network.
           udp sport 67 udp dport 68 accept

@@ -207,7 +207,7 @@ in {
             meta nfproto ipv4 meta mark set ${cfg.wgIplc.mark} return
 
             ip6 daddr @cn6 meta mark set ${cernetMark} return
-            ip6 daddr != @cn6 icmpv6 type echo-request return
+            ip6 daddr != @cn6 meta l4proto ipv6-icmp return
             ip6 daddr != @cn6 reject with icmpx type admin-prohibited
           }
 
@@ -245,7 +245,7 @@ in {
             ct state established,related accept
             iifname "lo" accept
             ip protocol icmp accept
-            ip6 nexthdr icmpv6 accept
+            meta l4proto ipv6-icmp accept
 
             iifname { ${lib.concatMapStringsSep ", " (interface: ''"${interface}"'') trustedInterfaces} } accept
             ${lib.optionalString (cfg.publicTcpPorts != []) "tcp dport { ${nftSet cfg.publicTcpPorts} } accept"}
