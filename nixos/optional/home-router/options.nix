@@ -207,6 +207,11 @@ in {
             default = false;
             description = "Whether static gateways also install default routes in the main table.";
           };
+          routes = lib.mkOption {
+            type = types.listOf types.attrs;
+            default = [];
+            description = "Additional systemd-networkd routes installed on this WAN.";
+          };
           masquerade = {
             ipv4SourceSubnets = lib.mkOption {
               type = types.listOf types.str;

@@ -17,7 +17,6 @@
     "docker22"
     "el2"
     "el2.gaof.net"
-    "gw-el"
     "misc0-61"
     "misc0-sz"
     "misc1"

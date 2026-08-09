@@ -34,6 +34,7 @@
     };
   };
   configs = {
+    el = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/el];
     el2 = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/el2];
     el2-install = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/el2 ../nixos/hosts/el2/install.nix];
     misc0-jp = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/misc0-jp];
@@ -49,6 +50,7 @@ in {
   nixosConfigurations = configs;
 
   deploy.nodes = {
+    el = mkDeployNode "x86_64-linux" "el.ts.gaof.net" configs.el;
     el2 = mkDeployNode "x86_64-linux" "el2.ts.gaof.net" configs.el2;
     misc0-jp = mkDeployNode "x86_64-linux" "misc0-jp.ts.gaof.net" configs.misc0-jp;
     oracle2 = mkDeployNode "aarch64-linux" "oracle2.ts.gaof.net" configs.oracle2;

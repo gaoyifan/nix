@@ -3,6 +3,11 @@
   lib,
   ...
 }: let
+  homeRouter = config.networking.homeRouter;
+  cernetInterface = homeRouter.wans.cernet.interface;
+  chinanetInterface = homeRouter.wans.chinanet.interface;
+  managementInterface = "ens161";
+  managementAddress = "192.168.93.152";
   managementTable = 9300;
   wgIplcMark = "0x100";
 in {
@@ -19,51 +24,52 @@ in {
   networking.homeRouter = {
     enable = true;
 
-    switch.ports.uplink0 = {
-      bond = {
-        members = [
-          "eno1np0"
-          "eno2np1"
-        ];
-        primary = "eno1np0";
-      };
-      tagged = [
-        22
-        931
-      ];
+    # VMXNET3 adapters 1-3 are untagged access ports. Adapter 4 is the
+    # standalone management network and must not join the core bridge.
+    switch.ports = {
+      ens192.untagged = 641;
+      ens224.untagged = 931;
+      ens256.untagged = 22;
     };
 
-    lans.gnet642 = {
-      vlan = 642;
-      addresses = [
-        "100.64.2.254/24"
-        "192.168.225.1/24"
-      ];
+    lans.gnet641 = {
+      vlan = 641;
+      addresses = ["100.64.1.254/24"];
       ipv6.enable = false;
-      dhcpServer.range = "100.64.2.100,100.64.2.200,24h";
+      dhcpServer.range = "100.64.1.100,100.64.1.200,1h";
     };
 
     wans = {
       cernet = {
         vlan = 931;
         addresses = [
-          "202.38.93.98/24"
-          "2001:da8:d800:931::98/64"
+          "202.38.93.152/24"
+          "2001:da8:d800:931::152/64"
         ];
         gateway4 = "202.38.93.254";
         gateway6 = "2001:da8:d800:931::1";
         routingTable = 93;
         defaultRoute = true;
+        routes = [
+          {
+            Destination = "192.168.174.0/24";
+            Gateway = "202.38.93.254";
+          }
+          {
+            Destination = "202.38.64.0/24";
+            Gateway = "202.38.93.254";
+          }
+        ];
       };
       chinanet = {
         vlan = 22;
-        addresses = ["202.141.162.72/25"];
+        addresses = ["202.141.162.122/24"];
         gateway4 = "202.141.162.126";
         routingTable = 162;
       };
       cmcc = {
         vlan = 22;
-        addresses = ["202.141.178.7/25"];
+        addresses = ["202.141.178.12/24"];
         gateway4 = "202.141.178.126";
         routingTable = 178;
       };
@@ -71,15 +77,16 @@ in {
 
     avahi.enable = false;
     dnsmasq = {
-      domain = "el2.gaof.net";
+      domain = "el.gaof.net";
       servers = [
         "/cjia.gaof.net/100.65.1.254"
+        "/somo.gaof.net/100.65.2.254"
         "127.0.0.1#1054"
       ];
       extraInterfaces = [
         "lo"
         "tailscale0"
-        "wg0"
+        "wg-iplc"
       ];
     };
 
@@ -96,13 +103,13 @@ in {
   systemd.network = {
     config.routeTables.management = managementTable;
     networks."09-management" = {
-      matchConfig.Name = "ens49f3";
-      address = ["192.168.93.98/24"];
+      matchConfig.Name = managementInterface;
+      address = ["${managementAddress}/24"];
       routes = [
         {
           Gateway = "192.168.93.254";
           GatewayOnLink = true;
-          PreferredSource = "192.168.93.98";
+          PreferredSource = managementAddress;
           Table = "management";
         }
       ];
@@ -115,35 +122,36 @@ in {
   };
 
   networking.policyRouting.ipv4.rules = lib.mkBefore [
-    "pref 150 from 192.168.93.98/32 lookup management"
+    "pref 150 from ${managementAddress}/32 lookup management"
   ];
 
   networking.gnetEdgeRouter = {
     enable = true;
-    lan = "gnet642";
+    lan = "gnet641";
     wgIplc.mark = wgIplcMark;
-    unclassifiedIpv4Sources = ["192.168.93.98"];
-    trustedInterfaces = ["wg0"];
+    unclassifiedIpv4Sources = [managementAddress];
+    trustedInterfaces = ["wg-iplc"];
     publicTcpPorts = [
       "22"
       "5201"
-      "8501"
-      "10000-10003"
       "29979-29980"
     ];
     publicUdpPorts = [
-      "2197"
-      "3478"
       "5201"
       "6622"
       "6627"
       "61001-61999"
     ];
-    masqueradeInterfaces = ["ens49f3"];
-    extraInputRules = [
-      ''iifname "podman*" meta l4proto { tcp, udp } th dport 53 accept''
-      ''iifname "podman*" tcp dport 8000 accept''
-    ];
-    extraForwardRules = [''iifname "podman*" accept''];
+    masqueradeInterfaces = [managementInterface];
+  };
+
+  networking.nftables.tables.el-dnat = {
+    family = "inet";
+    content = ''
+      chain prerouting {
+        type nat hook prerouting priority dstnat; policy accept;
+        iifname { "${cernetInterface}", "${chinanetInterface}" } fib daddr type local udp dport 2197 dnat ip to 202.38.93.98
+      }
+    '';
   };
 }

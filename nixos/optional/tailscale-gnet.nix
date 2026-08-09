@@ -9,6 +9,7 @@
     "--accept-routes"
     "--advertise-exit-node"
     "--netfilter-mode=off"
+    "--operator=yifan"
     "--snat-subnet-routes=false"
   ];
 in {

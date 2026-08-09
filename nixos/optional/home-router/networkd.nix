@@ -99,6 +99,7 @@
   in
     mkRoutes wan.gateway4 (ipv4Addresses wan.addresses)
     ++ mkRoutes wan.gateway6 (ipv6Addresses wan.addresses)
+    ++ wan.routes
     ++ map (entry: {
       Gateway = "_dhcp4";
       Table = entry.name;
