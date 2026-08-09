@@ -77,6 +77,10 @@
       ip -4 route get 203.0.113.10 mark 201 | grep -F 'via 192.0.2.1 dev br-core.22 table chinanet src 192.0.2.2'
       ip -4 route get 203.0.113.10 mark 202 | grep -F 'via 192.0.2.1 dev br-core.22 table cmcc src 192.0.2.3'
 
+      timeout 10 ip netns exec upstream tcpdump -qnli upstream0 -c 1 'icmp and src host 198.51.100.2'
+      timeout 10 ip netns exec upstream tcpdump -qnli upstream0.22 -c 1 'icmp and src host 192.0.2.2'
+      timeout 10 ip netns exec upstream tcpdump -qnli upstream0.22 -c 1 'icmp and src host 192.0.2.3'
+
       timeout 5 ip netns exec upstream tcpdump -qnli upstream0.22 -c 1 'icmp and dst host 203.0.113.10' > /tmp/wlt-chinanet-capture &
       capture_pid=$!
       sleep 0.2
@@ -94,6 +98,15 @@
     networking.hostName = "router";
     networking.homeRouter = {
       enable = true;
+
+      monitoring = {
+        enable = true;
+        wans = [
+          "cernet"
+          "chinanet"
+          "cmcc"
+        ];
+      };
 
       switch.ports.uplink0 = {
         untagged = 931;
@@ -177,8 +190,10 @@
 
     environment.systemPackages = [
       exerciseTopology
+      pkgs.curl
       pkgs.iproute2
       pkgs.iputils
+      pkgs.jq
       pkgs.tcpdump
     ];
 
@@ -188,6 +203,15 @@
   testScript = ''
     start_all()
     router.wait_for_unit("systemd-networkd.service")
+    router.wait_for_unit("prometheus-ping-cernet-exporter.service")
+    router.wait_for_unit("prometheus-ping-chinanet-exporter.service")
+    router.wait_for_unit("prometheus-ping-cmcc-exporter.service")
+    router.wait_for_open_port(9427)
+    router.wait_for_open_port(9428)
+    router.wait_for_open_port(9429)
+    router.wait_for_open_port(3001)
+    router.succeed("test \"$(curl --fail --silent 'http://127.0.0.1:3001/api/search?tag=public-egress' | jq length)\" -eq 1")
+    router.succeed("curl --fail --silent http://127.0.0.1:3001/api/dashboards/uid/home-router-public-egress | jq -e '.dashboard.templating.list[] | select(.name == \"wan\") | .multi and .includeAll and .query == \"cernet,chinanet,cmcc\"'")
     router.wait_until_succeeds("ip link show dev br-core")
     router.succeed("exercise-home-router-topology")
   '';

@@ -63,11 +63,7 @@ in {
 
       monitoring = {
         enable = true;
-        wan = "cmcc";
-        grafana = {
-          port = 3001;
-          extraInterfaces = ["tailscale0"];
-        };
+        wans = ["cmcc"];
       };
 
       switch.ports.${cfg.lanPort} = {

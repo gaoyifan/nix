@@ -19,6 +19,15 @@ in {
   networking.homeRouter = {
     enable = true;
 
+    monitoring = {
+      enable = true;
+      wans = [
+        "cernet"
+        "chinanet"
+        "cmcc"
+      ];
+    };
+
     switch.ports.uplink0 = {
       bond = {
         members = [

@@ -18,8 +18,10 @@ in {
   config = lib.mkIf cfg.enable {
     assertions = [
       {
-        assertion = !cfg.monitoring.enable || (cfg.monitoring.wan != null && lib.hasAttr cfg.monitoring.wan cfg.wans);
-        message = "networking.homeRouter.monitoring.wan must name a WAN when monitoring is enabled.";
+        assertion =
+          !cfg.monitoring.enable
+          || (cfg.monitoring.wans != [] && lib.all (wan: lib.hasAttr wan cfg.wans) cfg.monitoring.wans);
+        message = "networking.homeRouter.monitoring.wans must name at least one configured WAN when monitoring is enabled.";
       }
     ];
 

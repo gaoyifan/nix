@@ -299,15 +299,15 @@ in {
 
     monitoring = {
       enable = lib.mkEnableOption "home router monitoring";
-      wan = lib.mkOption {
-        type = types.nullOr types.str;
-        default = null;
-        description = "WAN displayed by the public egress dashboard.";
+      wans = lib.mkOption {
+        type = types.listOf types.str;
+        default = [];
+        description = "WANs probed and displayed by public egress dashboards.";
       };
       grafana = {
         port = lib.mkOption {
           type = types.port;
-          default = 3000;
+          default = 3001;
           description = "Port on which Grafana listens.";
         };
         extraInterfaces = lib.mkOption {

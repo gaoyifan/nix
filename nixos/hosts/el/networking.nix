@@ -24,6 +24,15 @@ in {
   networking.homeRouter = {
     enable = true;
 
+    monitoring = {
+      enable = true;
+      wans = [
+        "cernet"
+        "chinanet"
+        "cmcc"
+      ];
+    };
+
     # VMXNET3 adapters 1-3 are untagged access ports. Adapter 4 is the
     # standalone management network and must not join the core bridge.
     switch.ports = {
