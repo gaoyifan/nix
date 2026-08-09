@@ -132,6 +132,10 @@ in {
     lan = "gnet642";
     wgIplc.mark = wgIplcMark;
     unclassifiedIpv4Sources = ["192.168.93.98"];
+    masqueradeInterfaces = ["ens49f3"];
+  };
+
+  networking.edgeFirewall = {
     trustedInterfaces = ["wg0"];
     publicTcpPorts = [
       "22"
@@ -148,7 +152,6 @@ in {
       "6627"
       "61001-61999"
     ];
-    masqueradeInterfaces = ["ens49f3"];
     extraInputRules = [
       ''iifname "podman*" meta l4proto { tcp, udp } th dport 53 accept''
       ''iifname "podman*" tcp dport 8000 accept''

@@ -15,6 +15,7 @@ in {
   };
 
   services.diverge.enable = true;
+  services.fail2ban.enable = true;
 
   services.nylon = {
     enable = true;

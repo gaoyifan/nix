@@ -139,7 +139,10 @@ in {
     lan = "gnet641";
     wgIplc.mark = wgIplcMark;
     unclassifiedIpv4Sources = [managementAddress];
-    trustedInterfaces = ["wg-iplc"];
+    masqueradeInterfaces = [managementInterface];
+  };
+
+  networking.edgeFirewall = {
     publicTcpPorts = [
       "22"
       "5201"
@@ -151,7 +154,7 @@ in {
       "6627"
       "61001-61999"
     ];
-    masqueradeInterfaces = [managementInterface];
+    extraForwardRules = ["ct status dnat accept"];
   };
 
   networking.nftables.tables.el-dnat = {

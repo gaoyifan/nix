@@ -10,7 +10,10 @@
   wgIplcMark = "0x2";
   nylonEl2CernetMark = "0x38";
 in {
-  imports = [../../optional/home-router];
+  imports = [
+    ../../optional/edge-firewall.nix
+    ../../optional/home-router
+  ];
 
   age.secrets = lib.mkIf config.services.secrets.hasRealFiles {
     wlt-server-key.file = config.services.secrets.filesDir + "/nixos/wlt-server-key.pem.age";
@@ -67,6 +70,24 @@ in {
         ipv6 = "disabled";
       };
     };
+  };
+
+  networking.edgeFirewall = {
+    enable = true;
+    trustedInterfaces = [
+      lanInterface
+      "tailscale0"
+      "nylon0"
+    ];
+    publicTcpPorts = [
+      "22"
+      "5201"
+    ];
+    publicUdpPorts = [
+      "5201"
+      (toString config.services.nylon.udpPort)
+      (toString config.services.tailscale.port)
+    ];
   };
 
   systemd.network = {
@@ -142,26 +163,6 @@ in {
         chain postrouting {
           type nat hook postrouting priority srcnat; policy accept;
           ip saddr 100.64.0.0/10 meta mark ${wgIplcMark} oifname "wg-iplc" masquerade
-        }
-      '';
-    };
-
-    cjia-filter = {
-      family = "inet";
-      content = ''
-        chain input {
-          type filter hook input priority filter; policy accept;
-          iifname "ppp0" ct state established,related accept
-          iifname "ppp0" ip protocol icmp accept
-          iifname "ppp0" tcp dport { 22, 5201 } accept
-          iifname "ppp0" udp dport { 5201, ${toString config.services.nylon.udpPort}, ${toString config.services.tailscale.port} } accept
-          iifname "ppp0" drop
-        }
-
-        chain forward {
-          type filter hook forward priority filter; policy accept;
-          iifname { "ppp0", "wg-iplc", "nylon0" } oifname "${lanInterface}" ct state established,related accept
-          iifname { "ppp0", "wg-iplc", "nylon0" } oifname "${lanInterface}" drop
         }
       '';
     };

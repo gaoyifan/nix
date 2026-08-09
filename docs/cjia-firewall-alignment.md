@@ -4,7 +4,7 @@
 
 ## 目标
 
-cjia 不复刻原 Armbian 防火墙，而是采用与 el 的 `gnet-edge-filter` 相同的
+cjia 不复刻原 Armbian 防火墙，而是采用与 el/el2 共享的 `edge-filter`
 default-deny 结构。三台主机应尽量共享 input/forward 过滤逻辑，同时分别保留与实际
 拓扑有关的出口分类、NAT、DNAT 和服务端口。
 
@@ -77,14 +77,14 @@ cjia 当前没有 DNAT，不加入无实际作用的 `ct status dnat accept`。�
 
 ## el 与 el2
 
-el 当前通过以下配置额外信任 `wg-iplc`：
+重构前，el 通过以下配置额外信任 `wg-iplc`：
 
 ```nix
 trustedInterfaces = ["wg-iplc"];
 ```
 
-应删除该配置。删除后，`wg-iplc` 仍能访问 el 声明的公开端口，但不能访问全部本机
-服务或主动转发。
+该配置已删除。`wg-iplc` 仍能访问 el 声明的公开端口，但不能访问全部本机服务或
+主动转发。
 
 el2 当前没有把 `wg-iplc` 加入可信接口；其 `trustedInterfaces = ["wg0"]` 是另一条
 独立的信任关系，本次不删除。
@@ -100,10 +100,9 @@ el2 当前没有把 `wg-iplc` 加入可信接口；其 `trustedInterfaces = ["wg
 - WLT、Nylon MSS/exit 和 homeRouter MSS 等共享规则继续由原模块生成。
 - Tailscale 继续使用 `--netfilter-mode=off`，其访问控制由上述 nftables 规则负责。
 
-## 建议的代码结构
+## 代码结构
 
-从 `nixos/optional/gnet-edge-router.nix` 中抽出只负责 input/forward 的通用 edge firewall
-模块，至少接受以下主机级输入：
+`nixos/optional/edge-firewall.nix` 只负责 input/forward，接受以下主机级输入：
 
 - 可信接口集合
 - 公开 TCP 端口集合

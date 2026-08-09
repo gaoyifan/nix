@@ -34,21 +34,14 @@
     6627
   ];
 
-  trustedInterfaces = lib.unique (
-    [
-      internalInterface
-      "tailscale0"
-      "nylon0"
-    ]
-    ++ cfg.trustedInterfaces
-  );
   nftSet = values: lib.concatMapStringsSep ", " toString values;
   returnSourceRules = lib.concatMapStringsSep "\n" (address: "ip saddr ${address} return") cfg.unclassifiedIpv4Sources;
   masqueradeRules = lib.concatMapStringsSep "\n" (interface: ''oifname "${interface}" masquerade'') cfg.masqueradeInterfaces;
-  extraInputRules = lib.concatStringsSep "\n" cfg.extraInputRules;
-  extraForwardRules = lib.concatStringsSep "\n" cfg.extraForwardRules;
 in {
-  imports = [./nylon.nix];
+  imports = [
+    ./edge-firewall.nix
+    ./nylon.nix
+  ];
 
   options.networking.gnetEdgeRouter = {
     enable = lib.mkEnableOption "shared GNet multi-WAN edge datapath";
@@ -72,40 +65,10 @@ in {
       };
     };
 
-    trustedInterfaces = lib.mkOption {
-      type = types.listOf types.str;
-      default = [];
-      description = "Host-specific interfaces trusted by the input and forwarding filters.";
-    };
-
-    publicTcpPorts = lib.mkOption {
-      type = types.listOf types.str;
-      default = [];
-      description = "TCP ports and ranges accepted from public interfaces.";
-    };
-
-    publicUdpPorts = lib.mkOption {
-      type = types.listOf types.str;
-      default = [];
-      description = "UDP ports and ranges accepted from public interfaces.";
-    };
-
     masqueradeInterfaces = lib.mkOption {
       type = types.listOf types.str;
       default = [];
       description = "Additional interfaces requiring source masquerade.";
-    };
-
-    extraInputRules = lib.mkOption {
-      type = types.listOf types.lines;
-      default = [];
-      description = "Host-specific nftables input rules appended after public service rules.";
-    };
-
-    extraForwardRules = lib.mkOption {
-      type = types.listOf types.lines;
-      default = [];
-      description = "Host-specific nftables forwarding rules appended after trusted interfaces.";
     };
   };
 
@@ -182,6 +145,15 @@ in {
       };
     };
 
+    networking.edgeFirewall = {
+      enable = true;
+      trustedInterfaces = [
+        internalInterface
+        "tailscale0"
+        "nylon0"
+      ];
+    };
+
     networking.nftables.tables = {
       gnet-edge-egress = {
         family = "inet";
@@ -233,32 +205,6 @@ in {
             meta mark ${cernetMark} oifname "${cernetInterface}" snat ip to ${cernetIpv4}
             meta mark ${chinanetMark} oifname "${chinanetInterface}" snat ip to ${chinanetIpv4}
             meta mark ${cmccMark} oifname "${cmccInterface}" snat ip to ${cmccIpv4}
-          }
-        '';
-      };
-
-      gnet-edge-filter = {
-        family = "inet";
-        content = ''
-          chain input {
-            type filter hook input priority filter; policy drop;
-            ct state established,related accept
-            iifname "lo" accept
-            ip protocol icmp accept
-            meta l4proto ipv6-icmp accept
-
-            iifname { ${lib.concatMapStringsSep ", " (interface: ''"${interface}"'') trustedInterfaces} } accept
-            ${lib.optionalString (cfg.publicTcpPorts != []) "tcp dport { ${nftSet cfg.publicTcpPorts} } accept"}
-            ${lib.optionalString (cfg.publicUdpPorts != []) "udp dport { ${nftSet cfg.publicUdpPorts} } accept"}
-            ${extraInputRules}
-          }
-
-          chain forward {
-            type filter hook forward priority filter; policy drop;
-            ct state established,related accept
-            ct status dnat accept
-            iifname { ${lib.concatMapStringsSep ", " (interface: ''"${interface}"'') trustedInterfaces} } accept
-            ${extraForwardRules}
           }
         '';
       };

@@ -52,6 +52,10 @@
       ip -n guest address add fd00:642::2/64 dev guest0
       ip -n guest route add default via 10.64.2.254 dev guest0
 
+      nft list chain inet edge-filter input | grep -F 'policy drop'
+      nft list chain inet edge-filter forward | grep -F 'policy drop'
+      ! ip netns exec upstream ping -c 1 -W 1 10.64.2.2
+
       ip netns exec upstream ping -c 2 -W 2 198.51.100.2
       ping -6 -c 2 -W 2 2001:db8:931::1
       ip netns exec upstream ping -c 2 -W 2 192.0.2.2
