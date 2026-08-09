@@ -1,7 +1,7 @@
 {...}: {
   disko.devices.disk.system = {
     type = "disk";
-    device = "/dev/sda";
+    device = "/dev/disk/by-id/wwn-0x6000c29b43568ff41c251991a9aefe40";
     content = {
       type = "gpt";
       partitions = {
