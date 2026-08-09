@@ -281,13 +281,17 @@ check-all:
         nix flake check --accept-flake-config --all-systems --no-build
     fi
 
-# Build the NanoPi R4S SD image
+# Build a NanoPi R4S SD image
 [group('config')]
-build-nanopi-image:
+build-nanopi-image target="somo-nanopi-r4s":
     #!/usr/bin/env bash
     set -euo pipefail
     source <({{ self_just }} _emit_nix_env)
     source <({{ self_just }} _emit_flake_ref)
+    case "{{ target }}" in
+        cjia|somo-nanopi-r4s) ;;
+        *) echo "Unsupported NanoPi R4S target: {{ target }}" >&2; exit 1 ;;
+    esac
     if [ -z "${SSH_AUTH_SOCK:-}" ] || [ ! -S "$SSH_AUTH_SOCK" ]; then
         echo "build-nanopi-image requires a working SSH agent." >&2
         exit 1
@@ -296,7 +300,7 @@ build-nanopi-image:
         --store local \
         --accept-flake-config \
         --builders "{{ nanopi_builder }}" \
-        "$FLAKE_REF#packages.aarch64-linux.somo-nanopi-r4s-image"
+        "$FLAKE_REF#packages.aarch64-linux.{{ target }}-image"
 
 # Deploy NixOS configuration to remote host
 [group('config')]

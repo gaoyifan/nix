@@ -1,0 +1,169 @@
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
+  homeRouter = config.networking.homeRouter;
+  lanInterface = homeRouter.lans.cjia.interface;
+  pppMark = "0x1";
+  wgIplcMark = "0x2";
+  nylonEl2CernetMark = "0x38";
+in {
+  imports = [../../optional/home-router];
+
+  age.secrets = lib.mkIf config.services.secrets.hasRealFiles {
+    wlt-server-key.file = config.services.secrets.filesDir + "/nixos/wlt-server-key.pem.age";
+    wlt-ssh-host-key.file = config.services.secrets.filesDir + "/nixos/wlt-ssh-host-key.age";
+  };
+
+  networking.homeRouter = {
+    enable = true;
+
+    switch.ports.end0.untagged = 651;
+
+    lans.cjia = {
+      vlan = 651;
+      addresses = ["100.65.1.254/24"];
+      ipv6.enable = false;
+      dhcpServer.range = "100.65.1.100,100.65.1.199,24h";
+    };
+
+    wans.ppp = {
+      device = "ppp0";
+      routes = [
+        {
+          Destination = "0.0.0.0/0";
+          Table = "ppp";
+        }
+      ];
+      masquerade.ipv4SourceSubnets = ["100.64.0.0/10"];
+    };
+
+    dnsmasq = {
+      domain = "cjia.gaof.net";
+      servers = [
+        "/taildeb190.ts.net/100.100.100.100"
+        "/somo.gaof.net/100.65.2.254"
+        "127.0.0.1#1054"
+      ];
+      extraInterfaces = ["tailscale0"];
+    };
+
+    monitoring = {
+      enable = true;
+      wan = "ppp";
+      grafana = {
+        port = 3001;
+        extraInterfaces = ["tailscale0"];
+      };
+    };
+
+    wlt = {
+      enable = true;
+      domain = "gaof.net";
+      defaultOutlet = {
+        ipv4Mark = wgIplcMark;
+        ipv6 = "disabled";
+      };
+    };
+  };
+
+  systemd.network = {
+    config.routeTables.ppp = 1000;
+    networks."10-wan-ppp".linkConfig.RequiredForOnline = "routable";
+  };
+
+  networking.policyRouting = {
+    enable = true;
+    ipv4.rules = [
+      "pref 100 lookup main suppress_prefixlength 0"
+      "pref 200 fwmark ${pppMark}/0xff lookup ppp"
+      "pref 201 fwmark ${wgIplcMark}/0xff lookup 2000"
+      "pref 400 lookup ppp"
+      "pref 32766 lookup main"
+      "pref 32767 lookup default"
+    ];
+    ipv6.rules = ["pref 32766 lookup main"];
+  };
+
+  networking.nftables.tables = {
+    cjia-egress = {
+      family = "inet";
+      content = ''
+        include "${pkgs.nft-geo-sets}/set-cn.conf"
+
+        set ustc {
+          type ipv4_addr
+          flags constant, interval
+          elements = {
+            10.10.151.0/24, 10.38.0.0/16, 10.70.0.0/16,
+            10.254.0.0/16, 114.214.160.0/19, 114.214.192.0/18,
+            118.31.51.206, 121.255.0.0/16, 172.16.0.0/16,
+            192.168.93.0/24, 192.168.174.0/24, 192.168.193.0/24,
+            202.38.64.0/19, 202.141.176.0/20, 210.45.64.0/20,
+            210.45.112.0/20, 210.72.22.0/24, 211.86.144.0/20,
+            218.22.21.0/27, 222.195.64.0/19
+          }
+        }
+
+        chain classify {
+          meta mark != 0 ct mark set meta mark return
+          udp dport { 3478-3497, 16384-16387, 16393-16402 } meta mark set ${pppMark}
+          meta mark 0 tcp dport 5223 meta mark set ${pppMark}
+          meta mark 0 ip daddr @ustc meta mark set ${nylonEl2CernetMark}
+          meta mark 0 ip daddr @cn meta mark set ${pppMark}
+          meta mark 0 meta nfproto ipv4 meta mark set ${wgIplcMark}
+          ct mark set meta mark
+        }
+
+        chain prerouting {
+          type filter hook prerouting priority mangle; policy accept;
+          ct mark != 0 meta mark set ct mark
+          iifname { "${lanInterface}", "tailscale0" } jump classify
+        }
+
+        chain output {
+          type route hook output priority mangle; policy accept;
+          meta mark != 0 return
+          meta mark set ct mark
+          meta mark != 0 return
+          udp sport { ${toString config.services.nylon.udpPort}, ${toString config.services.tailscale.port} } return
+          ip daddr @ustc meta mark set ${nylonEl2CernetMark} return
+          ip daddr @cn meta mark set ${pppMark} return
+          meta nfproto ipv4 meta mark set ${wgIplcMark}
+        }
+      '';
+    };
+
+    cjia-tunnel-nat = {
+      family = "ip";
+      content = ''
+        chain postrouting {
+          type nat hook postrouting priority srcnat; policy accept;
+          ip saddr 100.64.0.0/10 meta mark ${wgIplcMark} oifname "wg-iplc" masquerade
+        }
+      '';
+    };
+
+    cjia-filter = {
+      family = "inet";
+      content = ''
+        chain input {
+          type filter hook input priority filter; policy accept;
+          iifname "ppp0" ct state established,related accept
+          iifname "ppp0" ip protocol icmp accept
+          iifname "ppp0" tcp dport { 22, 5201 } accept
+          iifname "ppp0" udp dport { 5201, ${toString config.services.nylon.udpPort}, ${toString config.services.tailscale.port} } accept
+          iifname "ppp0" drop
+        }
+
+        chain forward {
+          type filter hook forward priority filter; policy accept;
+          iifname { "ppp0", "wg-iplc", "nylon0" } oifname "${lanInterface}" ct state established,related accept
+          iifname { "ppp0", "wg-iplc", "nylon0" } oifname "${lanInterface}" drop
+        }
+      '';
+    };
+  };
+}
