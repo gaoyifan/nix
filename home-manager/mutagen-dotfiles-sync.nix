@@ -21,6 +21,12 @@
   remoteEndpoint = "${cfg.user}@${cfg.host}:${toString cfg.port}:${cfg.remotePath}";
   sessionCreateArguments = lib.cli.toCommandLineGNU {} {
     compression = "deflate";
+    ignore = [
+      ".codex/cache"
+      ".codex/models_cache.json"
+      ".codex/tmp"
+      ".codex/version.json"
+    ];
     label = lib.mapAttrsToList (name: value: "${name}=${value}") sessionLabels;
     mode = "two-way-safe";
     name = sessionName;
