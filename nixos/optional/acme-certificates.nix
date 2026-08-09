@@ -46,13 +46,27 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
+    services.resolved = {
+      enable = true;
+      dnsDelegates.acmeGithub.Delegate = {
+        DNS = [
+          "223.5.5.5"
+          "223.6.6.6"
+        ];
+        Domains = ["github.com"];
+      };
+    };
+
     systemd.services =
       {
         acme-certificates-update = {
           description = "Update shared ACME certificates";
-          wantedBy = ["multi-user.target"];
-          after = ["network-online.target"];
+          after = [
+            "network-online.target"
+            "systemd-resolved.service"
+          ];
           wants = ["network-online.target"];
+          requires = ["systemd-resolved.service"];
           serviceConfig = {
             Type = "oneshot";
             StateDirectory = "acme-certificates";
