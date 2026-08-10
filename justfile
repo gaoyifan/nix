@@ -3,7 +3,6 @@ nix_profile := "/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh"
 nix_bin_dir := "/nix/var/nix/profiles/default/bin"
 submodule_path := "secrets/files"
 home_manager_backup_extension := "backup-$(date +%Y%m%d-%H%M%S)"
-nanopi_builder := "ssh-ng://yifan@100.127.101.9?remote-program=/nix/var/nix/profiles/default/bin/nix-daemon&base64-ssh-public-host-key=c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSVBuVENJd3dGSUJ0ZmZVTmd0TG5Yb0FFc0dtbFYxVnJHd1VMVHhtME5HSVQ%3D aarch64-linux - 8 1"
 self_just := quote(just_executable()) + " --justfile " + quote(justfile()) + " --working-directory " + quote(justfile_directory()) + " --quiet"
 
 # Default recipe: pulls the latest code, then applies the appropriate configuration
@@ -58,8 +57,9 @@ trust-flake-config:
     set -euo pipefail
     source <({{ self_just }} _emit_nix_env)
     mkdir -p ~/.local/share/nix
-    nix eval --raw --file nix-cache.nix \
-        --apply 'settings: builtins.toJSON {
+    nix eval --raw --file flake.nix \
+        --apply 'flake: let settings = import ./nix-cache.nix; in builtins.toJSON {
+            builders = { "${flake.nixConfig.builders}" = true; };
             extra-substituters = builtins.listToAttrs (map (name: { inherit name; value = true; }) settings.extra-substituters);
             extra-trusted-public-keys = builtins.listToAttrs (map (name: { inherit name; value = true; }) settings.extra-trusted-public-keys);
         }' > ~/.local/share/nix/trusted-settings.json
@@ -292,15 +292,7 @@ build-nanopi-image target="somo-nanopi-r4s":
         cjia|somo-nanopi-r4s) ;;
         *) echo "Unsupported NanoPi R4S target: {{ target }}" >&2; exit 1 ;;
     esac
-    if [ -z "${SSH_AUTH_SOCK:-}" ] || [ ! -S "$SSH_AUTH_SOCK" ]; then
-        echo "build-nanopi-image requires a working SSH agent." >&2
-        exit 1
-    fi
-    sudo --preserve-env=SSH_AUTH_SOCK "$(command -v nix)" build \
-        --store local \
-        --accept-flake-config \
-        --builders "{{ nanopi_builder }}" \
-        "$FLAKE_REF#packages.aarch64-linux.{{ target }}-image"
+    nix build --accept-flake-config "$FLAKE_REF#packages.aarch64-linux.{{ target }}-image"
 
 # Deploy NixOS configuration to remote host
 [group('config')]
@@ -309,24 +301,9 @@ deploy target:
     set -euo pipefail
     source <({{ self_just }} _emit_nix_env)
     source <({{ self_just }} _emit_flake_ref)
-    if [ "{{ target }}" = "somo-nanopi-r4s" ]; then
-        if [ -z "${SSH_AUTH_SOCK:-}" ] || [ ! -S "$SSH_AUTH_SOCK" ]; then
-            echo "deploy somo-nanopi-r4s requires a working SSH agent." >&2
-            exit 1
-        fi
-        sudo --preserve-env=SSH_AUTH_SOCK "$(command -v nix)" develop \
-            --store local \
-            --accept-flake-config \
-            "$FLAKE_REF" \
-            -c deploy "$FLAKE_REF#{{ target }}" --skip-checks -- \
-            --store local \
-            --accept-flake-config \
-            --builders "{{ nanopi_builder }}"
-    else
-        nix develop --accept-flake-config "$FLAKE_REF" \
-            -c deploy "$FLAKE_REF#{{ target }}" --skip-checks -- \
-            --accept-flake-config
-    fi
+    nix develop --accept-flake-config "$FLAKE_REF" \
+        -c deploy "$FLAKE_REF#{{ target }}" --skip-checks -- \
+        --accept-flake-config
 
 # Sync the flake and rebuild NixOS on the target.
 [group('config')]
