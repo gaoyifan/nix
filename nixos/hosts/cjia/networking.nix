@@ -55,11 +55,7 @@ in {
 
     monitoring = {
       enable = true;
-      wan = "ppp";
-      grafana = {
-        port = 3001;
-        extraInterfaces = ["tailscale0"];
-      };
+      wans = ["ppp"];
     };
 
     wlt = {
