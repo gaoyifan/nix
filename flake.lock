@@ -269,6 +269,27 @@
         "type": "github"
       }
     },
+    "herdr": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "rust-overlay": "rust-overlay"
+      },
+      "locked": {
+        "lastModified": 1786329126,
+        "narHash": "sha256-E74IwsZz03anrdyWNrGpsvm/2jeDtU5cl4PG9WOAJ4s=",
+        "owner": "herdrdev",
+        "repo": "herdr",
+        "rev": "6c6ddcd49384d6ea9f0ee2e63bf7b2643dfd5bcf",
+        "type": "github"
+      },
+      "original": {
+        "owner": "herdrdev",
+        "repo": "herdr",
+        "type": "github"
+      }
+    },
     "hermes-agent": {
       "inputs": {
         "flake-parts": "flake-parts",
@@ -554,6 +575,7 @@
         "diverge": "diverge",
         "flake-compat": "flake-compat",
         "flake-utils": "flake-utils",
+        "herdr": "herdr",
         "hermes-agent": "hermes-agent",
         "home-manager": "home-manager",
         "lark-cli-src": "lark-cli-src",
@@ -569,6 +591,27 @@
         "userborn": "userborn",
         "witr": "witr",
         "wlt": "wlt"
+      }
+    },
+    "rust-overlay": {
+      "inputs": {
+        "nixpkgs": [
+          "herdr",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1783577481,
+        "narHash": "sha256-EWMxOWrJ031f8f/lrcEmhTRs4npw1/5N3Hcjin846c8=",
+        "owner": "oxalica",
+        "repo": "rust-overlay",
+        "rev": "4cdea398dc491b082dccdce0fad1ed0b75fa3394",
+        "type": "github"
+      },
+      "original": {
+        "owner": "oxalica",
+        "repo": "rust-overlay",
+        "type": "github"
       }
     },
     "system-manager": {

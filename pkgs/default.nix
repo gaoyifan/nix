@@ -4,6 +4,7 @@
 }:
 rec {
   agenix = inputs.agenix.packages.${pkgs.stdenv.hostPlatform.system}.default;
+  herdr = inputs.herdr.packages.${pkgs.stdenv.hostPlatform.system}.herdr;
   lazyssh = import ./lazyssh.nix {inherit pkgs;};
   dcv = import ./dcv.nix {inherit pkgs;};
   restic = import ./restic.nix {inherit pkgs;};

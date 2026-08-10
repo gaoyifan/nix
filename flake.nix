@@ -133,6 +133,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    herdr = {
+      url = "github:herdrdev/herdr";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     lark-cli-src = {
       url = "github:larksuite/cli";
       flake = false;

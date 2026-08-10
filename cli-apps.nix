@@ -32,6 +32,7 @@
       go = from "go";
       gofmt = from "go";
       hexdump = {};
+      herdr = {};
       iostat = from "sysstat";
       mcat = {};
       ncdu = {};
