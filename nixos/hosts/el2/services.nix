@@ -6,24 +6,19 @@
   ...
 }: let
   certDir = "${config.services.acmeCertificates.directory}/yfgao";
-  derper = "${inputs.nixpkgs.legacyPackages.${pkgs.stdenv.hostPlatform.system}.tailscale.derper}/bin/derper";
-  derps = {
-    chinanet = {
-      hostname = "el2-chinanet.gaof.net";
-      listen = "202.141.162.72:10000";
-    };
-    cmcc = {
-      hostname = "el2-cmcc.gaof.net";
-      listen = "202.141.178.7:10001";
-    };
-    cernet = {
-      hostname = "el2-cernet.gaof.net";
-      listen = "202.38.93.98:10002";
-    };
-    ipv6 = {
-      hostname = "el2-ipv6.gaof.net";
-      listen = "[2001:da8:d800:931::98]:10003";
-    };
+  tailscale = inputs.nixpkgs.legacyPackages.${pkgs.stdenv.hostPlatform.system}.tailscale;
+  derper = "${tailscale.derper}/bin/derper";
+  stund = tailscale.overrideAttrs {
+    pname = "stund";
+    outputs = ["out"];
+    subPackages = ["cmd/stund"];
+    postInstall = "";
+  };
+  stunListenAddresses = {
+    chinanet = "202.141.162.72:3478";
+    cmcc = "202.141.178.7:3478";
+    cernet = "202.38.93.98:3478";
+    ipv6 = "[2001:da8:d800:931::98]:3478";
   };
 in {
   age.secrets = lib.mkIf config.services.secrets.hasRealFiles {
@@ -57,37 +52,56 @@ in {
   };
   services.acmeCertificates = {
     enable = true;
-    restartServices = map (name: "derp-${name}") (lib.attrNames derps) ++ ["podman-light-single"];
+    restartServices = [
+      "derp"
+      "podman-light-single"
+    ];
   };
 
-  systemd.services = lib.mapAttrs' (name: derp: let
-    runtimeDirectory = "derp-${name}";
-    runtimeDir = "/run/${runtimeDirectory}";
-  in
-    lib.nameValuePair "derp-${name}" {
-      description = "Tailscale DERP server for ${name}";
-      wantedBy = ["multi-user.target"];
-      wants = [
-        "network-online.target"
-        "tailscaled.service"
-      ];
-      after = [
-        "network-online.target"
-        "tailscaled.service"
-      ];
-      serviceConfig = {
-        Type = "simple";
-        Restart = "always";
-        RestartSec = "5s";
-        RuntimeDirectory = runtimeDirectory;
-        ExecStartPre = [
-          "${lib.getExe' pkgs.coreutils "ln"} -sfn ${certDir}/fullchain.pem ${runtimeDir}/${derp.hostname}.crt"
-          "${lib.getExe' pkgs.coreutils "ln"} -sfn ${certDir}/privkey.pem ${runtimeDir}/${derp.hostname}.key"
+  systemd.services =
+    {
+      derp = let
+        runtimeDirectory = "derp";
+        runtimeDir = "/run/${runtimeDirectory}";
+        hostname = "el2.gaof.net";
+      in {
+        description = "Tailscale DERP server";
+        wantedBy = ["multi-user.target"];
+        wants = [
+          "network-online.target"
+          "tailscaled.service"
         ];
-        ExecStart = "${derper} --hostname ${derp.hostname} --certdir ${runtimeDir} --certmode manual --verify-clients --http-port=-1 -a ${derp.listen}";
+        after = [
+          "network-online.target"
+          "tailscaled.service"
+        ];
+        serviceConfig = {
+          Type = "simple";
+          Restart = "always";
+          RestartSec = "5s";
+          RuntimeDirectory = runtimeDirectory;
+          ExecStartPre = [
+            "${lib.getExe' pkgs.coreutils "ln"} -sfn ${certDir}/fullchain.pem ${runtimeDir}/${hostname}.crt"
+            "${lib.getExe' pkgs.coreutils "ln"} -sfn ${certDir}/privkey.pem ${runtimeDir}/${hostname}.key"
+          ];
+          ExecStart = "${derper} --hostname ${hostname} --certdir ${runtimeDir} --certmode manual --verify-clients --http-port=-1 --stun=false -a :10000";
+        };
       };
-    })
-  derps;
+    }
+    // lib.mapAttrs' (name: listenAddress:
+      lib.nameValuePair "stun-${name}" {
+        description = "Tailscale STUN server for ${name}";
+        wantedBy = ["multi-user.target"];
+        wants = ["network-online.target"];
+        after = ["network-online.target"];
+        serviceConfig = {
+          Type = "simple";
+          Restart = "always";
+          RestartSec = "5s";
+          ExecStart = "${stund}/bin/stund --stun ${listenAddress} --http 127.0.0.1:0";
+        };
+      })
+    stunListenAddresses;
 
   virtualisation.oci-containers.containers = {
     light-single = {
