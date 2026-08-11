@@ -24,5 +24,6 @@
   };
 
   networking.homeRouter.switch.ports.wlp6s0.untagged = 652;
+  systemd.network.networks."10-wan-cmcc".linkConfig.RequiredFamilyForOnline = "both";
   systemd.network.networks."11-usb-wan".linkConfig.RequiredForOnline = "no";
 }
