@@ -36,7 +36,6 @@ in {
               no-resolv = true;
               server = cfg.dnsmasq.servers;
               domain = cfg.dnsmasq.domain;
-              local = "/${cfg.dnsmasq.domain}/";
               expand-hosts = true;
               dhcp-range = dhcpRanges;
               dhcp-host = dhcpHosts;
