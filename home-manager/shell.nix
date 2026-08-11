@@ -17,11 +17,19 @@
     rev = "22d620d6b0c366497ed25d0a2021dd9252736962";
     hash = "sha256-K/FqZSKOx5llsdzC5eI6nwLJZB99t6yDmSQGnQse/74=";
   };
-  iterm2-shell-integration = pkgs.fetchFromGitHub {
-    owner = "gnachman";
-    repo = "iTerm2-shell-integration";
-    rev = "16a37c5f59243a68cd662a8cb70497cbcfaa10b2";
-    hash = "sha256-vxGOr4jTAI0w4Y9Gz/1iEGT2YIq76DJiYIQ+vl4M7qA=";
+  iterm2-shell-integration = pkgs.applyPatches {
+    name = "iterm2-shell-integration";
+    src = pkgs.fetchFromGitHub {
+      owner = "gnachman";
+      repo = "iTerm2-shell-integration";
+      rev = "16a37c5f59243a68cd662a8cb70497cbcfaa10b2";
+      hash = "sha256-vxGOr4jTAI0w4Y9Gz/1iEGT2YIq76DJiYIQ+vl4M7qA=";
+    };
+    postPatch = ''
+      substituteInPlace utilities/it2dl \
+        --replace-fail '#!/bin/bash' \
+        '#!${lib.getExe pkgs.bashNonInteractive}'
+    '';
   };
   atuinLoginScript = pkgs.writeShellScript "atuin-login" ''
     ${lib.optionalString isDarwin ''
