@@ -61,6 +61,17 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    codex-api = {
+      url = "github:gaoyifan/codex-api";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.rust-overlay.follows = "rust-overlay";
+    };
+
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     restic-115 = {
       url = "github:gaoyifan/restic-115";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -136,6 +147,7 @@
     herdr = {
       url = "github:herdrdev/herdr";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.rust-overlay.follows = "rust-overlay";
     };
 
     lark-cli-src = {

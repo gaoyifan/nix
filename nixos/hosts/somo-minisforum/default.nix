@@ -38,6 +38,7 @@ in {
     ./bees.nix
     ./ksm.nix
     ./apt-cacher-ng.nix
+    ./codex-api.nix
     ./newapi.nix
     ./whisper-server.nix
     ./wifi-ap.nix

@@ -102,6 +102,29 @@
         "type": "github"
       }
     },
+    "codex-api": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "rust-overlay": [
+          "rust-overlay"
+        ]
+      },
+      "locked": {
+        "lastModified": 1786556923,
+        "narHash": "sha256-5+Sx+daKWagAmrRujUVNVEn4uXg+tloT8Z/+dMdM64w=",
+        "owner": "gaoyifan",
+        "repo": "codex-api",
+        "rev": "91813f687a524058cea6762ac48ec246e4f54207",
+        "type": "github"
+      },
+      "original": {
+        "owner": "gaoyifan",
+        "repo": "codex-api",
+        "type": "github"
+      }
+    },
     "deploy-rs": {
       "inputs": {
         "flake-compat": [
@@ -274,7 +297,9 @@
         "nixpkgs": [
           "nixpkgs"
         ],
-        "rust-overlay": "rust-overlay"
+        "rust-overlay": [
+          "rust-overlay"
+        ]
       },
       "locked": {
         "lastModified": 1786329126,
@@ -570,6 +595,7 @@
         "auto-pause-cemu": "auto-pause-cemu",
         "china-operator-ip": "china-operator-ip",
         "chnroutes2": "chnroutes2",
+        "codex-api": "codex-api",
         "deploy-rs": "deploy-rs",
         "disko": "disko",
         "diverge": "diverge",
@@ -585,6 +611,7 @@
         "restic-115": "restic-115",
         "restic-123pan": "restic-123pan",
         "restic-sync": "restic-sync",
+        "rust-overlay": "rust-overlay",
         "system-manager": "system-manager",
         "systems": "systems_2",
         "treefmt-nix": "treefmt-nix",
@@ -596,7 +623,6 @@
     "rust-overlay": {
       "inputs": {
         "nixpkgs": [
-          "herdr",
           "nixpkgs"
         ]
       },
