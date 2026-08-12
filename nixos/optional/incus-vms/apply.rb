@@ -2,8 +2,6 @@ require "json"
 require "open3"
 
 INCUS = ENV.fetch("INCUS")
-IMAGE_REMOTE = ENV.fetch("IMAGE_REMOTE")
-IMAGE_REMOTE_URL = ENV.fetch("IMAGE_REMOTE_URL")
 VM_SPEC = ENV.fetch("VM_SPEC")
 
 def incus(*args)
@@ -47,13 +45,8 @@ def apply(spec, state)
         image = vm["image"]
         raise "instance is missing and no image is declared" unless image
 
-        remotes = JSON.parse(incus("remote", "list", "-f", "json"))
-        unless remotes.key?(IMAGE_REMOTE)
-          incus("remote", "add", IMAGE_REMOTE, IMAGE_REMOTE_URL, "--protocol=simplestreams", "--public")
-        end
-
-        puts "Creating virtual machine #{name} from #{IMAGE_REMOTE}:#{image}"
-        incus("init", "#{IMAGE_REMOTE}:#{image}", name, "--vm")
+        puts "Creating virtual machine #{name} from images:#{image}"
+        incus("init", "images:#{image}", name, "--vm")
         state = instances
       end
 

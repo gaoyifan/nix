@@ -6,8 +6,6 @@
 }: let
   cfg = config.virtualisation.incusVms;
   incus = "${config.virtualisation.incus.package}/bin/incus";
-  imageRemote = "nju-images";
-  imageRemoteUrl = "https://mirror.nju.edu.cn/lxc-images/";
 
   nicHostName = vm: let
     mac = lib.replaceStrings [":"] [""] vm.macAddress;
@@ -90,8 +88,6 @@
 
   applyDeclarativeVms = pkgs.writeShellScriptBin "incus-apply-declarative-vms" ''
     export INCUS=${lib.escapeShellArg incus}
-    export IMAGE_REMOTE=${lib.escapeShellArg imageRemote}
-    export IMAGE_REMOTE_URL=${lib.escapeShellArg imageRemoteUrl}
     export VM_SPEC=${vmSpecFile}
     exec ${pkgs.ruby}/bin/ruby ${./apply.rb} "$@"
   '';
