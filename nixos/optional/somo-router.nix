@@ -224,6 +224,7 @@ in {
 
         chain output {
           type route hook output priority mangle; policy accept;
+          ct state established,related return
           meta mark != 0 return
           udp sport ${toString config.services.nylon.udpPort} return
           ip daddr != @cn meta mark set ${wgIplc.mark}
