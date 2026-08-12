@@ -194,8 +194,11 @@ in {
   # hosts, including sessions created by tssh rather than pam_systemd.
   home.activation.enableLinger = lib.mkIf isStandaloneLinux (
     lib.hm.dag.entryBetween ["linkGeneration"] ["writeBoundary"] ''
-      PATH="/run/current-system/sw/bin:/usr/bin:/bin:$PATH" \
-        run loginctl enable-linger ${lib.escapeShellArg config.home.username}
+      if ! PATH="/run/current-system/sw/bin:/usr/bin:/bin:$PATH" \
+        run loginctl enable-linger ${lib.escapeShellArg config.home.username}; then
+        PATH="/run/current-system/sw/bin:/usr/bin:/bin:$PATH" \
+          run sudo loginctl enable-linger ${lib.escapeShellArg config.home.username}
+      fi
     ''
   );
 
