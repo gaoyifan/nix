@@ -5,6 +5,7 @@
   username,
   ...
 }: let
+  sshKey = (import ../../common/ssh-keys.nix).userKeys."yifan-macbook";
   pveEdk2Share = "${pkgs.pve-edk2-firmware-ovmf}/usr/share/pve-edk2-firmware";
   ovmf2MB = pkgs.OVMF.override {
     secureBoot = true;
@@ -189,6 +190,32 @@ in {
           source = "/dev/zvol/pool1/vm-2041-cloudinit";
           readonly = "true";
         };
+      };
+    };
+
+    instances.xuhao = {
+      image = "debian/13/cloud";
+      vlan = 642;
+      macAddress = "52:54:00:64:02:30";
+      dhcpAddress = "100.64.2.30";
+      rootSize = "20GiB";
+      headless = true;
+      config = {
+        "limits.cpu" = "4";
+        "limits.memory" = "4GiB";
+        "security.secureboot" = "false";
+        "cloud-init.user-data" = ''
+          #cloud-config
+          users:
+            - name: root
+              lock_passwd: false
+              hashed_passwd: "*"
+              ssh_authorized_keys:
+                - ${sshKey}
+          ssh_pwauth: false
+          packages:
+            - openssh-server
+        '';
       };
     };
 
