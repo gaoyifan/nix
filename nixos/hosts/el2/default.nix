@@ -4,6 +4,7 @@
     ./hardware-configuration.nix
     ./backup-services.nix
     ./media-services.nix
+    ./mutagen-sync.nix
     ./networking.nix
     ./services.nix
     ./tailscale.nix
