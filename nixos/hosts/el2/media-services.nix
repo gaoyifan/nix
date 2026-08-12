@@ -5,7 +5,7 @@
 }: let
   encryptedDatasets = [
     "pool0/backup"
-    "pool0/docker"
+    "pool1/services"
     "pool0/footage"
     "pool0/kopia"
     "pool0/media0"
@@ -27,7 +27,7 @@ in {
           exit 1
         fi
 
-        read -r -s -p "Passphrase for pool0 encrypted datasets: " passphrase
+        read -r -s -p "Passphrase for encrypted datasets: " passphrase
         echo
         trap 'unset passphrase' EXIT
 
@@ -58,8 +58,8 @@ in {
         ADVERTISE_IP = "http://el2.ts.gaof.net:32400";
       };
       volumes = [
-        "/pool0/docker/plex/config:/config"
-        "/pool0/docker/plex/transcode:/transcode"
+        "/pool1/services/plex/config:/config"
+        "/pool1/services/plex/transcode:/transcode"
         "/pool0/media0:/data:ro"
         "/pool0/media1:/data1:ro"
       ];
@@ -71,7 +71,7 @@ in {
       autoStart = false;
       image = "ghcr.io/metatube-community/metatube-server:latest";
       ports = ["8080:8080"];
-      volumes = ["/pool0/docker/metatube:/cache"];
+      volumes = ["/pool1/services/metatube:/cache"];
       cmd = [
         "-dsn"
         "/cache/metatube.db"
@@ -89,7 +89,7 @@ in {
         RUN_ARIA2 = "false";
       };
       volumes = [
-        "/pool0/docker/openlist:/opt/openlist/data"
+        "/pool1/services/openlist:/opt/openlist/data"
         "/pool0:/mnt/pool0-ro:ro"
         "/pool0/media0:/mnt/pool0/media0"
         "/pool0/media1:/mnt/pool0/media1"
@@ -107,7 +107,7 @@ in {
         DB_STORAGE_TYPE = "SSD";
       };
       environmentFiles = ["/var/lib/private/immich/database.env"];
-      volumes = ["/pool1/immich-postgres:/var/lib/postgresql/data"];
+      volumes = ["/pool1/services/immich-postgres:/var/lib/postgresql/data"];
       extraOptions = [
         "--network=immich"
         "--network-alias=database"
@@ -142,7 +142,7 @@ in {
       environmentFiles = ["/var/lib/private/immich/database.env"];
       ports = ["127.0.0.1:2283:2283"];
       volumes = [
-        "/pool0/docker/immich/library:/data"
+        "/pool1/services/immich/library:/data"
         "/pool0/footage:/mnt/media/footage:ro"
         "/etc/localtime:/etc/localtime:ro"
       ];
@@ -160,9 +160,15 @@ in {
   };
 
   systemd.services.mount-el2-encrypted-datasets = {
-    description = "Mount manually unlocked pool0 datasets used by el2 services";
-    after = ["zfs-import-pool0.service"];
-    requires = ["zfs-import-pool0.service"];
+    description = "Mount manually unlocked datasets used by el2 services";
+    after = [
+      "zfs-import-pool0.service"
+      "zfs-import-pool1.service"
+    ];
+    requires = [
+      "zfs-import-pool0.service"
+      "zfs-import-pool1.service"
+    ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;

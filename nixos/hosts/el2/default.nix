@@ -36,7 +36,7 @@
   environment.systemPackages = [pkgs.mbuffer];
 
   systemd.targets.el2-services = {
-    description = "Services using manually unlocked pool0 datasets";
+    description = "Services using manually unlocked datasets";
     requires = ["mount-el2-encrypted-datasets.service"];
     after = ["mount-el2-encrypted-datasets.service"];
   };

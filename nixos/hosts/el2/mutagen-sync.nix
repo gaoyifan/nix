@@ -18,8 +18,8 @@
       TZ = "Asia/Shanghai";
     };
     volumes = [
-      "/pool0/docker/mutagen-sync/config:/config"
-      "/pool0/docker/mutagen-sync/data:/data"
+      "/pool1/services/mutagen-sync/config:/config"
+      "/pool1/services/mutagen-sync/data:/data"
     ];
     extraOptions = ["--network=host"];
   };
@@ -30,8 +30,8 @@
     after = ["mount-el2-encrypted-datasets.service"];
     preStart = ''
       ${lib.getExe' pkgs.coreutils "install"} -d -m 0755 -o 1000 -g 1000 \
-        /pool0/docker/mutagen-sync/config \
-        /pool0/docker/mutagen-sync/data
+        /pool1/services/mutagen-sync/config \
+        /pool1/services/mutagen-sync/data
     '';
   };
 }

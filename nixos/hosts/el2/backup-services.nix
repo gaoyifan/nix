@@ -41,7 +41,7 @@
       accessTokenFile = "/run/agenix/restic-115-access-token";
       refreshTokenFile = "/run/agenix/restic-115-refresh-token";
       repositoryPath = "/pool0-restic";
-      cacheDirectory = "/pool0/docker/restic-sync-115/cache";
+      cacheDirectory = "/pool1/services/restic-sync-115/cache";
       listenPort = 8001;
       user = "yifan";
       group = "users";
@@ -54,7 +54,7 @@
       usernameFile = "/run/agenix/restic-123pan-username";
       passwordFile = "/run/agenix/restic-123pan-password";
       repositoryPath = "/pool0-restic";
-      cacheDirectory = "/pool0/docker/restic-sync-123pan/cache";
+      cacheDirectory = "/pool1/services/restic-sync-123pan/cache";
       listenPort = 8002;
       user = "yifan";
       group = "users";
