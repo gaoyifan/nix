@@ -23,7 +23,7 @@ in {
   networking.homeRouter = {
     enable = true;
 
-    switch.ports.end0.untagged = 651;
+    switch.ports.enp1s0.untagged = 651;
 
     lans.cjia = {
       vlan = 651;
@@ -88,7 +88,10 @@ in {
 
   systemd.network = {
     config.routeTables.ppp = 1000;
-    networks."10-wan-ppp".linkConfig.RequiredForOnline = "routable";
+    networks."10-wan-ppp" = {
+      linkConfig.RequiredForOnline = "routable";
+      networkConfig.KeepConfiguration = true;
+    };
   };
 
   networking.policyRouting = {
@@ -158,7 +161,7 @@ in {
       content = ''
         chain postrouting {
           type nat hook postrouting priority srcnat; policy accept;
-          ip saddr 100.64.0.0/10 meta mark ${wgIplcMark} oifname "wg-iplc" masquerade
+          meta mark ${wgIplcMark} oifname "wg-iplc" masquerade
         }
       '';
     };

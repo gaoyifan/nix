@@ -20,13 +20,13 @@ cjia 的可信接口为：
 cjia 的非可信接口为：
 
 - PPPoE 公网接口 `ppp0`
-- 管理接口 `enp1s0`（`192.168.125.254/24`）
+- 管理接口 `end0`（`192.168.125.254/24`）
 - 海外出口 `wg-iplc`
 - 其他未明确列入可信集合的接口
 
 已经确认的访问语义：
 
-- `enp1s0` 比照 el 的管理接口处理，只能访问 ICMP 和公开端口，不能向其他网络转发。
+- `end0` 比照 el 的管理接口处理，只能访问 ICMP 和公开端口，不能向其他网络转发。
 - `nylon0` 比照 el 作为可信接口，允许 Nylon 节点主动访问 cjia LAN。
 - `wg-iplc` 只作为出口，不允许对端访问全部本机服务或主动转发到 LAN。
 - el 和 el2 的 `wg-iplc` 也应统一视为非可信接口。
@@ -68,7 +68,7 @@ chain forward {
 }
 ```
 
-这允许 LAN、Tailscale 和 Nylon 主动访问其他网络，同时禁止 `ppp0`、`enp1s0` 和
+这允许 LAN、Tailscale 和 Nylon 主动访问其他网络，同时禁止 `ppp0`、`end0` 和
 `wg-iplc` 主动转发到 LAN 或其他网络。当前针对 `ppp0`、`wg-iplc`、`nylon0` 到 LAN
 的两条特殊规则应删除，因为 default-deny 已覆盖这些情况。
 

@@ -2,9 +2,7 @@
   config,
   lib,
   ...
-}: let
-  lanInterface = config.networking.homeRouter.lans.cjia.interface;
-in {
+}: {
   imports = [
     ../../optional/diverge.nix
     ../../optional/nylon.nix
@@ -29,6 +27,10 @@ in {
       interface = "ppp0";
     };
   };
+  systemd.services.nylon = {
+    requires = ["pppd-isp.service"];
+    after = ["pppd-isp.service"];
+  };
 
   services.godns = {
     enable = true;
@@ -52,17 +54,6 @@ in {
   systemd.services.godns = {
     wants = ["pppd-isp.service"];
     after = ["pppd-isp.service"];
-  };
-
-  services.homebridge = {
-    enable = true;
-    settings.bridge = {
-      name = "Homebridge";
-      port = 51826;
-      bind = [lanInterface];
-      advertiser = "avahi";
-    };
-    uiSettings.port = 8581;
   };
 
   services.resolved.settings.Resolve = {

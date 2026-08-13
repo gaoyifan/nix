@@ -1,8 +1,13 @@
 {
   config,
   lib,
+  pkgs,
   ...
-}: {
+}: let
+  pppIpUp = pkgs.writeShellScript "cjia-ppp-ip-up" ''
+    ${lib.getExe' pkgs.systemd "systemctl"} try-restart nylon.service
+  '';
+in {
   age.secrets = lib.mkIf config.services.secrets.hasRealFiles {
     cjia-ppp-peer.file = config.services.secrets.filesDir + "/nixos/cjia/ppp-peer.age";
     cjia-ppp-chap-secrets.file = config.services.secrets.filesDir + "/nixos/cjia/chap-secrets.age";
@@ -16,11 +21,14 @@
 
   services.pppd = {
     enable = true;
-    peers.isp.config = "file /run/agenix/cjia-ppp-peer";
+    peers.isp.config = ''
+      file /run/agenix/cjia-ppp-peer
+      ip-up-script ${pppIpUp}
+    '';
   };
 
   systemd.network.networks."09-pppoe-carrier" = {
-    matchConfig.Name = "enp1s0";
+    matchConfig.Name = "end0";
     address = ["192.168.125.254/24"];
     networkConfig = {
       DHCP = "no";
