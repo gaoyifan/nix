@@ -10,12 +10,10 @@
 in {
   age.secrets = lib.mkIf config.services.secrets.hasRealFiles {
     cjia-ppp-peer.file = config.services.secrets.filesDir + "/nixos/cjia/ppp-peer.age";
-    cjia-ppp-chap-secrets.file = config.services.secrets.filesDir + "/nixos/cjia/chap-secrets.age";
     cjia-ppp-pap-secrets.file = config.services.secrets.filesDir + "/nixos/cjia/pap-secrets.age";
   };
 
   environment.etc = lib.mkIf config.services.secrets.hasRealFiles {
-    "ppp/chap-secrets".source = config.age.secrets.cjia-ppp-chap-secrets.path;
     "ppp/pap-secrets".source = config.age.secrets.cjia-ppp-pap-secrets.path;
   };
 
@@ -23,8 +21,20 @@ in {
     enable = true;
     peers.isp.config = ''
       file /run/agenix/cjia-ppp-peer
+      noipdefault
+      defaultroute
+      replacedefaultroute
+      hide-password
+      lcp-echo-interval 30
+      lcp-echo-failure 4
+      noauth
+      persist
+      maxfail 0
+      holdoff 20
+      plugin pppoe.so
       nic-end0
       ip-up-script ${pppIpUp}
+      +ipv6
     '';
   };
 
