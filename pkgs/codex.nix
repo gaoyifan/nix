@@ -38,7 +38,16 @@ in
     dontConfigure = true;
     dontBuild = true;
 
-    nativeBuildInputs = [pkgs.makeWrapper];
+    nativeBuildInputs =
+      [pkgs.makeWrapper]
+      ++ lib.optionals stdenv.hostPlatform.isLinux [
+        pkgs.autoPatchelfHook
+      ];
+
+    buildInputs = lib.optionals stdenv.hostPlatform.isLinux [
+      stdenv.cc.cc.lib
+      pkgs.ncurses
+    ];
 
     installPhase = ''
       runHook preInstall
