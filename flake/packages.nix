@@ -27,8 +27,7 @@
       };
     }
     // nixpkgs.lib.optionalAttrs (system == "aarch64-linux") {
-      cjia-image = self.nixosConfigurations.cjia.config.system.build.sdImage;
-      somo-nanopi-r4s-image = self.nixosConfigurations.somo-nanopi-r4s.config.system.build.sdImage;
+      nanopi-r4s-bootstrap-image = self.nixosConfigurations.nanopi-r4s-bootstrap.config.system.build.sdImage;
     });
 
   apps = forAllSystems (system: cliApps.mkApps self.packages.${system});

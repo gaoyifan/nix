@@ -39,6 +39,19 @@
     el2 = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/el2];
     el2-install = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/el2 ../nixos/hosts/el2/install.nix];
     misc0-jp = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/misc0-jp];
+    nanopi-r4s-bootstrap = nixpkgs.lib.nixosSystem {
+      system = "aarch64-linux";
+      modules = [
+        ({lib, ...}: {
+          nixpkgs = {
+            overlays = [overlay];
+            config.allowUnfreePredicate = package:
+              lib.getName package == "arm-trusted-firmware-rk3399";
+          };
+        })
+        ../nixos/hosts/nanopi-r4s-bootstrap
+      ];
+    };
     oracle2 = mkNixosHost "aarch64-linux" [disko.nixosModules.disko ../nixos/hosts/oracle2];
     somo-minisforum = mkNixosHost "x86_64-linux" [../nixos/hosts/somo-minisforum];
     somo-nanopi-r4s = mkNixosHost "aarch64-linux" [../nixos/hosts/somo-nanopi-r4s];

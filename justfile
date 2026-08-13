@@ -281,18 +281,33 @@ check-all:
         nix flake check --accept-flake-config --all-systems --no-build
     fi
 
-# Build a NanoPi R4S SD image
+# Build the universal NanoPi R4S bootstrap SD image
 [group('config')]
-build-nanopi-image target="somo-nanopi-r4s":
+build-nanopi-bootstrap-image:
     #!/usr/bin/env bash
     set -euo pipefail
     source <({{ self_just }} _emit_nix_env)
     source <({{ self_just }} _emit_flake_ref)
-    case "{{ target }}" in
-        cjia|somo-nanopi-r4s) ;;
-        *) echo "Unsupported NanoPi R4S target: {{ target }}" >&2; exit 1 ;;
-    esac
-    nix build --accept-flake-config "$FLAKE_REF#packages.aarch64-linux.{{ target }}-image"
+    sudo --preserve-env=SSH_AUTH_SOCK "$(command -v nix)" build \
+        --store local \
+        --accept-flake-config \
+        "$FLAKE_REF#packages.aarch64-linux.nanopi-r4s-bootstrap-image"
+
+# Install a NanoPi R4S target profile without activating it until reboot
+[group('config')]
+deploy-nanopi-from-bootstrap target address="198.51.100.254":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source <({{ self_just }} _emit_nix_env)
+    source <({{ self_just }} _emit_flake_ref)
+    nix develop --accept-flake-config "$FLAKE_REF" \
+        -c deploy \
+        --hostname "{{ address }}" \
+        --ssh-user root \
+        --fast-connection true \
+        --boot \
+        "$FLAKE_REF#{{ target }}" \
+        -- --accept-flake-config
 
 # Deploy NixOS configuration to remote host
 [group('config')]
