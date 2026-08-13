@@ -70,5 +70,18 @@
     memoryPercent = 100;
   };
 
-  nix.settings.max-jobs = 2;
+  nix = {
+    settings.max-jobs = 2;
+    distributedBuilds = true;
+    buildMachines = [
+      {
+        protocol = "ssh-ng";
+        sshUser = "yifan";
+        hostName = "100.127.101.9?remote-program=/nix/var/nix/profiles/default/bin/nix-daemon";
+        system = "aarch64-linux";
+        maxJobs = 4;
+        publicHostKey = "c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSVBuVENJd3dGSUJ0ZmZVTmd0TG5Yb0FFc0dtbFYxVnJHd1VMVHhtME5HSVQ=";
+      }
+    ];
+  };
 }

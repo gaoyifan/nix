@@ -58,8 +58,7 @@ trust-flake-config:
     source <({{ self_just }} _emit_nix_env)
     mkdir -p ~/.local/share/nix
     nix eval --raw --file flake.nix \
-        --apply 'flake: let settings = import ./nix-cache.nix; in builtins.toJSON {
-            builders = { "${flake.nixConfig.builders}" = true; };
+        --apply '_: let settings = import ./nix-cache.nix; in builtins.toJSON {
             extra-substituters = builtins.listToAttrs (map (name: { inherit name; value = true; }) settings.extra-substituters);
             extra-trusted-public-keys = builtins.listToAttrs (map (name: { inherit name; value = true; }) settings.extra-trusted-public-keys);
         }' > ~/.local/share/nix/trusted-settings.json
@@ -335,11 +334,11 @@ sync-and-rebuild target:
         exit 0
     fi
     host="$(nix eval --accept-flake-config "$FLAKE_REF#deploy.nodes.$target.hostname" --raw)"
-    ssh "$host" install -d -m 700 .cache/nixos-deploy
+    ssh -A "$host" install -d -m 700 .cache/nixos-deploy
     rsync -az --delete --delete-excluded \
         --exclude='result' \
         ./ "$host:.cache/nixos-deploy/"
-    ssh "$host" bash -s -- "$target" <<'REMOTE'
+    ssh -A "$host" bash -s -- "$target" <<'REMOTE'
     set -euo pipefail
     target="$1"
     repo="$HOME/.cache/nixos-deploy"
@@ -352,7 +351,7 @@ sync-and-rebuild target:
             nix eval --impure --raw --file "$repo/secrets/internal-substituters.nix" \
                 --apply 'configure: builtins.concatStringsSep " " (configure { hostname = builtins.getEnv "INTERNAL_SUBSTITUTER_HOSTNAME"; })'
     )"
-    sudo nixos-rebuild switch --accept-flake-config \
+    sudo --preserve-env=SSH_AUTH_SOCK nixos-rebuild switch --accept-flake-config \
         --flake "path:$repo#$target" \
         --option substituters https://cache.nixos.org \
         --option extra-substituters "$internal_substituters $default_substituters"
