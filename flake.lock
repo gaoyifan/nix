@@ -179,11 +179,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1785956117,
-        "narHash": "sha256-no9oaHADxY2MoNHJpLwpEhhH4952Fkg2XcksofZda+E=",
+        "lastModified": 1786640859,
+        "narHash": "sha256-QfJ4NwMdXeHjx1jXaFE/yjjwgMVZ5uaKKGRWXgkLO08=",
         "owner": "gaoyifan",
         "repo": "diverge-rs",
-        "rev": "c0c97b52ac83d6dbc53062637e766934e4f86aa0",
+        "rev": "8ec7619e2d8b44ea25a695600e606b719bc15efe",
         "type": "github"
       },
       "original": {
