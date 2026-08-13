@@ -23,6 +23,7 @@ in {
     enable = true;
     peers.isp.config = ''
       file /run/agenix/cjia-ppp-peer
+      nic-end0
       ip-up-script ${pppIpUp}
     '';
   };
