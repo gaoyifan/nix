@@ -166,8 +166,9 @@ ATUIN_HISTORY_SEARCH_FILTER_MODE=global
 [`atuin-context-history`](../../home-manager/zsh-custom/plugins/atuin-context-history/atuin-context-history.plugin.zsh)
 插件。[`shell.nix`](../../home-manager/shell.nix) 仅在 zsh-vi-mode `after_init` 中依次执行
 `atuin init zsh --disable-up-arrow` 和插件安装函数；通用 `keybind` 插件不再包含 Atuin
-状态或绑定。插件从 Atuin DB 批量查询 workspace + prefix 结果，在 vi/emacs keymap 内原位
-轮转，并在新 prompt、编辑、移动光标、切换目录或进入 Ctrl-R TUI 时丢弃旧批次。
+状态或绑定。插件先从 Atuin DB 批量查询 directory + prefix 结果，不足 200 条时再用
+global + prefix 结果补足，在 vi/emacs keymap 内原位轮转，并在新 prompt、编辑、移动
+光标、切换目录或进入 Ctrl-R TUI 时丢弃旧批次。
 
 2026-03 有一位用户报告 Atuin Hex 会覆盖 `--disable-up-arrow`
 ([评论](https://github.com/atuinsh/atuin/issues/798#issuecomment-4103348823))，
@@ -178,22 +179,24 @@ ATUIN_HISTORY_SEARCH_FILTER_MODE=global
 
 ### 当前即可实现的最佳形状
 
-首次 ↑ 固定当前的 `BUFFER`、`CURSOR`、`PWD` 和 `LBUFFER`，并一次执行：
+首次 ↑ 固定当前的 `BUFFER`、`CURSOR`、`PWD` 和 `LBUFFER`，先执行：
 
 ```zsh
 atuin search \
   --cmd-only \
   --print0 \
-  --filter-mode workspace \
+  --filter-mode directory \
   --search-mode prefix \
   --author '$all-user' \
   --limit 200 \
   -- "$LBUFFER"
 ```
 
-ZLE widget 把 NUL 分隔结果读入数组。↑ 从数组尾部（最新记录）向前移动；↓ 反向移动，
-越过最新记录时逐字恢复原 `BUFFER` 和 `CURSOR`。用户编辑、移动光标、切换 `PWD`、
-接受或取消命令后丢弃本轮数组。Ctrl-R 继续使用 Atuin TUI。
+如果结果不足 200 条，再用相同参数执行一次 `--filter-mode global` 查询。ZLE widget
+按命令去重，用 global 结果补足总数至 200 条，并把 directory 结果放在轮转顺序之前。
+↑ 先从最新的 directory 记录向前移动，再进入 global 记录；↓ 反向移动，越过最新记录
+时逐字恢复原 `BUFFER` 和 `CURSOR`。用户编辑、移动光标、切换 `PWD`、接受或取消命令后
+丢弃本轮数组。Ctrl-R 继续使用 Atuin TUI。
 
 不要使用社区脚本常见的 `--offset N --limit 1` 逐键查询：每个按键都产生进程和 DB
 延迟；同步插入新记录还会使 offset 发生位移。一次批量查询既保持本轮顺序稳定，也让
@@ -204,13 +207,15 @@ ZLE widget 把 NUL 分隔结果读入数组。↑ 从数组尾部（最新记录
 使用独立 Atuin 数据目录建立了 Git repo root、repo 子目录和 repo 外目录三组历史：
 
 - 从子目录用 `directory + prefix` 查询，只返回该子目录记录；
-- 从子目录用 `workspace + prefix` 查询，返回 repo root 与子目录记录，排除 repo 外记录；
-- 在非 Git 目录用 `workspace` 查询，行为退化为 exact directory；
+- 从子目录用 `global + prefix` 查询，返回上述三个目录的记录，与 Ctrl-R 的初始范围一致；
+- 合并时先轮转完 directory 记录，再轮转去重后的 global 记录；directory 已返回 200 条时
+  不执行 global 查询；
 - `--print0` 可由 zsh `${(@0)...}` 无损解析，多行命令保持为一个数组元素。
 
-在本机真实 Atuin 18.15.2 数据库上连续执行 100 次：空 prefix 的 workspace 查询、
-`limit=200` 平均约 31 ms；`git` prefix 平均约 9 ms。首次 ↑ 付出一次该成本，之后
-↑/↓ 不再查询。该结果也解释了为什么逐键 offset widget 手感不佳。
+首次 ↑ 付出最多两次批量查询成本，之后 ↑/↓ 不再查询。该结果也解释了为什么逐键
+offset widget 手感不佳。选择 `directory` 和 `global` 还避免了 Atuin 18.15.2 将 Git
+submodule 的相对 `.git` 指针解析为含 `..` 的 workspace 前缀、进而匹配不到规范化历史
+路径的问题。
 
 ### 现有插件的边界
 

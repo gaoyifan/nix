@@ -88,7 +88,6 @@ in {
     settings =
       {
         workspaces = true;
-        filter_mode_shell_up_key_binding = "workspace";
         inline_height = 9;
         enter_accept = true;
       }

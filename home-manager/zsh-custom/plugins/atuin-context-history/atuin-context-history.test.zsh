@@ -44,10 +44,29 @@ print -rl -- \
   '  fi' \
   'done' \
   'print -r -- "batch|$ATUIN_QUERY|$PWD|$*" >> "$ATUIN_TEST_LOG"' \
+  'filter_mode=' \
+  'for (( index = 1; index <= $#; index++ )); do' \
+  '  if [[ ${@[index]} == --filter-mode ]]; then' \
+  '    filter_mode=${@[index + 1]}' \
+  '    break' \
+  '  fi' \
+  'done' \
   'if [[ "$ATUIN_QUERY" == none ]]; then' \
   '  exit 0' \
+  'elif [[ "$ATUIN_QUERY" == full && $filter_mode == directory ]]; then' \
+  '  for index in {1..200}; do' \
+  '    printf "%s\0" "print -r -- DIRECTORY_$index"' \
+  '  done' \
+  'elif [[ "$ATUIN_QUERY" == partial && $filter_mode == directory ]]; then' \
+  '  for index in {1..199}; do' \
+  '    printf "%s\0" "print -r -- DIRECTORY_$index"' \
+  '  done' \
+  'elif [[ "$ATUIN_QUERY" == partial && $filter_mode == global ]]; then' \
+  "  print -rn -- \$'print -r -- GLOBAL_OLDER\\0print -r -- GLOBAL_NEWER\\0'" \
   'elif [[ "$ATUIN_QUERY" == multi ]]; then' \
   "  print -rn -- \$'print -r -- MULTI_ONE\\nprint -r -- MULTI_TWO\\0'" \
+  'elif [[ $filter_mode == global ]]; then' \
+  "  print -rn -- \$'print -r -- GLOBAL_OLDEST\\0print -r -- OLDEST\\0print -r -- GLOBAL_NEWEST\\0'" \
   'else' \
   "  print -rn -- \$'print -r -- OLDEST\\0print -r -- NEWEST\\0'" \
   'fi' \
@@ -67,6 +86,11 @@ print -rl -- \
   'zvm_after_init_commands+=('\''_atuin_context_history_install'\'')' \
   'ZVM_INIT_MODE=sourcing' \
   'source "$ATUIN_TEST_ZVM_PLUGIN"' \
+  'if [[ ${ATUIN_TEST_STUB_INTERACTIVE:-0} == 1 ]]; then' \
+  '  function _test_atuin_search() { print -r -- "interactive|$BUFFER|$PWD" >> "$ATUIN_TEST_LOG"; }' \
+  '  zle -N atuin-search _test_atuin_search' \
+  '  zle -N atuin-search-viins _test_atuin_search' \
+  'fi' \
   'function _test_chdir() { builtin cd "$ATUIN_TEST_CHDIR"; zle reset-prompt; }' \
   'zle -N _test_chdir' \
   'bindkey "^T" _test_chdir' \
@@ -78,9 +102,10 @@ print -rl -- \
 start_shell() {
   local keymap=${1:-viins}
   local preexisting_line_init=${2:-0}
+  local stub_interactive=${3:-0}
   : >"$test_log"
   zpty -b test_shell \
-    "env PATH=${(q)fake_bin}:${(q)PATH} ATUIN_TEST_CHDIR=${(q)test_root}/changed-directory ATUIN_TEST_KEYMAP=${(q)keymap} ATUIN_TEST_LOG=${(q)test_log} ATUIN_TEST_PLUGIN=${(q)plugin_path} ATUIN_TEST_PREEXISTING_LINE_INIT=${(q)preexisting_line_init} ATUIN_TEST_REAL_ATUIN=${(q)atuin_path} ATUIN_TEST_ZVM_PLUGIN=${(q)zvm_plugin_path} ZDOTDIR=${(q)zdotdir} zsh -di"
+    "env PATH=${(q)fake_bin}:${(q)PATH} ATUIN_TEST_CHDIR=${(q)test_root}/changed-directory ATUIN_TEST_KEYMAP=${(q)keymap} ATUIN_TEST_LOG=${(q)test_log} ATUIN_TEST_PLUGIN=${(q)plugin_path} ATUIN_TEST_PREEXISTING_LINE_INIT=${(q)preexisting_line_init} ATUIN_TEST_REAL_ATUIN=${(q)atuin_path} ATUIN_TEST_STUB_INTERACTIVE=${(q)stub_interactive} ATUIN_TEST_ZVM_PLUGIN=${(q)zvm_plugin_path} ZDOTDIR=${(q)zdotdir} zsh -di"
 
   typeset -g start_output
   zpty -r test_shell start_output '*READY> *'
@@ -128,21 +153,25 @@ assert_equals() {
   fi
 }
 
-batch_query_count() {
-  awk -F '|' '$1 == "batch" { count++ } END { print count + 0 }' "$test_log"
+history_load_count() {
+  awk -F '|' '$1 == "batch" && $4 ~ /--filter-mode directory/ { count++ } END { print count + 0 }' "$test_log"
 }
 
-wait_for_query_count() {
+global_query_count() {
+  awk -F '|' '$1 == "batch" && $4 ~ /--filter-mode global/ { count++ } END { print count + 0 }' "$test_log"
+}
+
+wait_for_history_load_count() {
   local expected=$1
   local count
 
   for _ in {1..100}; do
-    count=$(batch_query_count)
+    count=$(history_load_count)
     (( count >= expected )) && return 0
     zselect -t 1 || true
   done
 
-  print -ru2 -- "FAIL: timed out waiting for $expected Atuin queries"
+  print -ru2 -- "FAIL: timed out waiting for $expected history loads"
   return 1
 }
 
@@ -193,7 +222,7 @@ query_history() {
   )
 }
 
-test_consecutive_up_reuses_one_query() {
+test_consecutive_up_reuses_one_history_load() {
   start_shell
 
   zpty -w -n test_shell $'\e[A\e[A\n'
@@ -201,7 +230,7 @@ test_consecutive_up_reuses_one_query() {
   zpty -r test_shell output '*READY> *'
 
   assert_contains "$output" 'OLDEST' 'two consecutive Up presses select the second result'
-  assert_equals "$(batch_query_count)" 1 'two consecutive Up presses issue one Atuin query'
+  assert_equals "$(history_load_count)" 1 'two consecutive Up presses reuse one history load'
 
   finish_shell
 }
@@ -219,7 +248,7 @@ test_preexisting_line_init_hook_does_not_recurse() {
   zpty -d test_shell
 }
 
-test_emacs_application_cursor_keys_use_contextual_history() {
+test_emacs_application_cursor_keys_use_atuin_history() {
   start_shell emacs
 
   zpty -w -n test_shell $'\eOA\eOA\n'
@@ -227,12 +256,12 @@ test_emacs_application_cursor_keys_use_contextual_history() {
   zpty -r test_shell output '*READY> *'
 
   assert_contains "$output" 'OLDEST' 'application cursor Up works in the emacs keymap'
-  assert_equals "$(batch_query_count)" 1 'emacs application cursor keys reuse one Atuin query'
+  assert_equals "$(history_load_count)" 1 'emacs application cursor keys reuse one history load'
 
   finish_shell
 }
 
-test_vicmd_cursor_keys_use_contextual_history() {
+test_vicmd_cursor_keys_use_atuin_history() {
   start_shell vicmd
 
   zpty -w -n test_shell $'\e[A\n'
@@ -240,7 +269,49 @@ test_vicmd_cursor_keys_use_contextual_history() {
   zpty -r test_shell output '*READY> *'
 
   assert_contains "$output" 'NEWEST' 'cursor Up works in the vicmd keymap'
-  assert_equals "$(batch_query_count)" 1 'vicmd cursor keys issue one Atuin query'
+  assert_equals "$(history_load_count)" 1 'vicmd cursor keys issue one history load'
+
+  finish_shell
+}
+
+test_directory_results_precede_global_results() {
+  start_shell
+
+  zpty -w -n test_shell $'\e[A\e[A\e[A\n'
+  local output
+  zpty -r test_shell output '*READY> *'
+
+  assert_contains "$output" 'GLOBAL_NEWEST' 'global history follows all directory history'
+  assert_equals "$(history_load_count)" 1 'the history load contains one directory query'
+  assert_equals "$(global_query_count)" 1 'the history load contains one global query'
+
+  finish_shell
+}
+
+test_full_directory_stops_before_global_query() {
+  start_shell
+
+  zpty -w -n test_shell $'full\e[A\n'
+  local output
+  zpty -r test_shell output '*READY> *'
+
+  assert_contains "$output" 'DIRECTORY_200' 'the newest directory result is selected'
+  assert_equals "$(history_load_count)" 1 'a full result set issues one directory query'
+  assert_equals "$(global_query_count)" 0 'a full directory result set skips the global query'
+
+  finish_shell
+}
+
+test_global_results_only_fill_the_remaining_limit() {
+  start_shell
+
+  zpty -w -n test_shell $'partial\e[A\C-Uprint -r -- ${#_atuin_context_history_items}\n'
+  local output
+  zpty -r test_shell output '*READY> *'
+
+  assert_contains "$output" $'\r\n200\r\n' 'global results only fill the remaining result limit'
+  assert_equals "$(history_load_count)" 1 'a partial result set issues one directory query'
+  assert_equals "$(global_query_count)" 1 'a partial result set issues one global query'
 
   finish_shell
 }
@@ -248,12 +319,12 @@ test_vicmd_cursor_keys_use_contextual_history() {
 test_oldest_boundary_keeps_the_oldest_result() {
   start_shell
 
-  zpty -w -n test_shell $'\e[A\e[A\e[A\n'
+  zpty -w -n test_shell $'\e[A\e[A\e[A\e[A\e[A\n'
   local output
   zpty -r test_shell output '*READY> *'
 
-  assert_contains "$output" 'OLDEST' 'Up at the oldest boundary keeps the oldest result'
-  assert_equals "$(batch_query_count)" 1 'the oldest boundary does not issue another query'
+  assert_contains "$output" 'GLOBAL_OLDEST' 'Up at the oldest boundary keeps the oldest global result'
+  assert_equals "$(history_load_count)" 1 'the oldest boundary does not issue another history load'
 
   finish_shell
 }
@@ -263,11 +334,11 @@ test_empty_query_result_preserves_the_original_buffer() {
 
   local output
   zpty -w -n test_shell $'none\e[A'
-  wait_for_query_count 1
+  wait_for_history_load_count 1
   zselect -t 20 || true
   zpty -w -n test_shell $'\e[A'
   zselect -t 100 || true
-  assert_equals "$(batch_query_count)" 1 'consecutive Up presses reuse one empty query result'
+  assert_equals "$(history_load_count)" 1 'consecutive Up presses reuse one empty history load'
   zpty -w -n test_shell $'\n'
   zpty -r test_shell output '*READY> *'
 
@@ -284,7 +355,7 @@ test_down_restores_original_buffer() {
   zpty -r test_shell output '*READY> *'
 
   assert_contains "$output" 'ORIGINAL' 'Down past the newest result restores the original buffer'
-  assert_equals "$(batch_query_count)" 1 'restoring the original buffer reuses the active query'
+  assert_equals "$(history_load_count)" 1 'restoring the original buffer reuses the active history load'
 
   finish_shell
 }
@@ -297,7 +368,7 @@ test_down_restores_original_cursor() {
   zpty -r test_shell output '*READY> *'
 
   assert_contains "$output" 'HEADMIDDLETAIL' 'Down restores the original cursor position as well as the buffer'
-  assert_equals "$(batch_query_count)" 1 'restoring the original cursor reuses the active query'
+  assert_equals "$(history_load_count)" 1 'restoring the original cursor reuses the active history load'
 
   finish_shell
 }
@@ -310,7 +381,7 @@ test_edit_starts_a_new_query_cycle() {
   zpty -r test_shell output '*READY> *'
 
   assert_contains "$output" 'NEWEST' 'Up after editing uses the new query cycle result'
-  assert_equals "$(batch_query_count)" 2 'editing the buffer starts exactly one new query cycle'
+  assert_equals "$(history_load_count)" 2 'editing the buffer starts exactly one new query cycle'
   assert_contains "$(tail -n 1 "$test_log")" 'print -r -- EDITED|' 'the new cycle uses the edited left buffer as its prefix'
 
   finish_shell
@@ -323,7 +394,7 @@ test_moving_cursor_starts_a_new_query_cycle() {
   local output
   zpty -r test_shell output '*READY> *'
 
-  assert_equals "$(batch_query_count)" 2 'moving the cursor starts exactly one new query cycle'
+  assert_equals "$(history_load_count)" 2 'moving the cursor starts exactly one new query cycle'
   assert_contains "$(tail -n 1 "$test_log")" 'print -r -- |' 'the new cycle uses the new left buffer as its prefix'
 
   finish_shell
@@ -338,34 +409,31 @@ test_new_prompt_starts_a_new_query_cycle() {
   local output
   zpty -w -n test_shell $'\e[A\e[B\n'
   zpty -r test_shell output '*READY> *'
-  wait_for_query_count 1
+  wait_for_history_load_count 1
   zpty -w -n test_shell $'\e[A\n'
   zpty -r test_shell output '*READY> *'
-  wait_for_query_count 2
+  wait_for_history_load_count 2
 
-  assert_equals "$(batch_query_count)" 2 'a new prompt starts one new query cycle'
+  assert_equals "$(history_load_count)" 2 'a new prompt starts one new query cycle'
 
   finish_shell
 }
 
 test_ctrl_r_starts_a_new_query_cycle() {
-  start_shell
+  start_shell viins 0 1
 
   local output
   zpty -w -n test_shell $'\e[A'
-  wait_for_query_count 1
+  wait_for_history_load_count 1
   zpty -r test_shell output '*NEWEST*'
 
   zpty -w -n test_shell $'\C-R'
-  for _ in {1..100}; do
-    grep -q '^interactive|' "$test_log" && break
-    zselect -t 1 || true
-  done
+  zselect -t 10 || true
   assert_equals "$(awk -F '|' '$1 == "interactive" { count++ } END { print count + 0 }' "$test_log")" 1 'Ctrl-R invokes Atuin interactive search once'
 
   zpty -w -n test_shell $'\e[A'
   zselect -t 100 || true
-  assert_equals "$(batch_query_count)" 2 'leaving Ctrl-R invalidates the previous contextual query cycle'
+  assert_equals "$(history_load_count)" 2 'leaving Ctrl-R invalidates the previous query cycle'
 
   zpty -w -n test_shell $'\n'
   zpty -r test_shell output '*READY> *'
@@ -383,7 +451,7 @@ test_changing_directory_starts_a_new_query_cycle() {
   zpty -w -n test_shell $'\e[A\n'
   zpty -r test_shell output '*READY> *'
 
-  assert_equals "$(batch_query_count)" 2 'changing PWD starts exactly one new query cycle'
+  assert_equals "$(history_load_count)" 2 'changing PWD starts exactly one new query cycle'
   assert_contains "$(tail -n 1 "$test_log")" "$test_root/changed-directory" 'the new cycle queries from the changed directory'
 
   finish_shell
@@ -398,12 +466,12 @@ test_multiline_result_moves_within_buffer_without_querying_again() {
 
   assert_contains "$output" 'MULTI_ONE' 'a multiline history result preserves its first line'
   assert_contains "$output" 'MULTI_TWO' 'a multiline history result preserves its second line'
-  assert_equals "$(batch_query_count)" 1 'moving up inside a multiline result does not issue another query'
+  assert_equals "$(history_load_count)" 1 'moving up inside a multiline result does not issue another history load'
 
   finish_shell
 }
 
-test_real_atuin_database_preserves_directory_and_workspace_context() {
+test_real_atuin_database_uses_directory_then_global_history() {
   local workspace="$test_root/workspace"
   local subdirectory="$workspace/subdirectory"
   local elsewhere="$test_root/elsewhere"
@@ -420,18 +488,16 @@ test_real_atuin_database_preserves_directory_and_workspace_context() {
   query_history "$subdirectory" directory cargo
   assert_equals "${(j:|:)query_results}" 'cargo test subcrate' 'directory mode returns only the exact current directory'
 
-  query_history "$subdirectory" workspace cargo
-  assert_equals "${(j:|:)query_results}" 'cargo test --workspace|cargo test subcrate' 'workspace mode returns root and child directory history'
+  query_history "$subdirectory" global cargo
+  assert_equals "${(j:|:)query_results}" 'cargo test --workspace|cargo test subcrate|cargo test elsewhere' 'global mode returns history from every directory'
 
-  query_history "$elsewhere" workspace cargo
-  assert_equals "${(j:|:)query_results}" 'cargo test elsewhere' 'workspace mode outside Git falls back to the exact directory'
-
-  query_history "$subdirectory" workspace print
+  query_history "$subdirectory" global print
   assert_equals "${#query_results}" 1 'NUL output keeps a multiline command as one history item'
   assert_equals "$query_results[1]" $'print -r -- MULTI_ONE\nprint -r -- MULTI_TWO' 'a multiline command round-trips without modification'
 
   record_history "$workspace" 'print -r -- CONTEXT_ROOT'
   record_history "$subdirectory" 'print -r -- CONTEXT_SUBDIRECTORY'
+  record_history "$elsewhere" 'print -r -- CONTEXT_ELSEWHERE'
 
   zpty -b test_shell \
     "cd ${(q)subdirectory} && exec env PATH=${(q)fake_bin}:${(q)PATH} ATUIN_CONFIG_DIR=${(q)test_root}/atuin-config ATUIN_DATA_DIR=${(q)test_root}/atuin-data ATUIN_SESSION=context-test ATUIN_TEST_KEYMAP=viins ATUIN_TEST_PLUGIN=${(q)plugin_path} ATUIN_TEST_REAL_ATUIN=${(q)atuin_path} ATUIN_TEST_USE_REAL_SEARCH=1 ATUIN_TEST_ZVM_PLUGIN=${(q)zvm_plugin_path} ZDOTDIR=${(q)zdotdir} zsh -di"
@@ -440,23 +506,29 @@ test_real_atuin_database_preserves_directory_and_workspace_context() {
 
   zpty -w -n test_shell $'print -r -- CONTEXT\e[A\n'
   zpty -r test_shell output '*READY> *'
-  assert_contains "$output" 'CONTEXT_SUBDIRECTORY' 'the real ZLE widget selects the newest workspace match from Atuin'
+  assert_contains "$output" 'CONTEXT_SUBDIRECTORY' 'the real ZLE widget prioritizes the current directory'
 
   zpty -w -n test_shell $'print -r -- CONTEXT\e[A\e[A\n'
   zpty -r test_shell output '*READY> *'
-  assert_contains "$output" 'CONTEXT_ROOT' 'the real ZLE widget reuses its batch to select the older workspace match'
+  assert_contains "$output" 'CONTEXT_ELSEWHERE' 'the real ZLE widget continues with the newest remaining global match'
 
   finish_shell
 }
 
-test_consecutive_up_reuses_one_query
-print -r -- 'PASS: consecutive Up presses reuse one contextual Atuin query'
+test_consecutive_up_reuses_one_history_load
+print -r -- 'PASS: consecutive Up presses reuse one history load'
 test_preexisting_line_init_hook_does_not_recurse
 print -r -- 'PASS: pre-existing line-init hooks do not recurse'
-test_emacs_application_cursor_keys_use_contextual_history
-print -r -- 'PASS: emacs application cursor keys use contextual Atuin history'
-test_vicmd_cursor_keys_use_contextual_history
-print -r -- 'PASS: vicmd cursor keys use contextual Atuin history'
+test_emacs_application_cursor_keys_use_atuin_history
+print -r -- 'PASS: emacs application cursor keys use Atuin history'
+test_vicmd_cursor_keys_use_atuin_history
+print -r -- 'PASS: vicmd cursor keys use Atuin history'
+test_directory_results_precede_global_results
+print -r -- 'PASS: directory results precede global results'
+test_full_directory_stops_before_global_query
+print -r -- 'PASS: a full directory result set skips the global query'
+test_global_results_only_fill_the_remaining_limit
+print -r -- 'PASS: global results only fill the remaining result limit'
 test_oldest_boundary_keeps_the_oldest_result
 print -r -- 'PASS: the oldest boundary keeps its result without another query'
 test_empty_query_result_preserves_the_original_buffer
@@ -466,16 +538,16 @@ print -r -- 'PASS: Down restores the original buffer without querying again'
 test_down_restores_original_cursor
 print -r -- 'PASS: Down restores the original cursor without querying again'
 test_edit_starts_a_new_query_cycle
-print -r -- 'PASS: editing starts one new contextual query cycle'
+print -r -- 'PASS: editing starts one new query cycle'
 test_moving_cursor_starts_a_new_query_cycle
-print -r -- 'PASS: moving the cursor starts one new contextual query cycle'
+print -r -- 'PASS: moving the cursor starts one new query cycle'
 test_new_prompt_starts_a_new_query_cycle
-print -r -- 'PASS: a new prompt starts one new contextual query cycle'
-test_ctrl_r_starts_a_new_query_cycle
-print -r -- 'PASS: Ctrl-R starts one new contextual query cycle'
+print -r -- 'PASS: a new prompt starts one new query cycle'
+test_real_atuin_database_uses_directory_then_global_history
+print -r -- 'PASS: real Atuin DB queries prioritize directory results before global results'
 test_changing_directory_starts_a_new_query_cycle
-print -r -- 'PASS: changing directory starts one new contextual query cycle'
+print -r -- 'PASS: changing directory starts one new query cycle'
 test_multiline_result_moves_within_buffer_without_querying_again
 print -r -- 'PASS: multiline history remains intact and navigates without another query'
-test_real_atuin_database_preserves_directory_and_workspace_context
-print -r -- 'PASS: real Atuin DB queries preserve directory, workspace, prefix, and multiline semantics'
+test_ctrl_r_starts_a_new_query_cycle
+print -r -- 'PASS: Ctrl-R starts one new query cycle'

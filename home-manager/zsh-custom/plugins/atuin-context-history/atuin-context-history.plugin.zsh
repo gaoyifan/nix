@@ -29,20 +29,57 @@ function _atuin_context_history_matches_buffer() {
 
 function _atuin_context_history_load() {
   local record
+  local directory_output
+  local global_output
+  local -a directory_results=()
   local -a results=()
+  local -A seen=()
 
-  while IFS= read -r -d $'\0' record; do
-    results+=("$record")
-  done < <(
+  directory_output=$(
     ATUIN_QUERY="$LBUFFER" command atuin search \
       --cmd-only \
       --print0 \
-      --filter-mode workspace \
+      --filter-mode directory \
       --search-mode prefix \
       --author '$all-user' \
       --limit 200 \
       2>/dev/null
   )
+
+  for record in "${(@0)directory_output}"; do
+    if [[ -n "$record" ]]; then
+      directory_results+=("$record")
+    fi
+  done
+
+  if (( ${#directory_results} < 200 )); then
+    for record in "${directory_results[@]}"; do
+      seen[$record]=1
+    done
+
+    global_output=$(
+      ATUIN_QUERY="$LBUFFER" command atuin search \
+        --cmd-only \
+        --print0 \
+        --filter-mode global \
+        --search-mode prefix \
+        --author '$all-user' \
+        --limit 200 \
+        2>/dev/null
+    )
+
+    for record in "${(@0)global_output}"; do
+      if [[ -n "$record" && -z ${seen[$record]+present} ]]; then
+        results+=("$record")
+      fi
+    done
+
+    while (( ${#results} > 200 - ${#directory_results} )); do
+      shift results
+    done
+  fi
+
+  results+=("${directory_results[@]}")
 
   _atuin_context_history_items=("${results[@]}")
   _atuin_context_history_active=1
