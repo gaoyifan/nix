@@ -216,7 +216,7 @@ darwin hostname='':
 [group('dev')]
 [working-directory(justfile_directory() + "/secrets/files")]
 edit-secret path:
-    RULES=./secrets.nix agenix -e "$(realpath --relative-to=. "{{ invocation_directory() }}/{{ path }}")"
+    RULES=./secrets.nix agenix -e "{{ trim_start_match(clean(invocation_directory() / path), justfile_directory() / 'secrets/files/') }}"
 
 # Re-encrypt all agenix secrets with the current recipient rules
 [group('dev')]
