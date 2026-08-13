@@ -52,8 +52,8 @@ cjia 是 4 GiB NanoPi R4S。Armbian 从 32 GiB SD 卡启动，内置 GMAC `lan0`
 ### DNS、DHCP 与服务发现
 
 dnsmasq 仅在 LAN 和 Tailscale 上提供服务。DHCP 默认网关和 DNS 均为
-`100.65.1.254`，动态地址范围为 `100.65.1.100,100.65.1.199,24h`；当前没有静态
-租约。上游保留：
+`100.65.1.254`，动态地址范围为 `100.65.1.100,100.65.1.199,24h`；AdGuard Home
+中原有的 20 条静态租约以 dnsmasq `dhcp-host` 声明保留。上游保留：
 
 - `/taildeb190.ts.net/100.100.100.100`
 - `/somo.gaof.net/100.65.2.254`

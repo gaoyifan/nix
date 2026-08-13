@@ -6,6 +6,7 @@
 }: let
   homeRouter = config.networking.homeRouter;
   lanInterface = homeRouter.lans.cjia.interface;
+  dhcpHosts = import (config.services.secrets.filesDir + "/nixos/cjia/dhcp-hosts.nix");
   pppMark = "0x1";
   wgIplcMark = "0x2";
   nylonEl2CernetMark = "0x38";
@@ -29,7 +30,10 @@ in {
       vlan = 651;
       addresses = ["100.65.1.254/24"];
       ipv6.enable = false;
-      dhcpServer.range = "100.65.1.100,100.65.1.199,24h";
+      dhcpServer = {
+        range = "100.65.1.100,100.65.1.199,24h";
+        hosts = dhcpHosts;
+      };
     };
 
     wans.ppp = {
