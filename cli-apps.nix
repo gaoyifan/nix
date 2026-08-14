@@ -46,6 +46,7 @@
       };
       playwright-cli = {};
       redis-cli = from "redis";
+      rsync = {};
       ruby = {};
       sqlite3 = from "sqlite";
       telnet = from "inetutils";
