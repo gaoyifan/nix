@@ -170,6 +170,10 @@
       sendRaw = true;
       zfsGetType = true;
     };
+    zetup.services = {
+      dataset = "pool1/services";
+      plan = "1d=>1h,2w=>1d,8w=>1w,1y=>1m";
+    };
     zetup.kingdee = {
       dataset = "pool1/incus/virtual-machines/kingdee.block";
       plan = "1hours=>10minutes,1days=>8hours,30days=>7days";
