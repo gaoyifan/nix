@@ -24,6 +24,7 @@
     ignore = [
       ".codex/archived_sessions"
       ".codex/cache"
+      ".codex/history.jsonl"
       ".codex/models_cache.json"
       ".codex/tmp"
       ".codex/version.json"
