@@ -97,6 +97,11 @@ in {
     with subtest("OOB rejects a derived parent interface"):
         derived.fail("systemctl start oob-ssh.service")
 
+    with subtest("OOB shares the parent MAC"):
+        server.succeed(
+            "test \"$(ip netns exec oob cat /sys/class/net/oob0/address)\" = "
+            "\"$(cat /sys/class/net/eth1/address)\""
+        )
     with subtest("a failed setup can recover after configuration is repaired"):
         recovery.fail("systemctl restart oob-netns.service oob-ssh.service")
         recovery.succeed(

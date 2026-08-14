@@ -16,13 +16,13 @@ in {
 
     parentInterface = lib.mkOption {
       type = lib.types.str;
-      description = "Standalone Ethernet interface on which to create the OOB macvlan.";
+      description = "Standalone Ethernet interface on which to create the OOB link.";
       example = "eth0";
     };
 
     address = lib.mkOption {
       type = lib.types.str;
-      description = "Static CIDR address assigned to the OOB macvlan.";
+      description = "Static CIDR address assigned to the OOB link.";
       example = "10.42.0.233/24";
     };
   };
@@ -56,7 +56,7 @@ in {
 
           ip netns add ${namespace}
           trap 'ip netns delete ${namespace}' EXIT
-          ip link add ${interface} link ${lib.escapeShellArg cfg.parentInterface} type macvlan mode bridge
+          ip link add ${interface} link ${lib.escapeShellArg cfg.parentInterface} type ipvlan mode l2
           ip link set ${interface} netns ${namespace}
           ip netns exec ${namespace} ${lib.getExe' pkgs.procps "sysctl"} -qw net.ipv6.conf.${interface}.disable_ipv6=1
           ip -n ${namespace} address add ${lib.escapeShellArg cfg.address} dev ${interface}

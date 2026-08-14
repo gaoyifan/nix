@@ -14,11 +14,18 @@ in {
   imports = [
     ../../optional/edge-firewall.nix
     ../../optional/home-router
+    ../../optional/oob-ssh.nix
   ];
 
   age.secrets = lib.mkIf config.services.secrets.hasRealFiles {
     wlt-server-key.file = config.services.secrets.filesDir + "/nixos/wlt-server-key.pem.age";
     wlt-ssh-host-key.file = config.services.secrets.filesDir + "/nixos/wlt-ssh-host-key.age";
+  };
+
+  services.oobSsh = {
+    enable = true;
+    parentInterface = "end0";
+    address = "198.18.233.233/24";
   };
 
   networking.homeRouter = {
