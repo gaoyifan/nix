@@ -35,6 +35,7 @@
   };
 
   hardware.enableRedistributableFirmware = true;
+  services.journald.storage = "volatile";
 
   image.baseName = config.networking.hostName;
   sdImage = {
