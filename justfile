@@ -135,6 +135,10 @@ home:
         echo "Refusing to run standalone Home Manager on macOS. Use 'just darwin' instead." >&2
         exit 1
     fi
+    if [ -e /etc/NIXOS ]; then
+        echo "Refusing to run standalone Home Manager on NixOS. Use 'just nixos' instead." >&2
+        exit 1
+    fi
     source <({{ self_just }} _emit_nix_env)
     source <({{ self_just }} _emit_flake_ref)
     {{ self_just }} _write_username
