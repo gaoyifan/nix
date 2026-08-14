@@ -6,7 +6,9 @@ in
     casks =
       defaultHomebrew.casks
       ++ [
-        # Keep Flutter scoped to the Mac Studio.
         "flutter"
+        "handbrake-app" # Video transcoder
+        "lm-studio" # Local LLM runner
+        "orbstack" # Docker/Linux VM alternative
       ];
   }

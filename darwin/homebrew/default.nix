@@ -116,13 +116,11 @@
 
     # AI Tools
     "chatgpt"
-    "lm-studio" # Local LLM runner
     "typeless"
 
     # Development
     "cursor"
     "iterm2"
-    "orbstack" # Docker/Linux VM alternative
     "xquartz" # X11 server
     "macfuse" # User-space filesystem
 
@@ -135,7 +133,6 @@
     "calibre" # E-book manager
 
     # Media
-    "handbrake-app" # Video transcoder
     "iina" # Modern video player
     "neteasemusic"
     "plex"
