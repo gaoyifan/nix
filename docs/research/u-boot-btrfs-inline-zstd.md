@@ -1,7 +1,7 @@
 # U-Boot 无法读取 Linux 写入的 Btrfs zstd 内联 extent
 
-调查日期：2026-08-13
-结论状态：已通过源码分析和 U-Boot sandbox 最小复现确认
+调查日期：2026-08-13；修复验证：2026-08-14
+结论状态：已本地复现，并在 U-Boot fork 与 NanoPi R4S 构建中修复
 
 ## 结论
 
@@ -139,7 +139,7 @@ U-Boot 自带错误枚举将 70 定义为 `ZSTD_error_dstSize_tooSmall`，参见
 zstd wrapper 见
 [`lib/zstd/zstd.c`](https://github.com/u-boot/u-boot/blob/v2026.04/lib/zstd/zstd.c#L14-L55)。
 
-截至 2026-08-11，U-Boot `next` 的 commit
+截至 2026-08-14，U-Boot `next` 的 commit
 [`5a92645e`](https://github.com/u-boot/u-boot/commit/5a92645e1f9020d24d19e03fff2ae63f30080770)
 仍按 `ram_bytes` 分配缓冲区，因此上游尚未修复该问题。
 
@@ -160,7 +160,7 @@ zstd wrapper 见
 5. 下次启动时，U-Boot 甚至无法读出 `extlinux.conf`，所以控制权从未进入
    Linux，也不会出现内核日志。
 
-## 已验证的 U-Boot 修复方向
+## U-Boot 修复
 
 在临时 U-Boot 2026.04 sandbox 中，将压缩内联 extent 的解压缓冲区改为
 Btrfs sector 大小：
@@ -182,13 +182,17 @@ Btrfs sector 大小：
 - `mkfs.btrfs` 生成的镜像仍成功读出 1262 字节。
 
 这项测试闭合了“Linux 产生 4096 字节 frame → U-Boot 输出缓冲区过小 →
-错误 70”的因果链。正式提交 U-Boot patch 时还应为压缩内联 extent 加入
-sandbox 回归测试，并覆盖 U-Boot 支持的其他 Btrfs 压缩算法。
+错误 70”的因果链。修复已提交到
+[`gaoyifan/u-boot@ef064173`](https://github.com/gaoyifan/u-boot/commit/ef064173324d9fc28e20e951ad97b6bc95101499)，
+并由 [`pkgs/nanopi-r4s-uboot.nix`](../../pkgs/nanopi-r4s-uboot.nix) 固定该提交作为构建源码。
+fork 中的 U-Boot 2026.10-rc2 sandbox 对 Linux 与 `mkfs.btrfs` 两类镜像均
+读出 1262 字节，内容 CRC32 均为 `6b972e7f`；同一源码的 NanoPi R4S ARM
+U-Boot derivation 也已成功构建。
 
 ## 当前规避方案
 
-在上游 U-Boot 修复前，最小规避方案是让 U-Boot 需要读取的整个 `/boot`
-目录树使用 `compression=none`：
+对于已经写入 SD 卡、仍运行旧 U-Boot 的 NanoPi R4S，规避方案仍是让 U-Boot
+需要读取的整个 `/boot` 目录树使用 `compression=none`：
 
 ```console
 btrfs property set /boot compression none
@@ -197,9 +201,10 @@ find /boot -type d -exec btrfs property set '{}' compression none ';'
 
 属性只影响之后创建或重写的 extent，不会原地解压已经存在的 extent。因此
 必须在下一次 NixOS bootloader 更新之前设置，并确保
-`/boot/extlinux`、`/boot/nixos` 以及后续新建的子目录继承该属性。本仓库目前
-通过 `btrfs-boot-no-compression` 服务设置这些目录，见
-[`nixos/optional/nanopi-r4s.nix`](../../nixos/optional/nanopi-r4s.nix#L80-L90)。
+`/boot/extlinux`、`/boot/nixos` 以及后续新建的子目录继承该属性。本仓库暂时
+保留 `btrfs-boot-no-compression` 服务，以免现有卡片在仅更新 NixOS、尚未
+重刷修复后的 U-Boot 时失去启动能力，见
+[`nixos/optional/nanopi-r4s.nix`](../../nixos/optional/nanopi-r4s.nix)。
 
 单独使用不压缩的 FAT/ext4 boot 分区也能绕开 U-Boot 的 Btrfs 解压路径，
 但会改变现有分区和部署布局。相比之下，修复 U-Boot 的缓冲区长度可以保留

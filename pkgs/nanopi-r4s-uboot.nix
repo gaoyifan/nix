@@ -1,5 +1,12 @@
 {pkgs}:
 pkgs.buildUBoot {
+  version = "2026.10-rc2";
+  src = pkgs.fetchFromGitHub {
+    owner = "gaoyifan";
+    repo = "u-boot";
+    rev = "ef064173324d9fc28e20e951ad97b6bc95101499";
+    hash = "sha256-GOqzVWGdWu8yRliBTwApvbK5vj9MOSuccVWMdwwuPWE=";
+  };
   defconfig = "nanopi-r4s-rk3399_defconfig";
   extraConfig = ''
     CONFIG_BAUDRATE=115200
