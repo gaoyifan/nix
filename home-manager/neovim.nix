@@ -9,8 +9,8 @@
   vimConfig = pkgs.fetchFromGitHub {
     owner = "gaoyifan";
     repo = "vimrc";
-    rev = "4cbe53d706a9f0834ee5b895bcb68089a1e2fe8e";
-    sha256 = "sha256-5YXDdpsBkZfih9ICaC02YiexMJyGo06H7QtOov7nHGk=";
+    rev = "71ffe397ef1efdbc9d33645c7a9db6031a16de2a";
+    sha256 = "sha256-dwqMuLT4K2kwqkI2I1pdaB9Gpev6/26VM6Jp7VgNXHU=";
   };
 
   # Neovim init configuration (shared across platforms)
