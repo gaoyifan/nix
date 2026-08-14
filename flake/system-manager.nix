@@ -9,7 +9,6 @@
   resticBackupHosts = [
     "CJIA-GW.gaof.net"
     "bitmagnet"
-    "blog"
     "debian21"
     "debian41"
     "do"

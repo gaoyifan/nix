@@ -34,6 +34,7 @@
     };
   };
   configs = {
+    blog = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/blog];
     cjia = mkNixosHost "aarch64-linux" [../nixos/hosts/cjia];
     el = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/el];
     el2 = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/el2];
@@ -64,6 +65,7 @@ in {
   nixosConfigurations = configs;
 
   deploy.nodes = {
+    blog = mkDeployNode "x86_64-linux" "blog.ts.gaof.net" configs.blog;
     cjia = mkDeployNode "aarch64-linux" "cjia.ts.gaof.net" configs.cjia;
     el = mkDeployNode "x86_64-linux" "el.ts.gaof.net" configs.el;
     el2 = mkDeployNode "x86_64-linux" "el2.ts.gaof.net" configs.el2;
