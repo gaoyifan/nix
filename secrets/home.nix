@@ -71,6 +71,13 @@ in {
   };
 
   config = lib.mkMerge [
+    (lib.mkIf (pkgs.stdenv.isDarwin && (hasAtuinSecrets || hasResticSecrets)) {
+      # launchd ORs KeepAlive conditions, so agenix's additional
+      # Crashed = false condition restarts the agent after successful exits.
+      launchd.agents.activate-agenix.config.KeepAlive = lib.mkForce {
+        SuccessfulExit = false;
+      };
+    })
     (lib.mkIf (cfg.atuin.enable && cfg.atuin.available) {
       age.secrets = {
         "atuin-key" = {
