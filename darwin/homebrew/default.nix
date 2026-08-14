@@ -112,25 +112,16 @@
   casks = [
     # Password & Security
     "1password"
-    "1password-cli"
     "electrum" # Bitcoin wallet
-    "ramonvermeulen/whosthere/whosthere" # See who's on your network
 
     # AI Tools
     "chatgpt"
-    "chatgpt-atlas"
-    "codex-app"
     "lm-studio" # Local LLM runner
-    "openclaw"
-    "opencode-desktop"
-    "stablyai/orca/orca"
     "typeless"
 
     # Development
     "cursor"
-    "deskflow"
     "iterm2"
-    "zed"
     "orbstack" # Docker/Linux VM alternative
     "xquartz" # X11 server
     "macfuse" # User-space filesystem
@@ -146,7 +137,6 @@
     # Media
     "handbrake-app" # Video transcoder
     "iina" # Modern video player
-    "vlc"
     "neteasemusic"
     "plex"
     "plex-htpc"
@@ -162,7 +152,6 @@
     "pearcleaner" # Remove apps and leftover files
     "balenaetcher" # USB/SD flasher
     "raspberry-pi-imager"
-    "pvetui" # Proxmox VE TUI
 
     # Fonts
     "font-inconsolata-for-powerline"
@@ -173,9 +162,5 @@
 
     # Social
     "telegram"
-    "voov-meeting" # Tencent Meeting
-
-    # Games
-    "playcover-community" # Run iOS apps on Apple Silicon
   ];
 }
