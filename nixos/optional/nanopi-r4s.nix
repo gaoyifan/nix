@@ -55,6 +55,50 @@
     '';
   };
 
+  environment.systemPackages = [
+    (pkgs.writeShellApplication {
+      name = "update-nanopi-r4s-uboot";
+      runtimeInputs = [pkgs.coreutils];
+      text = ''
+        if [ "$#" -ne 1 ]; then
+          echo "usage: update-nanopi-r4s-uboot /dev/mmcblkN" >&2
+          exit 2
+        fi
+
+        device="$1"
+        idbloader=${pkgs.nanopi-r4s-uboot}/idbloader.img
+        uboot_itb=${pkgs.nanopi-r4s-uboot}/u-boot.itb
+        idbloader_size="$(stat -c %s "$idbloader")"
+        uboot_itb_size="$(stat -c %s "$uboot_itb")"
+
+        if cmp -s "$idbloader" \
+          <(dd if="$device" skip=$((64 * 512)) count="$idbloader_size" iflag=skip_bytes,count_bytes status=none) && \
+          cmp -s "$uboot_itb" \
+          <(dd if="$device" skip=$((16384 * 512)) count="$uboot_itb_size" iflag=skip_bytes,count_bytes status=none); then
+          echo "$device already contains ${pkgs.nanopi-r4s-uboot.name}"
+          exit 0
+        fi
+
+        backup_dir=/var/lib/nanopi-r4s-uboot/backups
+        install -d -m 0700 "$backup_dir"
+        backup="$backup_dir/$(date -u +%Y%m%dT%H%M%SZ)-$(basename "$device")-first-16MiB.img"
+        dd if="$device" of="$backup" bs=1M count=16 iflag=fullblock conv=fsync status=none
+        chmod 0600 "$backup"
+        echo "backed up the first 16 MiB to $backup"
+
+        dd if="$idbloader" of="$device" bs=512 seek=64 conv=notrunc,fsync status=none
+        dd if="$uboot_itb" of="$device" bs=512 seek=16384 conv=notrunc,fsync status=none
+        sync "$device"
+
+        cmp "$idbloader" \
+          <(dd if="$device" skip=$((64 * 512)) count="$idbloader_size" iflag=skip_bytes,count_bytes status=none)
+        cmp "$uboot_itb" \
+          <(dd if="$device" skip=$((16384 * 512)) count="$uboot_itb_size" iflag=skip_bytes,count_bytes status=none)
+        echo "updated $device to ${pkgs.nanopi-r4s-uboot.name}"
+      '';
+    })
+  ];
+
   systemd.services.btrfs-boot-no-compression = {
     description = "Disable Btrfs compression for U-Boot files";
     wantedBy = ["local-fs.target"];
