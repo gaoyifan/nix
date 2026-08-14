@@ -50,6 +50,7 @@ in {
         modules =
           [
             {
+              networking.hostName = nixpkgs.lib.mkIf (hostname != "default") hostname;
               nixpkgs.hostPlatform = "aarch64-darwin";
               nixpkgs.overlays = [overlay];
               nixpkgs.config.allowUnfree = true;
