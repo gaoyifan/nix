@@ -20,8 +20,12 @@
       ]
       self.deploy;
     deployChecks = builtins.mapAttrs (_system: deployLib: deployLib.deployChecks deployForChecks) deploy-rs.lib;
+    x86Pkgs = (pkgsFor "x86_64-linux").extend overlay;
   in
     nixpkgs.lib.recursiveUpdate deployChecks {
-      x86_64-linux.home-router = ((pkgsFor "x86_64-linux").extend overlay).testers.runNixOSTest (import ../nixos/tests/home-router.nix {inherit inputs;});
+      x86_64-linux = {
+        home-router = x86Pkgs.testers.runNixOSTest (import ../nixos/tests/home-router.nix {inherit inputs;});
+        oob-ssh = x86Pkgs.testers.runNixOSTest (import ../nixos/tests/oob-ssh.nix {pkgs = x86Pkgs;});
+      };
     };
 }
