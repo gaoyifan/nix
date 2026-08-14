@@ -70,12 +70,32 @@ in {
       specialisation.repaired.configuration.services.oobSsh.address =
         pkgs.lib.mkForce "${recoveredOobAddress}/24";
     };
+
+    derived = {
+      imports = [../optional/oob-ssh.nix];
+
+      virtualisation.vlans = [1];
+      networking.vlans.oob-parent = {
+        id = 100;
+        interface = "eth1";
+      };
+      services.oobSsh = {
+        enable = true;
+        parentInterface = "oob-parent";
+        address = "192.168.1.203/24";
+      };
+      systemd.services.oob-ssh.wantedBy = pkgs.lib.mkForce [];
+    };
   };
 
   testScript = ''
     client.start()
+    derived.start()
     recovery.start()
     server.start()
+
+    with subtest("OOB rejects a derived parent interface"):
+        derived.fail("systemctl start oob-ssh.service")
 
     with subtest("a failed setup can recover after configuration is repaired"):
         recovery.fail("systemctl restart oob-netns.service oob-ssh.service")

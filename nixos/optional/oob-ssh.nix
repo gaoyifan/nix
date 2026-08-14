@@ -16,7 +16,7 @@ in {
 
     parentInterface = lib.mkOption {
       type = lib.types.str;
-      description = "Ethernet interface on which to create the OOB macvlan.";
+      description = "Standalone Ethernet interface on which to create the OOB macvlan.";
       example = "eth0";
     };
 
@@ -48,6 +48,12 @@ in {
           RemainAfterExit = true;
         };
         script = ''
+          parent=${lib.escapeShellArg "/sys/class/net/${cfg.parentInterface}"}
+          read -r ifindex < "$parent/ifindex"
+          read -r iflink < "$parent/iflink"
+          test "$ifindex" = "$iflink"
+          test ! -e "$parent/master"
+
           ip netns add ${namespace}
           trap 'ip netns delete ${namespace}' EXIT
           ip link add ${interface} link ${lib.escapeShellArg cfg.parentInterface} type macvlan mode bridge
