@@ -1,15 +1,15 @@
 {pkgs}:
 pkgs.tailscale.overrideAttrs {
-  version = "1.98.8-yifan";
+  version = "1.102.2-yifan";
 
   # Fork of tailscale/tailscale with manual TLS certificate support for Serve.
   # Per repo convention, this commit is pinned from the fork's main branch.
   src = pkgs.fetchFromGitHub {
     owner = "gaoyifan";
     repo = "tailscale";
-    rev = "7310d88f1d7f7f4cf97d8858064b7141cda81cfc";
-    hash = "sha256-e+WKU4H0HTrr8EKL1G29/DWZrpMCst3jrLIa7I1kioM=";
+    rev = "c68efb626a47c0723185a64db6976f3eaae366ba";
+    hash = "sha256-K7MgTxWUvO0eGGqeQX37JPNFHbecL2U9Zpkw/SSp0iA=";
   };
 
-  vendorHash = "sha256-Sd2iLJ7eDfDYdIRuW4xuiKgzhQWJWGAnz97FJWrVRlE=";
+  vendorHash = "sha256-amKkUPszyhG4N5ZtrB01swBACYq76raSS+SQRneLmwc=";
 }
