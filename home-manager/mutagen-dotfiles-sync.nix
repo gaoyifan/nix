@@ -22,6 +22,7 @@
   sessionCreateArguments = lib.cli.toCommandLineGNU {} {
     compression = "deflate";
     ignore = [
+      ".codex/archived_sessions"
       ".codex/cache"
       ".codex/models_cache.json"
       ".codex/tmp"
