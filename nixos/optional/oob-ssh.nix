@@ -58,6 +58,7 @@ in {
           trap 'ip netns delete ${namespace}' EXIT
           ip link add ${interface} link ${lib.escapeShellArg cfg.parentInterface} type macvlan mode bridge
           ip link set ${interface} netns ${namespace}
+          ip netns exec ${namespace} ${lib.getExe' pkgs.procps "sysctl"} -qw net.ipv6.conf.${interface}.disable_ipv6=1
           ip -n ${namespace} address add ${lib.escapeShellArg cfg.address} dev ${interface}
           ip -n ${namespace} link set ${interface} up
           ip -n ${namespace} link set lo up

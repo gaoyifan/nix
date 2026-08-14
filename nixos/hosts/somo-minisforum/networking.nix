@@ -12,9 +12,19 @@
     wlt-ssh-host-key.file = config.services.secrets.filesDir + "/nixos/wlt-ssh-host-key.age";
   };
 
-  imports = [../../optional/somo-router.nix];
+  imports = [
+    ../../optional/oob-ssh.nix
+    ../../optional/somo-router.nix
+  ];
 
   networking.hostName = "somo-minisforum";
+
+  services.oobSsh = {
+    enable = true;
+    parentInterface = "enp3s0";
+    address = "198.18.233.233/24";
+  };
+
   networking.somoRouter = {
     enable = true;
     wanDevice = "enp3s0";

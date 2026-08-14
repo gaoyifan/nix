@@ -109,6 +109,7 @@ in {
         )
 
     with subtest("OOB SSH is isolated from the host firewall"):
+        server.succeed('test -z "$(ip -n oob -6 -o address show dev oob0)"')
         client.wait_until_succeeds("ssh ${sshOptions} root@192.168.1.10 true", timeout=10)
         client.wait_until_succeeds("ssh ${sshOptions} root@${oobAddress} true", timeout=10)
         server.succeed("nft add table inet disaster")
