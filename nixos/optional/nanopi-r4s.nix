@@ -36,6 +36,10 @@
 
   hardware.enableRedistributableFirmware = true;
   services.journald.storage = "volatile";
+  # Keep Nylon's latency-sensitive dispatcher on the RK3399 Cortex-A72 cores.
+  systemd.services.nylon = lib.mkIf (config.services.nylon.enable or false) {
+    serviceConfig.AllowedCPUs = "4-5";
+  };
 
   image.baseName = config.networking.hostName;
   sdImage = {
