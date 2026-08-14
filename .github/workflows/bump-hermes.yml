@@ -32,7 +32,12 @@ jobs:
 
       - name: Validate flake
         if: steps.bump.outputs.changed == 'true'
-        run: nix flake check --accept-flake-config --all-systems --no-build
+        run: |
+          # Materialize filtered sources before the full check to work around lazy store paths in Nix 2.34:
+          # https://github.com/NixOS/nix/pull/16078
+          # https://github.com/NixOS/nix/blob/2.35.2/doc/manual/source/release-notes/rl-2.35.md#performance-improvements
+          nix eval .#packages.x86_64-linux.nixos-hosts-cache.drvPath --accept-flake-config >/dev/null
+          nix flake check --accept-flake-config --all-systems --no-build
 
       - name: Commit and push
         if: steps.bump.outputs.changed == 'true'
