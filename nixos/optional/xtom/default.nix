@@ -39,13 +39,15 @@
   boot = {
     loader.grub.enable = true;
     kernelParams = ["console=tty0"];
+    zswap.enable = true;
   };
 
-  zramSwap = {
-    enable = true;
-    algorithm = "zstd";
-    memoryPercent = 100;
-  };
+  swapDevices = [
+    {
+      device = "/var/lib/swapfile";
+      size = 2 * 1024;
+    }
+  ];
 
   services = {
     timesyncd = {
