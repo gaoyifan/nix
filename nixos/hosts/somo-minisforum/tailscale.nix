@@ -19,6 +19,5 @@ in {
   services.tailscale = {
     authKeyFile = "/run/agenix/somo-minisforum-tailscale-auth-key";
     extraUpFlags = routeFlags;
-    extraSetFlags = routeFlags;
   };
 }

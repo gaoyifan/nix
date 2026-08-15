@@ -1,8 +1,4 @@
-{
-  config,
-  lib,
-  ...
-}: let
+{...}: let
   flags = [
     "--advertise-connector"
     "--advertise-routes=10.254.0.0/21,100.64.0.0/24,100.64.1.0/24,192.168.93.0/24,192.168.174.0/24,202.38.93.0/24,202.141.162.0/24,202.141.178.0/24"
@@ -10,13 +6,7 @@
 in {
   imports = [../../optional/tailscale-gnet.nix];
 
-  age.secrets = lib.mkIf config.services.secrets.hasRealFiles {
-    tailscale-auth-key.file = config.services.secrets.filesDir + "/nixos/tailscale-auth-key.age";
-  };
-
   services.tailscale = {
-    authKeyFile = "/run/agenix/tailscale-auth-key";
-    extraSetFlags = flags;
     extraUpFlags = flags;
     port = 6627;
   };

@@ -14,6 +14,5 @@ in {
   services.tailscale = {
     authKeyFile = "/run/agenix/somo-nanopi-r4s-tailscale-auth-key";
     extraUpFlags = routeFlags;
-    extraSetFlags = routeFlags;
   };
 }

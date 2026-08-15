@@ -21,8 +21,9 @@
   };
 in {
   imports = [
-    ../../optional/nylon.nix
+    ../../optional/nylon-public-exit.nix
     ../../optional/qemu-guest.nix
+    ../../optional/tailscale-gnet-vm-exit.nix
     ./disk-config.nix
   ];
 
@@ -70,32 +71,11 @@ in {
     };
   };
 
-  services.tailscale = {
+  services.nylon.cloudflareWarp = {
     enable = true;
-    useRoutingFeatures = "server";
-    extraSetFlags = [
-      "--accept-dns=false"
-      "--accept-routes"
-      "--netfilter-mode=off"
-      "--snat-subnet-routes=false"
-    ];
-  };
-
-  services.nylon = {
-    enable = true;
-    cloudflareWarp = {
-      enable = true;
-      label = 101;
-      ipv6Address = "2606:4700:110:85d7:5c0:159f:4a50:99";
-      reserved = "0xdeeca8";
-    };
-    overlay = {
-      ipv4Subnet = "10.250.10.0/24";
-      ipv6Subnet = "fd10:250:10::/64";
-      nat.enable = false;
-    };
-    routeBatch.enable = false;
-    exits.oracle.label = 100;
+    label = 101;
+    ipv6Address = "2606:4700:110:85d7:5c0:159f:4a50:99";
+    reserved = "0xdeeca8";
   };
 
   services.resticBackup.extraExcludes = [

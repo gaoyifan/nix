@@ -12,13 +12,9 @@
 in {
   imports = [
     ../../optional/qemu-guest.nix
-    ../../optional/tailscale-gnet.nix
+    ../../optional/tailscale-gnet-vm-exit.nix
     ./disk-config.nix
   ];
-
-  age.secrets = lib.mkIf config.services.secrets.hasRealFiles {
-    tailscale-auth-key.file = filesDir + "/nixos/tailscale-auth-key.age";
-  };
 
   networking.hostName = "somo-gw";
   networking.useDHCP = lib.mkDefault true;

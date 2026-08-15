@@ -15,6 +15,14 @@
 in {
   imports = [./policy-routing.nix];
 
+  age.secrets =
+    lib.mkIf (
+      config.services.secrets.hasRealFiles
+      && config.services.tailscale.authKeyFile == "/run/agenix/tailscale-auth-key"
+    ) {
+      tailscale-auth-key.file = config.services.secrets.filesDir + "/nixos/tailscale-auth-key.age";
+    };
+
   networking.policyRouting = {
     ipv4.rules = lib.mkBefore ["pref 110 lookup 52 suppress_prefixlength 0"];
     ipv6.rules = lib.mkBefore ["pref 110 lookup 52 suppress_prefixlength 0"];
@@ -25,6 +33,6 @@ in {
     authKeyFile = lib.mkDefault "/run/agenix/tailscale-auth-key";
     useRoutingFeatures = "server";
     extraUpFlags = gnetFlags;
-    extraSetFlags = gnetFlags;
+    extraSetFlags = config.services.tailscale.extraUpFlags;
   };
 }

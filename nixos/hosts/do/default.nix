@@ -1,9 +1,9 @@
 {...}: {
   imports = [
     ../../optional/authoritative-ns.nix
-    ../../optional/nylon.nix
+    ../../optional/nylon-public-exit.nix
     ../../optional/qemu-guest.nix
-    ../../optional/tailscale-gnet.nix
+    ../../optional/tailscale-gnet-vm-exit.nix
     ./disk-config.nix
     ./networking.nix
     ./services.nix

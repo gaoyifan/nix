@@ -1,7 +1,7 @@
 {...}: {
   imports = [
     ../../optional/qemu-guest.nix
-    ../../optional/tailscale-gnet.nix
+    ../../optional/tailscale-gnet-vm-exit.nix
     ../../optional/nylon.nix
     ./disk-config.nix
   ];
@@ -30,25 +30,11 @@
 
   boot.loader.grub.enable = true;
 
-  networking.nftables = {
-    enable = true;
-    tables.tailscale-exit-node-nat = {
-      family = "ip";
-      content = ''
-        chain postrouting {
-          type nat hook postrouting priority srcnat; policy accept;
-          ip saddr 100.64.0.0/10 meta oiftype ether masquerade
-        }
-      '';
-    };
-  };
-
   networking.firewall.enable = false;
 
   services.nylon = {
     enable = true;
     overlay.nat.enable = false;
-    routeBatch.enable = false;
   };
 
   time.timeZone = "UTC";

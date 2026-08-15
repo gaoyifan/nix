@@ -12,6 +12,11 @@
   cfg = config.services.nylon;
   exitsEnabled = cfg.exits != {};
   overlayConfigured = cfg.overlay.ipv4Subnet != null || cfg.overlay.ipv6Subnet != null;
+  policyRoutingDir = "/var/lib/nylon/policy-routing";
+  routes4File = "${policyRoutingDir}/routes4.batch";
+  routes6File = "${policyRoutingDir}/routes6.batch";
+  rules4File = "${policyRoutingDir}/rules4.batch";
+  rules6File = "${policyRoutingDir}/rules6.batch";
   types = lib.types;
 in {
   disabledModules = ["services/networking/nylon.nix"];
@@ -82,31 +87,6 @@ in {
         type = types.bool;
         default = true;
         description = "Whether to masquerade non-overlay sources leaving through Nylon.";
-      };
-    };
-
-    routeBatch = {
-      enable = lib.mkOption {
-        type = types.bool;
-        default = true;
-        description = "Whether to run rendered Nylon MPLS route batches.";
-      };
-      dir = lib.mkOption {
-        type = types.str;
-        default = "/var/lib/nylon/policy-routing";
-        description = "Directory containing Nylon policy-routing batch fragments.";
-      };
-      ipv4File = lib.mkOption {
-        type = types.str;
-        default = "${cfg.routeBatch.dir}/routes4.batch";
-        defaultText = lib.literalExpression ''"${config.services.nylon.routeBatch.dir}/routes4.batch"'';
-        description = "IPv4 route batch rendered outside Nix.";
-      };
-      ipv6File = lib.mkOption {
-        type = types.str;
-        default = "${cfg.routeBatch.dir}/routes6.batch";
-        defaultText = lib.literalExpression ''"${config.services.nylon.routeBatch.dir}/routes6.batch"'';
-        description = "IPv6 route batch rendered outside Nix.";
       };
     };
 
@@ -197,10 +177,6 @@ in {
             == builtins.length (lib.unique (map (exit: exit.label) (lib.attrValues cfg.exits)));
           message = "Nylon exit labels must be unique.";
         }
-        {
-          assertion = !cfg.policyRouting.enable || cfg.routeBatch.enable;
-          message = "Nylon policy routing requires routeBatch.enable.";
-        }
       ];
 
       # mpls_iptunnel serves the WLT selector's `encap mpls` policy routes.
@@ -224,19 +200,19 @@ in {
         [
           "d ${cfg.configDir} 0700 root root -"
         ]
-        ++ lib.optionals cfg.routeBatch.enable [
-          "d ${cfg.routeBatch.dir} 0755 root root -"
-          "f ${cfg.routeBatch.dir}/routes4.batch 0644 root root -"
-          "f ${cfg.routeBatch.dir}/routes6.batch 0644 root root -"
-          "f ${cfg.routeBatch.dir}/rules4.batch 0644 root root -"
-          "f ${cfg.routeBatch.dir}/rules6.batch 0644 root root -"
+        ++ lib.optionals cfg.policyRouting.enable [
+          "d ${policyRoutingDir} 0755 root root -"
+          "f ${routes4File} 0644 root root -"
+          "f ${routes6File} 0644 root root -"
+          "f ${rules4File} 0644 root root -"
+          "f ${rules6File} 0644 root root -"
         ];
 
       systemd.services.nylon = {
         description = "Nylon mesh router";
         wants =
           ["network-online.target"]
-          ++ lib.optional cfg.routeBatch.enable "nylon-routes.service"
+          ++ lib.optional cfg.policyRouting.enable "nylon-routes.service"
           ++ lib.optional (exitsEnabled && overlayConfigured) "nylon-exit.service";
         after = ["network-online.target"];
         wantedBy = ["multi-user.target"];
@@ -269,7 +245,7 @@ in {
       };
     })
 
-    (lib.mkIf cfg.routeBatch.enable {
+    (lib.mkIf cfg.policyRouting.enable {
       systemd.services.nylon-routes = {
         description = "Nylon MPLS route batches";
         wants = ["network-online.target"];
@@ -299,11 +275,11 @@ in {
             exit 1
           fi
 
-          if [ -s ${cfg.routeBatch.ipv4File} ]; then
-            ip -4 -force -batch ${cfg.routeBatch.ipv4File}
+          if [ -s ${routes4File} ]; then
+            ip -4 -force -batch ${routes4File}
           fi
-          if [ -s ${cfg.routeBatch.ipv6File} ]; then
-            ip -6 -force -batch ${cfg.routeBatch.ipv6File}
+          if [ -s ${routes6File} ]; then
+            ip -6 -force -batch ${routes6File}
           fi
         '';
       };
@@ -311,8 +287,8 @@ in {
 
     (lib.mkIf cfg.policyRouting.enable {
       networking.policyRouting = {
-        ipv4.ruleFiles = ["${cfg.routeBatch.dir}/rules4.batch"];
-        ipv6.ruleFiles = ["${cfg.routeBatch.dir}/rules6.batch"];
+        ipv4.ruleFiles = [rules4File];
+        ipv6.ruleFiles = [rules6File];
       };
     })
 

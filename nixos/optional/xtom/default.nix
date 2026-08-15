@@ -1,8 +1,8 @@
 {...}: {
   imports = [
     ../qemu-guest.nix
-    ../tailscale-gnet.nix
-    ../nylon.nix
+    ../tailscale-gnet-vm-exit.nix
+    ../nylon-public-exit.nix
     ./disk-config.nix
   ];
 
@@ -10,18 +10,6 @@
     useDHCP = false;
     useNetworkd = true;
     firewall.enable = false;
-    nftables = {
-      enable = true;
-      tables.tailscale-exit-node-nat = {
-        family = "ip";
-        content = ''
-          chain postrouting {
-            type nat hook postrouting priority srcnat; policy accept;
-            ip saddr 100.64.0.0/10 meta oiftype ether masquerade
-          }
-        '';
-      };
-    };
   };
 
   systemd.network.networks."10-wan" = {
@@ -58,16 +46,6 @@
       '';
     };
     tailscale.port = 6627;
-    nylon = {
-      enable = true;
-      overlay = {
-        ipv4Subnet = "10.250.10.0/24";
-        ipv6Subnet = "fd10:250:10::/64";
-        nat.enable = false;
-      };
-      routeBatch.enable = false;
-      exits.public.label = 100;
-    };
   };
 
   nix.settings = {

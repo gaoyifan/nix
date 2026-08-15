@@ -8,9 +8,9 @@
 in {
   imports = [
     ../../optional/acme-certificates.nix
-    ../../optional/nylon.nix
+    ../../optional/nylon-public-exit.nix
     ../../optional/qemu-guest.nix
-    ../../optional/tailscale-gnet.nix
+    ../../optional/tailscale-gnet-vm-exit.nix
     ./disk-config.nix
   ];
 
@@ -23,18 +23,6 @@ in {
     useDHCP = false;
     useNetworkd = true;
     firewall.enable = false;
-    nftables = {
-      enable = true;
-      tables.tailscale-exit-node-nat = {
-        family = "ip";
-        content = ''
-          chain postrouting {
-            type nat hook postrouting priority srcnat; policy accept;
-            ip saddr 100.64.0.0/10 meta oiftype ether masquerade
-          }
-        '';
-      };
-    };
   };
 
   systemd.network.networks."10-wan" = {
@@ -77,20 +65,7 @@ in {
         "podman-light-single"
       ];
     };
-    nylon = {
-      enable = true;
-      overlay = {
-        ipv4Subnet = "10.250.10.0/24";
-        ipv6Subnet = "fd10:250:10::/64";
-        nat.enable = false;
-      };
-      routeBatch.enable = false;
-      exits.public.label = 100;
-    };
-    tailscale = {
-      authKeyFile = null;
-      port = 6627;
-    };
+    tailscale.port = 6627;
     tmate-ssh-server = {
       enable = true;
       host = "tmate.yfgao.com";

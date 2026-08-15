@@ -19,7 +19,6 @@
         chain postrouting {
           type nat hook postrouting priority srcnat; policy accept;
           oifname "eth0" ct status dnat masquerade
-          iifname "tailscale0" oifname "eth0" masquerade
         }
       '';
     };
@@ -60,25 +59,12 @@
   };
 
   services = {
-    nylon = {
+    nylon.cloudflareWarp = {
       enable = true;
-      cloudflareWarp = {
-        enable = true;
-        label = 101;
-        ipv6Address = "2606:4700:110:8e8b:797f:40b6:888f:acfb";
-        reserved = "0x1b0ed6";
-      };
-      overlay = {
-        ipv4Subnet = "10.250.10.0/24";
-        ipv6Subnet = "fd10:250:10::/64";
-        nat.enable = false;
-      };
-      routeBatch.enable = false;
-      exits.public.label = 100;
+      label = 101;
+      ipv6Address = "2606:4700:110:8e8b:797f:40b6:888f:acfb";
+      reserved = "0x1b0ed6";
     };
-    tailscale = {
-      authKeyFile = null;
-      port = 6627;
-    };
+    tailscale.port = 6627;
   };
 }
