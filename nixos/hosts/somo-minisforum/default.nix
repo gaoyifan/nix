@@ -64,6 +64,11 @@ in {
     };
   };
 
+  services.resticBackup.extraPaths =
+    map
+    (name: "/var/lib/nixos-containers/hermes-nix-${name}/var/lib/hermes")
+    (lib.attrNames config.services.hermes-nspawn.containers);
+
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
   boot.kernelModules = ["mt7921e"];

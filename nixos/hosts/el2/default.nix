@@ -35,6 +35,8 @@
 
   environment.systemPackages = [pkgs.mbuffer];
 
+  services.resticBackup.extraPaths = ["/var/lib/wireguard"];
+
   systemd.targets.el2-services = {
     description = "Services using manually unlocked datasets";
     requires = ["mount-el2-encrypted-datasets.service"];

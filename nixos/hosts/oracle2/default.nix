@@ -98,6 +98,11 @@ in {
     exits.oracle.label = 100;
   };
 
+  services.resticBackup.extraExcludes = [
+    "/srv/docker/bitmagnet-postgres"
+    "/srv/github"
+  ];
+
   systemd.services = {
     bitmagnet-oracle2 = composeService "Bitmagnet Compose project" "${userHome}/docker-run-scripts/bitmagnet-oracle2";
     github-backup = composeService "GitHub backup Compose project" "${userHome}/github-backup";

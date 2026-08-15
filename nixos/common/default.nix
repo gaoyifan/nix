@@ -3,6 +3,7 @@
   imports = [
     inputs.agenix.nixosModules.default
     ../../secrets
+    ./backup.nix
     ./core.nix
     ./home-manager.nix
     ./nix.nix
