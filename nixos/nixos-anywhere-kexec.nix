@@ -25,6 +25,7 @@
     config.system.build.nixos-install
     pkgs.bashInteractive
     pkgs.coreutils
+    pkgs.gnugrep
     pkgs.nix
     pkgs.rsync
     pkgs.systemd
