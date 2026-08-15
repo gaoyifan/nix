@@ -46,6 +46,13 @@
       user = "yifan";
       group = "users";
     };
+    instances.restic-backup-b128 = {
+      repositoryPath = "/restic-backup-b128";
+      cacheDirectory = "/pool1/services/restic-115/restic-backup-b128";
+      listenPort = 8006;
+      user = "yifan";
+      group = "users";
+    };
   };
 
   services.restic-123pan = {
@@ -56,6 +63,15 @@
       repositoryPath = "/pool0-restic";
       cacheDirectory = "/pool1/services/restic-sync-123pan/cache";
       listenPort = 8002;
+      user = "yifan";
+      group = "users";
+    };
+    instances.restic-backup = {
+      usernameFile = "/run/agenix/restic-123pan-username";
+      passwordFile = "/run/agenix/restic-123pan-password";
+      repositoryPath = "/restic-backup";
+      cacheDirectory = "/pool1/services/restic-123pan/restic-backup";
+      listenPort = 8005;
       user = "yifan";
       group = "users";
     };
