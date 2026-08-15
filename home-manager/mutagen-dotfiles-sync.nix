@@ -19,6 +19,8 @@
   sessionSelector = lib.concatStringsSep "," (lib.mapAttrsToList (name: value: "${name}==${value}") sessionLabels);
   # Mutagen 0.18.0 parses SCP-style SSH endpoints as user@host:port:path; ssh://... is not recognized by pkg/url.Parse.
   remoteEndpoint = "${cfg.user}@${cfg.host}:${toString cfg.port}:${cfg.remotePath}";
+  remoteRsyncRoot = "${cfg.user}@${cfg.host}:${cfg.remotePath}/";
+  rsyncSshCommand = "${sshWrapper}/bin/ssh -F /dev/null -p ${toString cfg.port}";
   sessionCreateArguments = lib.cli.toCommandLineGNU {} {
     compression = "deflate";
     ignore = [
@@ -84,42 +86,24 @@
       service_selector=${lib.escapeShellArg sessionSelector}
       desired_hash="${specHash}"
 
-      ensure_daemon() {
-        # This sync uses a dedicated MUTAGEN_DATA_DIRECTORY, so restarting its
-        # daemon here won't affect unrelated Mutagen usage. We restart to make
-        # sure SSH transport changes (MUTAGEN_SSH_PATH, IdentityFile, etc.)
-        # actually apply after `home-manager switch`.
-        mutagen daemon stop >/dev/null 2>&1 || true
-        mutagen daemon start >/dev/null 2>&1 || true
-
-        if mutagen sync list >/dev/null 2>&1; then
-          return 0
-        fi
-
-        echo "Mutagen daemon is unavailable after start attempt" >&2
-        return 1
-      }
-
-      create_session() {
-        mutagen sync create \
-          ${lib.escapeShellArgs sessionCreateArguments} \
-          ${lib.escapeShellArg localPath} \
-          ${lib.escapeShellArg remoteEndpoint}
-      }
-
       mkdir -p ${lib.escapeShellArg localPath} ${lib.escapeShellArg stateDir} ${lib.escapeShellArg mutagenDataDir}
-      ensure_daemon
 
-      session_exists=0
-      managed_count="$(mutagen sync list --label-selector "$service_selector" 2>/dev/null | grep -c '^Identifier: ' || true)"
-      if mutagen sync resume "$session_name" >/dev/null 2>&1; then
-        session_exists=1
+      # This sync uses a dedicated MUTAGEN_DATA_DIRECTORY, so restarting its
+      # daemon here won't affect unrelated Mutagen usage. We restart to make
+      # sure SSH transport changes (MUTAGEN_SSH_PATH, IdentityFile, etc.)
+      # actually apply after `home-manager switch`.
+      mutagen daemon stop >/dev/null 2>&1 || true
+      mutagen daemon start >/dev/null 2>&1 || true
+      if ! mutagen sync list >/dev/null 2>&1; then
+        echo "Mutagen daemon is unavailable after start attempt" >&2
+        exit 1
       fi
 
+      managed_count="$(mutagen sync list --label-selector "$service_selector" 2>/dev/null | grep -c '^Identifier: ' || true)"
       if [ -f ${lib.escapeShellArg specHashPath} ] \
         && [ "$(cat ${lib.escapeShellArg specHashPath})" = "$desired_hash" ] \
-        && [ "$session_exists" -eq 1 ] \
-        && [ "$managed_count" -eq 1 ]; then
+        && [ "$managed_count" -eq 1 ] \
+        && mutagen sync resume "$session_name" >/dev/null 2>&1; then
         exit 0
       fi
 
@@ -127,7 +111,10 @@
         mutagen sync terminate --label-selector "$service_selector" >/dev/null 2>&1 || true
       fi
 
-      create_session
+      mutagen sync create \
+        ${lib.escapeShellArgs sessionCreateArguments} \
+        ${lib.escapeShellArg localPath} \
+        ${lib.escapeShellArg remoteEndpoint}
       printf '%s\n' "$desired_hash" > ${lib.escapeShellArg specHashPath}
     '';
   };
@@ -148,6 +135,7 @@
       coreutils
       jq
       mutagen
+      rsync
     ];
     text = ''
       set -euo pipefail
@@ -204,7 +192,6 @@
       mutagen sync pause "$session_name" >/dev/null
       session_paused=1
 
-      resolved_count=0
       for path in "''${conflict_paths[@]}"; do
         alpha_file=${lib.escapeShellArg localPath}/"$path"
         beta_file="$tmpdir/beta"
@@ -214,12 +201,10 @@
           continue
         fi
 
-        if ! ${sshWrapper}/bin/ssh \
-          -F /dev/null \
-          -p ${toString cfg.port} \
-          ${lib.escapeShellArg "${cfg.user}@${cfg.host}"} \
-          "cat -- ${lib.escapeShellArg cfg.remotePath}/$path" \
-          >"$beta_file"; then
+        if ! rsync -a --ignore-times \
+          -e ${lib.escapeShellArg rsyncSshCommand} \
+          ${lib.escapeShellArg remoteRsyncRoot}"$path" \
+          "$beta_file"; then
           echo "Skipping $path: unable to read beta." >&2
           continue
         fi
@@ -232,20 +217,26 @@
         elif [ "$beta_size" -lt "$alpha_size" ] \
           && cmp -s -n "$beta_size" "$beta_file" "$alpha_file" \
           && [ "$(tail -c 1 "$beta_file" | od -An -tu1 | tr -d '[:space:]')" = 10 ]; then
-          ${sshWrapper}/bin/ssh \
-            -F /dev/null \
-            -p ${toString cfg.port} \
-            ${lib.escapeShellArg "${cfg.user}@${cfg.host}"} \
-            "rm -- ${lib.escapeShellArg cfg.remotePath}/$path"
-          echo "Resolved with alpha: $path"
-          resolved_count=$((resolved_count + 1))
+          if ! rsync -a \
+            -e ${lib.escapeShellArg rsyncSshCommand} \
+            "$alpha_file" \
+            ${lib.escapeShellArg remoteRsyncRoot}"$path"; then
+            echo "Skipping $path: unable to overwrite beta with alpha." >&2
+            continue
+          fi
+          echo "Overwrote beta with alpha: $path"
         elif [ "$alpha_size" -lt "$beta_size" ] \
           && cmp -s -n "$alpha_size" "$alpha_file" "$beta_file" \
           && [ "$(tail -c 1 "$alpha_file" | od -An -tu1 | tr -d '[:space:]')" = 10 ] \
           && [ "$(wc -c <"$alpha_file")" -eq "$alpha_size" ]; then
-          rm -- "$alpha_file"
-          echo "Resolved with beta: $path"
-          resolved_count=$((resolved_count + 1))
+          if ! rsync -a \
+            -e ${lib.escapeShellArg rsyncSshCommand} \
+            ${lib.escapeShellArg remoteRsyncRoot}"$path" \
+            "$alpha_file"; then
+            echo "Skipping $path: unable to overwrite alpha with beta." >&2
+            continue
+          fi
+          echo "Overwrote alpha with beta: $path"
         else
           echo "Skipping $path: neither file is a complete-line prefix of the other." >&2
         fi
@@ -258,11 +249,11 @@
       status_json="$(mutagen sync list --label-selector "$selector" --template '{{json .}}')"
       remaining_count="$(jq '([.[0].conflicts | length, (.[0].excludedConflicts // 0)] | add)' <<<"$status_json")"
       if [ "$remaining_count" -ne 0 ]; then
-        echo "Resolved $resolved_count conflict(s); $remaining_count conflict(s) remain." >&2
+        echo "$remaining_count conflict(s) remain." >&2
         exit 1
       fi
 
-      echo "Resolved $resolved_count conflict(s); no conflicts remain."
+      echo "No conflicts remain."
     '';
   };
   resetScript = pkgs.writeShellApplication {
@@ -304,8 +295,8 @@
 
       mkdir -p ${lib.escapeShellArg localPath}
       rsync -a --delete \
-        -e "${sshWrapper}/bin/ssh -F /dev/null -p ${toString cfg.port}" \
-        ${lib.escapeShellArg "${cfg.user}@${cfg.host}:${cfg.remotePath}/"} \
+        -e ${lib.escapeShellArg rsyncSshCommand} \
+        ${lib.escapeShellArg remoteRsyncRoot} \
         ${lib.escapeShellArg "${localPath}/"}
 
       mutagen sync reset "$session_name" >/dev/null
