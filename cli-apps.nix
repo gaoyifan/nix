@@ -48,6 +48,7 @@
       redis-cli = from "redis";
       rsync = {};
       ruby = {};
+      smartctl = from "smartmontools";
       sqlite3 = from "sqlite";
       telnet = from "inetutils";
       tig = {};
