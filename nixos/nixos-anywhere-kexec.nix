@@ -47,7 +47,6 @@
     "ata_piix"
     "autofs"
     "erofs"
-    "hv_storvsc"
     "loop"
     "nvme"
     "overlay"
@@ -62,8 +61,6 @@
     "virtio_net"
     "virtio_pci"
     "virtio_scsi"
-    "vmw_pvscsi"
-    "vmxnet3"
     "xhci_pci"
   ];
 
