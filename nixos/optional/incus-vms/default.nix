@@ -66,7 +66,7 @@
               {
                 type = "disk";
                 path = "/";
-                pool = "default";
+                pool = vm.rootPool;
               }
               // lib.optionalAttrs (vm.rootSize != null) {size = vm.rootSize;}
               // vm.rootConfig;
@@ -108,17 +108,23 @@ in {
   options.virtualisation.incusVms = {
     enable = lib.mkEnableOption "declarative Incus virtual machines";
 
-    pool = {
-      driver = lib.mkOption {
-        type = lib.types.str;
-        default = "dir";
-        description = "Incus storage pool driver.";
-      };
-      source = lib.mkOption {
-        type = lib.types.nullOr lib.types.str;
-        default = null;
-        description = "Optional source passed to the Incus storage pool.";
-      };
+    pools = lib.mkOption {
+      type = lib.types.attrsOf (lib.types.submodule {
+        options = {
+          driver = lib.mkOption {
+            type = lib.types.str;
+            default = "dir";
+            description = "Incus storage pool driver.";
+          };
+          source = lib.mkOption {
+            type = lib.types.nullOr lib.types.str;
+            default = null;
+            description = "Optional source passed to the Incus storage pool.";
+          };
+        };
+      });
+      default.default = {};
+      description = "Declarative Incus storage pools keyed by pool name.";
     };
 
     instances = lib.mkOption {
@@ -151,6 +157,11 @@ in {
             type = lib.types.nullOr lib.types.str;
             default = null;
             description = "Root disk size.";
+          };
+          rootPool = lib.mkOption {
+            type = lib.types.str;
+            default = "default";
+            description = "Incus storage pool containing the VM root volume.";
           };
           rootConfig = lib.mkOption {
             type = lib.types.attrsOf lib.types.str;
@@ -219,15 +230,15 @@ in {
             "core.metrics_address" = "127.0.0.1:${toString cfg.metricsPort}";
             "core.metrics_authentication" = "false";
           };
-          storage_pools = [
-            {
-              name = "default";
-              inherit (cfg.pool) driver;
-              config = lib.optionalAttrs (cfg.pool.source != null) {
-                source = cfg.pool.source;
+          storage_pools =
+            lib.mapAttrsToList (name: pool: {
+              inherit name;
+              inherit (pool) driver;
+              config = lib.optionalAttrs (pool.source != null) {
+                inherit (pool) source;
               };
-            }
-          ];
+            })
+            cfg.pools;
           profiles =
             [
               {

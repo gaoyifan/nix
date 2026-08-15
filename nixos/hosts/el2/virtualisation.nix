@@ -47,9 +47,10 @@
     rootSize,
     cpu,
     memory,
-    extraDevices,
+    extraDevices ? {},
+    rootPool ? "default",
   }: {
-    inherit macAddress rootSize extraDevices;
+    inherit macAddress rootSize extraDevices rootPool;
     vlan = 642;
     rootConfig = {
       "boot.priority" = "10";
@@ -67,9 +68,15 @@ in {
 
   virtualisation.incusVms = {
     enable = true;
-    pool = {
-      driver = "zfs";
-      source = "pool1/incus";
+    pools = {
+      default = {
+        driver = "zfs";
+        source = "pool1/incus";
+      };
+      pool0 = {
+        driver = "zfs";
+        source = "pool0/incus";
+      };
     };
     requiredUnits = ["zfs-import-pool1.service"];
 
@@ -100,11 +107,6 @@ in {
         "security.csm" = "true";
         "security.secureboot" = "false";
       };
-      extraDevices.vm2023-cloudinit = {
-        type = "disk";
-        source = "/dev/zvol/pool1/vm-2023-cloudinit";
-        readonly = "true";
-      };
     };
 
     instances.git-automesh-org = legacyVm {
@@ -112,15 +114,12 @@ in {
       rootSize = "50GiB";
       cpu = "8";
       memory = "24GiB";
+      rootPool = "pool0";
       extraDevices = {
-        cloudinit = {
-          type = "disk";
-          source = "/dev/zvol/pool1/vm-113-cloudinit";
-          readonly = "true";
-        };
         data = {
           type = "disk";
-          source = "/dev/zvol/pool1/vm-113-disk-1";
+          pool = "pool0";
+          source = "git-automesh-org-data";
         };
       };
     };
@@ -130,15 +129,12 @@ in {
       rootSize = "20GiB";
       cpu = "8";
       memory = "16GiB";
+      rootPool = "pool0";
       extraDevices = {
-        cloudinit = {
-          type = "disk";
-          source = "/dev/zvol/pool1/vm-118-cloudinit";
-          readonly = "true";
-        };
         data = {
           type = "disk";
-          source = "/dev/zvol/pool1/vm-118-disk-1";
+          pool = "pool0";
+          source = "source-automesh-org-data";
         };
       };
     };
@@ -148,19 +144,17 @@ in {
       rootSize = "40GiB";
       cpu = "20";
       memory = "32GiB";
+      rootPool = "pool0";
       extraDevices = {
-        cloudinit = {
-          type = "disk";
-          source = "/dev/zvol/pool1/vm-2021-cloudinit";
-          readonly = "true";
-        };
         data1 = {
           type = "disk";
-          source = "/dev/zvol/pool1/vm-2021-disk-3";
+          pool = "pool0";
+          source = "debian21-srv";
         };
         data2 = {
           type = "disk";
-          source = "/dev/zvol/pool1/vm-2021-disk-2";
+          pool = "pool0";
+          source = "debian21-docker";
         };
       };
     };
@@ -170,13 +164,6 @@ in {
       rootSize = "50GiB";
       cpu = "16";
       memory = "16GiB";
-      extraDevices = {
-        cloudinit = {
-          type = "disk";
-          source = "/dev/zvol/pool1/vm-2024-cloudinit";
-          readonly = "true";
-        };
-      };
     };
 
     instances.debian41 = legacyVm {
@@ -184,13 +171,6 @@ in {
       rootSize = "100GiB";
       cpu = "40";
       memory = "32GiB";
-      extraDevices = {
-        cloudinit = {
-          type = "disk";
-          source = "/dev/zvol/pool1/vm-2041-cloudinit";
-          readonly = "true";
-        };
-      };
     };
 
     instances.xuhao = {
@@ -224,13 +204,6 @@ in {
       rootSize = "40GiB";
       cpu = "4";
       memory = "16GiB";
-      extraDevices = {
-        cloudinit = {
-          type = "disk";
-          source = "/dev/zvol/pool1/vm-2042-cloudinit";
-          readonly = "true";
-        };
-      };
     };
 
     instances.debian52 = legacyVm {
@@ -238,13 +211,6 @@ in {
       rootSize = "10GiB";
       cpu = "4";
       memory = "4GiB";
-      extraDevices = {
-        cloudinit = {
-          type = "disk";
-          source = "/dev/zvol/pool1/vm-2052-cloudinit";
-          readonly = "true";
-        };
-      };
     };
 
     instances.debian70-zdgroup = legacyVm {
@@ -252,13 +218,6 @@ in {
       rootSize = "20GiB";
       cpu = "8";
       memory = "8GiB";
-      extraDevices = {
-        cloudinit = {
-          type = "disk";
-          source = "/dev/zvol/pool1/vm-2070-cloudinit";
-          readonly = "true";
-        };
-      };
     };
 
     instances.windows60 = {
