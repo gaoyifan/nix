@@ -40,6 +40,7 @@
     el = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/el];
     el2 = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/el2];
     el2-install = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/el2 ../nixos/hosts/el2/install.nix];
+    google = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/google];
     misc0-jp = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/misc0-jp];
     nanopi-r4s-bootstrap = nixpkgs.lib.nixosSystem {
       system = "aarch64-linux";
@@ -71,6 +72,7 @@ in {
     do = mkDeployNode "x86_64-linux" "do.ts.gaof.net" configs.do;
     el = mkDeployNode "x86_64-linux" "el.ts.gaof.net" configs.el;
     el2 = mkDeployNode "x86_64-linux" "el2.ts.gaof.net" configs.el2;
+    google = mkDeployNode "x86_64-linux" "google.ts.gaof.net" configs.google;
     misc0-jp = mkDeployNode "x86_64-linux" "misc0-jp.ts.gaof.net" configs.misc0-jp;
     oracle2 = mkDeployNode "aarch64-linux" "oracle2.ts.gaof.net" configs.oracle2;
     somo-minisforum = mkDeployNode "x86_64-linux" "somo-minisforum.ts.gaof.net" configs.somo-minisforum;
