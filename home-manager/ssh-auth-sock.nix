@@ -3,7 +3,7 @@
   pkgs,
   ...
 }: {
-  programs.zsh.initContent = lib.mkIf pkgs.stdenv.hostPlatform.isLinux (lib.mkAfter ''
+  programs.zsh.initContent = lib.mkAfter ''
     # Keep SSH_AUTH_SOCK fresh after reattaching long-lived tmux sessions.
     # Also publish it at the stable path used by Codex.
     zmodload -F zsh/stat b:zstat 2>/dev/null || true
@@ -41,6 +41,12 @@
             "$HOME"/.ssh/agent/*(N=)
             /tmp/ssh-*/agent.*(N=)
             /tmp/tsshd-*/agent.*(N=)
+            /private/tmp/ssh-*/agent.*(N=)
+            /private/tmp/tsshd-*/agent.*(N=)
+            /private/tmp/com.apple.launchd.*/Listeners(N=)
+            /var/folders/*/*/*/ssh-*/agent.*(N=)
+            /var/folders/*/*/*/tsshd-*/agent.*(N=)
+            /var/folders/*/*/*/com.apple.launchd.*/Listeners(N=)
             /run/user/$UID/agent.*(N=)
             /run/user/$UID/*ssh-agent*(N=)
             /run/user/$UID/openssh_agent(N=)
@@ -124,5 +130,5 @@
 
     _ssh_auth_sock_publish "''${SSH_AUTH_SOCK:-}"
     _ssh_auth_sock_refresh_async
-  '');
+  '';
 }
