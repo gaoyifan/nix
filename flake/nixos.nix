@@ -36,6 +36,7 @@
   configs = {
     blog = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/blog];
     cjia = mkNixosHost "aarch64-linux" [../nixos/hosts/cjia];
+    do = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/do];
     el = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/el];
     el2 = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/el2];
     el2-install = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/el2 ../nixos/hosts/el2/install.nix];
@@ -67,6 +68,7 @@ in {
   deploy.nodes = {
     blog = mkDeployNode "x86_64-linux" "blog.ts.gaof.net" configs.blog;
     cjia = mkDeployNode "aarch64-linux" "cjia.ts.gaof.net" configs.cjia;
+    do = mkDeployNode "x86_64-linux" "do.ts.gaof.net" configs.do;
     el = mkDeployNode "x86_64-linux" "el.ts.gaof.net" configs.el;
     el2 = mkDeployNode "x86_64-linux" "el2.ts.gaof.net" configs.el2;
     misc0-jp = mkDeployNode "x86_64-linux" "misc0-jp.ts.gaof.net" configs.misc0-jp;

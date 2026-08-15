@@ -29,6 +29,7 @@ rec {
 }
 // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
   jip = import ./jip.nix {inherit pkgs;};
+  lightningstream = import ./lightningstream.nix {inherit pkgs;};
   nylon = import ./nylon.nix {inherit pkgs;};
 }
 // pkgs.lib.optionalAttrs (pkgs.stdenv.hostPlatform.system == "aarch64-linux") {

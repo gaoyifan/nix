@@ -11,7 +11,6 @@
     "bitmagnet"
     "debian21"
     "debian41"
-    "do"
     "docker"
     "docker22"
     "el2"
