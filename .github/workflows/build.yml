@@ -95,6 +95,15 @@ jobs:
             .#packages.${{ matrix.system }}.nixos-hosts-cache \
             | tee -a cache-store-paths
 
+      - name: Build nixos-anywhere tiny kexec image
+        if: runner.os == 'Linux'
+        run: |
+          set -euo pipefail
+
+          nix build --accept-flake-config --no-link --print-out-paths \
+            .#packages.${{ matrix.system }}.nixos-anywhere-tiny-kexec \
+            | tee -a cache-store-paths
+
       - name: Build CLI apps
         run: |
           set -euo pipefail

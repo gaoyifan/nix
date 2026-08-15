@@ -18,10 +18,9 @@ Create a timing file and use it for every material stage:
 ```bash
 timings="$(pwd)/nixos-anywhere-timings.tsv"
 nixos_anywhere=github:nix-community/nixos-anywhere/91fc9b70fc295258c366cce8627efb6f185fd9fb
-nixos_images=github:nix-community/nixos-images/27bfc9df981b35f4911b8ea3bc3ecf51164beaa2
 ```
 
-Pin the nixos-anywhere revision and kexec image independently and record both. A stable CLI tag can still default to an obsolete installer image. `scripts/time-phase.sh` records UTC start time, wall-clock seconds, and exit status even when a phase fails.
+Pin the nixos-anywhere revision and use its upstream kexec image by default. The repository's locked Flake provides a smaller image for memory-constrained QEMU VMs; record the repository revision when using it. `scripts/time-phase.sh` records UTC start time, wall-clock seconds, and exit status even when a phase fails.
 
 ## Inventory the target
 
@@ -36,24 +35,9 @@ Record:
 - Root device, every block device, stable `/dev/disk/by-id` names, mounts, and swap.
 - Interfaces, addresses, routes, gateways, and DNS.
 - Existing authorized-key and SSH host-key fingerprints.
-- Whether kexec is available and physical RAM is at least 1.5 GiB.
+- Whether kexec is available and physical RAM is at least 1.5 GiB, or at least 1 GiB for the repository's QEMU image.
 
-Set the pinned image URL from the recorded target architecture:
-
-```bash
-target_arch=<x86_64-or-aarch64>
-kexec_image="https://github.com/nix-community/nixos-images/releases/download/nixos-25.11/nixos-kexec-installer-noninteractive-${target_arch}-linux.tar.gz"
-```
-
-Use a current, independently pinned `nixos-images` build when the release image is too old for the target. Build it on an x86_64 Nix machine or on a NixOS target before kexec; the package is substitutable from the nix-community cache:
-
-```bash
-nix build --accept-flake-config \
-  "$nixos_images#packages.x86_64-linux.kexec-installer-nixos-stable-noninteractive"
-kexec_image=$(readlink -f result)/nixos-kexec-installer-noninteractive-x86_64-linux.tar.gz
-```
-
-Passing a local file makes nixos-anywhere upload it. If the image already exists on the target, expose only its store directory over target-local loopback HTTP and pass that URL to avoid a target-controller-target copy.
+The repository image intentionally carries a QEMU-oriented driver set and is not a general replacement for the upstream image.
 
 Use `/dev/disk/by-id` in disko. Never select a disk from `/dev/sdX`, `/dev/vdX`, or `/dev/nvmeXnY` naming alone. Immediately before disko, resolve the selected by-id link again and compare its serial and size with the inventory.
 
@@ -143,19 +127,7 @@ scripts/time-phase.sh "$timings" tool-prepare -- \
 
 ## Enter kexec and verify installer caches
 
-Time kexec separately; it is reversible from the provider console and does not format the disk:
-
-Before using a `nixos-images` tarball, inspect its `run` script. If it enters
-`$INITRD_TMP`, deletes that directory from an `EXIT` trap, and backgrounds the
-delayed execute, change the delayed command to leave the temporary directory:
-
-```sh
-nohup sh -c "sleep 6 && cd / && '$SCRIPT_DIR/kexec' -e ${kexec_extra_flags}" &
-```
-
-Without `cd /`, the background shell inherits a deleted working directory and
-may fail with `getcwd: No such file or directory` instead of entering the
-installer. This is the failure reported in nixos-anywhere issues 93 and 289.
+Time kexec separately; it is reversible from the provider console and does not format the disk. Omit `--kexec` to use the upstream image:
 
 ```bash
 scripts/time-phase.sh "$timings" kexec -- \
@@ -163,9 +135,18 @@ scripts/time-phase.sh "$timings" kexec -- \
   --flake .#<host> \
   --target-host root@<address> \
   --build-on <local-or-remote> \
-  --kexec "$kexec_image" \
   --phases kexec
 ```
+
+Only for a memory-constrained QEMU VM, build the smaller image for the recorded architecture and add `--kexec "$kexec_image"` to the command above:
+
+```bash
+target_arch=<x86_64-or-aarch64>
+kexec_image="$(nix build --accept-flake-config --no-link --print-out-paths \
+  ".#packages.${target_arch}-linux.nixos-anywhere-tiny-kexec")/nixos-anywhere-tiny-kexec-${target_arch}-linux.tar.gz"
+```
+
+Nixos-anywhere uploads this local file. The repository image also leaves the temporary working directory before delayed kexec, avoiding the deleted-working-directory failure reported in nixos-anywhere issues 93 and 289.
 
 On the verified PVE 7.1 / QEMU 6.1 i440FX failure mode, kexec placed a roughly 450 MiB initrd above 4 GiB and the guest reported `Initramfs unpacking failed: XZ-compressed data is corrupt`, followed by a failed `/sysroot/nix/.ro-store` SquashFS mount. When the preflight DMI and provider console match that failure, keep the VM's full CPU and RAM allocation and constrain only the kexec payload:
 

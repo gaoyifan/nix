@@ -7,6 +7,7 @@
   pkgsFor,
   overlay,
   system-manager,
+  inputs,
   ...
 }: {
   packages = forAllSystems (system: let
@@ -25,6 +26,16 @@
         name = "nixos-hosts-cache";
         constituents = map (node: node.profiles.system.path) nixosProfiles;
       };
+      nixos-anywhere-tiny-kexec =
+        (nixpkgs.lib.nixosSystem {
+          inherit system;
+          specialArgs.nixosImages = inputs.nixos-images;
+          modules = [
+            inputs.nixos-images.nixosModules.kexec-installer
+            inputs.nixos-images.nixosModules.noninteractive
+            ../nixos/nixos-anywhere-kexec.nix
+          ];
+        }).config.system.build.kexecInstallerTarball;
     }
     // nixpkgs.lib.optionalAttrs (system == "aarch64-linux") {
       nanopi-r4s-bootstrap-image = self.nixosConfigurations.nanopi-r4s-bootstrap.config.system.build.sdImage;

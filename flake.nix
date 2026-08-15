@@ -130,6 +130,12 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    nixos-images = {
+      url = "github:nix-community/nixos-images";
+      inputs.nixos-stable.follows = "nixpkgs";
+      inputs.nixos-unstable.follows = "nixpkgs";
+    };
+
     agenix = {
       url = "github:ryantm/agenix";
       inputs.nixpkgs.follows = "nixpkgs";

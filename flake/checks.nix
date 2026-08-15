@@ -25,6 +25,11 @@
     nixpkgs.lib.recursiveUpdate deployChecks {
       x86_64-linux = {
         home-router = x86Pkgs.testers.runNixOSTest (import ../nixos/tests/home-router.nix {inherit inputs;});
+        nixos-anywhere-tiny-kexec = import ../nixos/tests/nixos-anywhere-kexec.nix {
+          inherit inputs;
+          kexecInstallerTarball = self.packages.x86_64-linux.nixos-anywhere-tiny-kexec;
+          pkgs = x86Pkgs;
+        };
         oob-ssh = x86Pkgs.testers.runNixOSTest (import ../nixos/tests/oob-ssh.nix {pkgs = x86Pkgs;});
       };
     };
