@@ -1,4 +1,0 @@
-interface:
-  display_name: "NixOS Anywhere Reinstall"
-  short_description: "Safely reinstall remote Linux hosts with NixOS"
-  default_prompt: "Use $nixos-anywhere-reinstall to reinstall a remote Linux host as NixOS through a staged, verified workflow."

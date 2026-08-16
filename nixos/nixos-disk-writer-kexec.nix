@@ -7,14 +7,9 @@
 }: {
   disabledModules = ["${nixosImages}/nix/zfs-minimal.nix"];
 
-  system.kexec-installer.name = "nixos-anywhere-tiny-kexec";
+  system.kexec-installer.name = "nixos-disk-writer-kexec";
 
-  nix.settings = {
-    min-free = 64 * 1024 * 1024;
-    max-free = 128 * 1024 * 1024;
-  };
-
-  system.build.kexecRun = lib.mkForce (pkgs.runCommand "nixos-anywhere-tiny-kexec-run" {} ''
+  system.build.kexecRun = lib.mkForce (pkgs.runCommand "nixos-disk-writer-kexec-run" {} ''
     install -D -m 0755 ${nixosImages}/nix/kexec-installer/kexec-run.sh $out
     sed -i \
       -e 's|@init@|${config.system.build.toplevel}/init|' \
@@ -26,14 +21,12 @@
 
   system.disableInstallerTools = true;
 
+  environment.etc.nixos-disk-writer-kexec.text = "";
+
   environment.systemPackages = lib.mkForce [
-    config.system.build.nixos-install
     pkgs.bashInteractive
-    pkgs.cpio
     pkgs.coreutils
-    pkgs.gnutar
     pkgs.gnugrep
-    pkgs.nix
     pkgs.rsync
     pkgs.systemd
     pkgs.util-linux
@@ -60,8 +53,8 @@
     "sd_mod"
     "squashfs"
     "sr_mod"
-    "usb_storage"
     "uas"
+    "usb_storage"
     "virtio_blk"
     "virtio_console"
     "virtio_mmio"

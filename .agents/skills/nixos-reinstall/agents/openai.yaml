@@ -1,0 +1,4 @@
+interface:
+  display_name: "NixOS Reinstall"
+  short_description: "Reinstall remote hosts as NixOS safely"
+  default_prompt: "Use $nixos-reinstall to reinstall a remote Linux host with the appropriate low-memory or standard workflow."

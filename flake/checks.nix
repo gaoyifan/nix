@@ -25,9 +25,17 @@
     nixpkgs.lib.recursiveUpdate deployChecks {
       x86_64-linux = {
         home-router = x86Pkgs.testers.runNixOSTest (import ../nixos/tests/home-router.nix {inherit inputs;});
-        nixos-anywhere-tiny-kexec = import ../nixos/tests/nixos-anywhere-kexec.nix {
-          inherit inputs;
-          kexecInstallerTarball = self.packages.x86_64-linux.nixos-anywhere-tiny-kexec;
+        low-memory-disk-image = import ../nixos/tests/low-memory-disk-image.nix {
+          inherit (inputs) disko;
+          hostConfig = self.nixosConfigurations.google;
+          inherit (self.lib) mkNixosBootstrap;
+          inherit nixpkgs;
+          pkgs = x86Pkgs;
+        };
+        nixos-disk-writer-kexec = import ../nixos/tests/nixos-disk-writer-kexec.nix {
+          hostConfig = self.nixosConfigurations.google;
+          kexecInstallerTarball = self.packages.x86_64-linux.nixos-disk-writer-kexec;
+          inherit (self.lib) mkNixosBootstrap;
           pkgs = x86Pkgs;
         };
         oob-ssh = x86Pkgs.testers.runNixOSTest (import ../nixos/tests/oob-ssh.nix {pkgs = x86Pkgs;});

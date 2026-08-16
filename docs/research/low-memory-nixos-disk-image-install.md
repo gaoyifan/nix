@@ -5,17 +5,18 @@
 ## 结论
 
 对于 1 GiB 及以下内存的虚拟机，推荐把分区、格式化、Nix store 复制和
-bootloader 安装移到构建机，在目标机的 kexec 环境中只执行压缩镜像的流式写盘、
-状态恢复和重启。这避免在目标机的 tmpfs Nix store 中运行 Nix daemon、GC、disko
-和 `nixos-install`。
+bootloader 安装移到构建机，在目标机的 kexec 环境中用 rsync 把 raw image 直接写入
+块设备，然后重启。这避免在目标机的 tmpfs Nix store 中运行 Nix daemon、GC、disko
+和 `nixos-install`。需要保留旧主机状态的迁移不属于通用安装流程，必须在重启前单独
+恢复和演练。
 
 镜像不应按生产磁盘的完整容量构建。应生成能够容纳系统闭包的最小镜像，并在首次
-启动时扩展最后一个 root partition 及其 Btrfs 文件系统。固定 30 GiB raw image
-即使用 zstd 传输，解压后的 `dd` 仍需向磁盘写入 30 GiB；约 6 GiB 的可扩容镜像
-可以直接把生产写盘量降低到约五分之一。
+启动时扩展最后一个 root partition 及其文件系统。固定 30 GiB raw image
+仍需向磁盘写入 30 GiB；约 6 GiB 的可扩容镜像可以直接把生产写盘量降低到约
+五分之一。
 
-当前上游源码表明这条扩容链路是有意支持的，但本仓库的 GPT + ESP + swap +
-Btrfs 布局仍须先通过 VM 测试。测试通过前，这个方案不能替代现有安装流程。
+当前上游源码表明这条扩容链路是有意支持的。本仓库同时测试 UEFI + GPT + Btrfs
+和 BIOS + MBR + ext4，覆盖两种常见启动环境。
 
 ## 已确认的上游能力
 
@@ -56,10 +57,16 @@ Nixpkgs 自己的 GCE profile 也同时启用 `boot.growPartition` 和 root
 它使用 ext4，因此只能证明云镜像的整体机制；Btrfs 和当前三分区布局仍需本仓库
 自行验证。
 
+Nixpkgs 的 [`make-disk-image.nix`](https://github.com/NixOS/nixpkgs/blob/531670d871c0e29724a02f3cbcac170adc65b58c/nixos/lib/make-disk-image.nix#L32-L47)
+原生支持 `partitionTableType = "legacy"`，生成带单个 ext4 root partition 的 MBR
+镜像并安装 BIOS GRUB。disko 的 legacy `table` 类型明确警告它与 image/test framework
+的 module extension 不兼容，因此 BIOS + MBR 验收直接使用 Nixpkgs builder，不为此
+增加仓库内的兼容包装。
+
 本仓库的 NanoPi R4S 镜像已经对 Btrfs 使用同一组
 `boot.growPartition` + `autoResize` 设置，见
 [`nixos/optional/nanopi-r4s.nix`](../../nixos/optional/nanopi-r4s.nix#L8-L35)。
-这进一步说明扩容应由目标 NixOS 首次启动负责，不需要在 writer 中实现另一套
+这进一步说明扩容应由目标 NixOS 首次启动负责，不需要在写盘工具中实现另一套
 分区扩展脚本。
 
 ## 推荐镜像结构
@@ -76,87 +83,103 @@ Nixpkgs 自己的 GCE profile 也同时启用 `boot.growPartition` 和 root
 `disko.devices.disk.system.imageSize` 设为 6 GiB，使 root partition 约为
 4 GiB。最终大小应根据实际构建结果留出明确余量，而不是写死为所有主机通用值。
 
-目标 profile 需要增加：
+`flake.lib.mkNixosBootstrap` 从任意满足上述布局约束的 host config 派生构建 variant，
+不改变普通运行中的 host profile：
 
 ```nix
-{
-  boot.growPartition = true;
-  fileSystems."/".autoResize = true;
-  disko.devices.disk.system = {
-    imageName = "google-bootstrap";
-    imageSize = "6G";
-  };
+flake.lib.mkNixosBootstrap {
+  host = flake.nixosConfigurations.target;
+  imageSize = "6G";
 }
 ```
 
-镜像配置应作为仅用于构建镜像的 variant 导入；运行中的普通 host profile 不需要
-暴露 image builder 选项。
+当前 interface 支持恰好包含一个 disko disk、root 是该磁盘最后一个可扩分区的 host。
+它从配置取得磁盘名和 hostname；调用方只提供 host 与按其闭包核算的 `imageSize`。
+未来主机确定布局和容量后，可把返回配置的 `config.system.build.diskoImagesScript`
+暴露为 package。Google 只作为测试 fixture，不增加专用 configuration 或 builder package。
 
 ## VM 扩容测试
 
-先用当前 host profile 构建 6 GiB raw image，再把它接到 30 GiB 的 QEMU
-磁盘。测试必须覆盖真实的 UEFI、GPT、分区顺序和 Btrfs，而不是只对一个临时文件
-手工运行 `growpart`。
-
-第一次启动前记录：
-
-- raw image 的压缩和解压大小、构建时间；
-- GPT 主/备份表位置；
-- partition 3 的结束 sector；
-- Btrfs `device size` 和 `df` 容量。
+测试覆盖两条实际启动链路：把 Google 的 6 GiB UEFI + GPT + Btrfs 镜像接到
+30 GiB QEMU 磁盘；把 4 GiB BIOS + MBR + ext4 镜像接到 8 GiB 磁盘。两者都从镜像
+自己的 GRUB 启动，而不是只对临时文件手工运行 `growpart`。
 
 第一次 UEFI 启动后的验收条件：
 
-1. GRUB 从 removable EFI 路径启动目标 generation；
-2. `growpart.service` 成功，或只返回其被 NixOS 接受的退出码；
-3. GPT backup header 被移动到 30 GiB 磁盘末尾，`sgdisk -v` 无错误；
-4. partition 1 和 2 的 start、size、PARTUUID 均未改变；
-5. partition 3 扩展到磁盘末尾，保留合理的 GPT 尾部空间；
-6. `systemd-growfs-root.service` 在 `growpart.service` 后成功；
-7. Btrfs 可用容量接近 28 GiB，现有数据和 Nix DB 可读；
-8. swap、ESP、root mount options 与 host 配置一致；
-9. SSH、networkd 和串口均可用。
+1. 固件确实以 UEFI 启动，partition table 仍为 GPT；
+2. 最后一个 root partition 的 start 不变，end 扩展到磁盘末尾；
+3. `growpart.service` 的日志为 `CHANGED`；
+4. Btrfs 文件系统容量接近新的 partition 大小。
 
-随后再重启一次，验证扩容幂等：partition table 和 Btrfs 大小不再变化，启动日志
-没有 GPT、growpart、growfs 或 Btrfs 错误。
+随后再重启一次，验证 partition table 和 Btrfs 大小不再变化，`growpart` 返回
+`NOCHANGE`。
 
-还应执行两个边界测试：
+BIOS + MBR 验收还要求固件环境中不存在 EFI runtime、partition table 保持 DOS/MBR、
+唯一的 root partition 扩展到磁盘末尾、ext4 随后扩容，并在第二次启动时保持不变。
 
-- 把 6 GiB 镜像接到恰好 6 GiB 的磁盘，确认无可扩空间时仍能正常启动；
-- 把镜像接到小于 6 GiB 的磁盘，writer 必须在写盘前按解压大小拒绝操作。
+## 实现与 VM 验收记录
 
-测试报告应保留 `lsblk -b`、`sfdisk --json`、`sgdisk -v`、
-`btrfs filesystem usage /`、两个相关 systemd unit 的 journal，以及两次启动耗时。
+已加入通用的 `flake.lib.mkNixosBootstrap`，设置 `boot.growPartition`、root
+`autoResize` 以及唯一 disko disk 的 `imageName`/`imageSize`。测试以现有 Google host
+调用同一 interface；仓库不增加没有实际部署用途的 Google bootstrap output。
+
+`checks.x86_64-linux.low-memory-disk-image` 同时验收 UEFI + GPT + Btrfs 和 BIOS +
+MBR + ext4；发送和接收不再维护专用程序。
+
+验收命令为：
+
+```sh
+nix build --accept-flake-config --no-link \
+  '.#checks.x86_64-linux.low-memory-disk-image'
+```
+
+UEFI 测试使用 1 GiB 内存、真实 GPT + ESP + swap + Btrfs 镜像，并通过 SSH
+检查目标系统，而不是替换目标系统的启动流程。接到 30 GiB 磁盘后，partition 3 从
+8,384,512 sectors 扩展到 58,718,175 sectors，Btrfs 容量超过 25 GB。第二次重启后
+分区表和 Btrfs 大小保持不变，`growpart` 返回 `NOCHANGE`。UEFI 路径首次启动约
+104 秒；完整测试约 246 秒（当前环境使用 TCG）。
+
+BIOS 测试使用 1 GiB 内存，从 MBR 中的 GRUB 启动，验证单个 ext4 root partition
+从 4 GiB 镜像扩展到 8 GiB 磁盘并在第二次启动时保持不变。
+
+此外，`just fmt-check`、`just check` 和 `nix flake check --no-build` 均通过。
 
 ## 生产写盘流程
 
-生产流程只让目标端承担常量内存工作：
+生产流程不在目标端运行 Nix 构建：
 
 ```text
 build host
   -> diskoImagesScript 生成小型 raw image
-  -> zstd 压缩并计算 SHA-256
-  -> SSH / Nylon / MPLS 流式传输
-  -> kexec writer: zstd -d | dd of=<已核对的 by-id 磁盘>
-  -> 挂载新 root，流式恢复运行时状态
-  -> reboot
-  -> NixOS 首启扩展 partition 3 和 Btrfs
+  -> rsync 通过 SSH 直接写入明确的 by-id 磁盘
+  -> 操作者核对结果并重启
+  -> NixOS 首启扩展 root partition 和文件系统
 ```
 
-kexec writer 只需网络、OpenSSH、`zstd`、coreutils、util-linux、tar、Btrfs
-驱动和用于只读核对磁盘的工具。它不应包含 Nix daemon、disko、
-`nixos-install` 或目标 system closure。写盘使用 direct I/O 或等效方式，避免让
-page cache 随镜像大小增长。
+`nixos-disk-writer-kexec` 已有 OpenSSH 和 rsync，不需要增加专用程序、协议或额外
+runtime package。rsync 不把完整镜像读入 RAM，并使用目标块设备作为 delta transfer
+的 basis。
 
-writer 在写盘前必须核对：
+生产命令示例：
 
-- 目标 by-id 路径解析到预期磁盘和 serial；
-- 目标磁盘没有 mount 或 active swap；
-- 目标磁盘容量不小于 raw image 的解压大小；
-- 压缩镜像 SHA-256 与构建端记录一致。
+```sh
+rsync --ignore-times --no-whole-file --write-devices --fsync \
+  --compress-choice=zstd --compress-level=3 --info=progress2 \
+  bootstrap.raw \
+  root@target:/dev/disk/by-id/target-disk
+```
 
-SSH 提供传输完整性；`dd` 成功后仍需 flush，并在重启前重新读取 partition table。
-传输中断时 writer 仍在 RAM 中，磁盘虽然暂时不可启动，但可以从头重写同一镜像。
+`--write-devices` 允许直接写块设备并隐含 `--inplace`；`--ignore-times` 防止按设备
+metadata 跳过传输；`--no-whole-file` 启用 delta transfer；`--fsync` 在成功返回前同步
+写入。网络中断后重跑同一命令，rsync 会重新扫描源和目标范围，但只传输并改写不同块。
+块签名是 delta transfer 本身的一部分，不再叠加独立的流式或写后校验。详细依据和取舍见
+[`resumable-disk-image-transfer.md`](./resumable-disk-image-transfer.md)。
+
+设备路径由操作者在执行前用 `lsblk` 核对；个人项目不再为极少发生的目标盘过小、
+serial 二次确认或 mounted/swap 检测维护额外程序。
+
+旧设计中的 `--serial` 用来把用户提供的值与 `lsblk SERIAL` 再比较一次，以降低写错盘
+的风险。既然专用写盘程序已经删除，这个参数也没有保留；执行前查看一次 `lsblk` 即可。
 
 ## 状态和 secrets
 
@@ -164,8 +187,8 @@ SSH 提供传输完整性；`dd` 成功后仍需 flush，并在重启前重新�
 Home SSH private key。否则这些内容会进入 raw artifact，且可能进一步进入 Nix
 store 或 binary cache。
 
-写盘完成后，在 writer 中挂载新的 Btrfs root，把经过核对的状态归档从迁移工作站
-直接流式解包进去，并保留 numeric owners：
+通用安装工具不会恢复旧主机状态。迁移场景必须在重启前另行挂载新的 Btrfs root，
+把经过核对的状态归档从迁移工作站直接流式解包进去，并保留 numeric owners：
 
 - `/etc/ssh/ssh_host_*`；
 - `/var/lib/tailscale`；
@@ -173,14 +196,15 @@ store 或 binary cache。
 - `/home/yifan/.ssh` 及必要的 shell state。
 
 disko 的 `--post-format-files` 会把注入文件设为 root 所有，因此不适合直接恢复
-Home SSH。把运行时状态与通用镜像分开，也使同一个 writer 和镜像构建机制可以用于
-其他小内存主机。
+Home SSH。这个步骤依赖具体主机的状态清单、owner 和信任关系，不应塞进通用写盘命令。
+不需要迁移旧状态时，写盘成功后直接执行 `ssh <host> reboot`。
 
 ## 最终判断
 
 小型全盘镜像加首次启动自动扩容是当前最有希望的低内存迁移路径。它同时消除了
 目标端 RAM Nix store、远程 Nix GC 和大规模 closure 下载，并显著减少生产写盘量。
 
-下一步不是直接用于真实主机，而是实现一个 image-only variant 和 QEMU 验收测试。
-只有 6 GiB 到 30 GiB 的 GPT + Btrfs 扩容、第二次启动幂等性以及小内存 writer
-都通过后，才把该流程加入生产迁移工具。
+通用单磁盘 image interface 和 QEMU 验收测试现已完成：UEFI + GPT + Btrfs 覆盖 6 GiB 到
+30 GiB，BIOS + MBR + ext4 覆盖 4 GiB 到 8 GiB，两者都验证第二次启动幂等。生产写盘
+使用 rsync 直接写块设备，并可在中断后重跑续传。状态归档恢复属于具体迁移流程，仍需
+单独实现和演练；在此之前不要把 secrets 写入通用镜像。
