@@ -67,7 +67,7 @@
     mkdir -p $out
     cp -rL ${inputs.anthropic-skills}/skills/{docx,xlsx,pdf,pptx} $out/
     cp -rL ${inputs.lark-cli-src}/skills/lark-* $out/
-    cp -rL ${./skills/local-whisper-transcription} $out/local-whisper-transcription
+    cp -rL ${./skills/audio-transcription} $out/audio-transcription
   '';
   guestTools = [
     pkgs.agent-browser

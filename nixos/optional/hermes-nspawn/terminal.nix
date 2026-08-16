@@ -45,7 +45,15 @@
       --from 'yt-dlp[default,curl-cffi]@latest' \
       yt-dlp "$@"
   '';
+  audioTranscription = pkgs.runCommand "audio-transcription" {} ''
+    install -Dm0555 ${./skills/audio-transcription/scripts/transcribe_audio.py} \
+      $out/bin/transcribe-audio
+    install -Dm0555 ${./skills/audio-transcription/scripts/estimate_transcription_time.py} \
+      $out/bin/estimate-transcription-time
+    patchShebangs $out/bin
+  '';
   packages = [
+    audioTranscription
     pkgs.bashInteractive
     pkgs.bind.dnsutils
     pkgs.cacert

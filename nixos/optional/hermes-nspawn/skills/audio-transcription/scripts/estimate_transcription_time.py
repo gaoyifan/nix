@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Estimate whisper.cpp transcription time for a local audio file."""
+"""Estimate transcription time for an audio file."""
 
 from __future__ import annotations
 
@@ -62,7 +62,7 @@ def main() -> None:
     parser.add_argument(
         "--speed-ratio",
         type=float,
-        default=float(os.getenv("HERMES_WHISPER_SPEED_RATIO", DEFAULT_SPEED_RATIO)),
+        default=float(os.getenv("HERMES_TRANSCRIPTION_SPEED_RATIO", DEFAULT_SPEED_RATIO)),
         help=f"Audio duration divided by transcription time (default: {DEFAULT_SPEED_RATIO})",
     )
     args = parser.parse_args()

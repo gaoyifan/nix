@@ -1,24 +1,20 @@
 ---
-name: local-whisper-transcription
-description: "Transcribe local audio files through the accelerated Darwin whisper.cpp service with fallback to the local somo service."
-version: 1.0.0
-author: DengDeng
+name: audio-transcription
+description: "Transcribe audio files and estimate transcription time. Use when the user asks to transcribe, summarize, inspect, translate, or quote speech from an audio file."
 license: MIT
-platforms: [linux]
 metadata:
   hermes:
-    tags: [Audio, Transcription, STT, Whisper, whisper.cpp]
+    tags: [Audio, Transcription, STT]
 ---
 
-# Local Whisper.cpp Transcription
+# Audio Transcription
 
-Use this skill when the user asks to transcribe, summarize, inspect, or quote
-speech from an existing audio file path such as `.wav`, `.mp3`, `.m4a`, `.ogg`,
-`.webm`, `.flac`, or `.aac`.
+Transcribe speech from an existing audio file such as `.wav`, `.mp3`, `.m4a`,
+`.ogg`, `.webm`, `.flac`, or `.aac`.
 
-This skill is for uploaded or cached audio files that the agent can read from
-the local filesystem. It is not needed for live microphone voice mode or
-messaging voice notes that Hermes has already converted into text.
+The audio must be available at a file path accessible to the terminal. This
+skill is not needed for live microphone voice mode or messaging voice notes
+that Hermes has already converted into text.
 
 Always run transcription as a Hermes background terminal task. Do not run the
 transcription command in the foreground.
@@ -28,7 +24,7 @@ transcription command in the foreground.
 Start the transcription:
 
 ```bash
-python3 ${HERMES_SKILL_DIR}/scripts/transcribe_audio.py \
+transcribe-audio \
   --language zh \
   /absolute/path/to/audio.m4a \
   > /tmp/hermes-transcript.json
@@ -40,27 +36,13 @@ the background task starts, use `process(action="poll")` or
 means the wait call reached the Hermes wait limit; it does not mean the
 transcription failed. Poll again later instead of restarting the transcription.
 
-The script tries the accelerated Darwin whisper.cpp server first, then falls
-back to the local somo server if the first request fails:
-
-```text
-http://100.65.1.63:8178/inference
-http://100.65.3.254:8080/inference
-```
-
-Default model:
-
-```text
-ggml-large-v3-turbo
-```
-
 Default language:
 
 ```text
 zh
 ```
 
-Measured baseline on the preferred Darwin whisper.cpp service:
+Measured baseline on the preferred transcription service:
 
 ```text
 speed_ratio = audio_duration_seconds / transcription_elapsed_seconds = 49.04
@@ -71,9 +53,9 @@ with this baseline. Use the estimate script below before long transcriptions.
 
 ## Workflow
 
-1. Confirm the user supplied a local audio path, or locate the audio file path
-   from the current task context.
-2. Estimate the transcription time.
+1. Confirm the user supplied an accessible audio path, or locate the audio file
+   path from the current task context.
+2. Estimate the transcription time with `estimate-transcription-time`.
 3. Start one background transcription command for the whole file.
 4. Poll the background process until it exits.
 5. Read the JSON output file and use the returned `text` field as the
@@ -85,7 +67,7 @@ with this baseline. Use the estimate script below before long transcriptions.
 ## Estimate
 
 ```bash
-python3 ${HERMES_SKILL_DIR}/scripts/estimate_transcription_time.py \
+estimate-transcription-time \
   /absolute/path/to/audio.m4a
 ```
 
@@ -95,20 +77,10 @@ and `estimated_transcription_seconds`.
 ## Options
 
 ```bash
-python3 ${HERMES_SKILL_DIR}/scripts/transcribe_audio.py \
+transcribe-audio \
   --language en \
   /absolute/path/to/audio.wav
 ```
-
-Environment overrides:
-
-```bash
-HERMES_WHISPER_BASE_URL=http://100.65.1.63:8178
-HERMES_WHISPER_MODEL=ggml-large-v3-turbo
-```
-
-`HERMES_WHISPER_BASE_URL` replaces the default endpoint sequence with one
-server.
 
 ## Output
 
@@ -117,8 +89,6 @@ On success, the script prints JSON:
 ```json
 {
   "ok": true,
-  "base_url": "http://100.65.1.63:8178",
-  "model": "ggml-large-v3-turbo",
   "language": "zh",
   "detected_language": "chinese",
   "elapsed_seconds": 0.612,
@@ -135,11 +105,11 @@ On failure, it exits non-zero and prints JSON with `ok: false` and `error`.
 
 ## Notes
 
-- Do not install or run Whisper, faster-whisper, torch, or any other speech
-  model inside the Hermes VM. Use the configured whisper.cpp servers.
+- Do not install or run a speech model inside the Hermes VM. Use the
+  provisioned `transcribe-audio` command.
 - Do not split audio files for this skill. Use one whole-file request.
 - Do not make parallel transcription API calls. Parallel calls increase
   per-request latency and do not improve observed throughput on either
-  whisper.cpp service.
+  transcription service.
 - Keep timestamps when transcribing. If the user only wants plain text, strip
   timestamps after reading the returned `segments`.

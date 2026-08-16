@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Transcribe a local audio file via the preferred whisper.cpp servers."""
+"""Transcribe an audio file with the configured transcription service."""
 
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ def _json_exit(payload: dict, code: int) -> None:
 
 
 def _multipart_body(fields: dict[str, str], file_path: Path) -> tuple[bytes, str]:
-    boundary = f"----hermes-whisper-cpp-{uuid.uuid4().hex}"
+    boundary = f"----hermes-transcription-{uuid.uuid4().hex}"
     content_type = mimetypes.guess_type(str(file_path))[0] or "application/octet-stream"
     chunks: list[bytes] = []
 
@@ -170,7 +170,7 @@ def transcribe(args: argparse.Namespace) -> dict:
     else:
         return {
             "ok": False,
-            "error": "All whisper.cpp endpoints failed",
+            "error": "All transcription endpoints failed",
             "attempts": attempts,
         }
 
@@ -208,17 +208,17 @@ def main() -> None:
     parser.add_argument("audio_path", help="Absolute or relative path to the audio file")
     parser.add_argument(
         "--base-url",
-        default=os.getenv("HERMES_WHISPER_BASE_URL"),
-        help="Use one whisper.cpp server instead of the default endpoint sequence",
+        default=os.getenv("HERMES_TRANSCRIPTION_BASE_URL"),
+        help="Use one transcription server instead of the default endpoint sequence",
     )
     parser.add_argument(
         "--model",
-        default=os.getenv("HERMES_WHISPER_MODEL", DEFAULT_MODEL),
+        default=os.getenv("HERMES_TRANSCRIPTION_MODEL", DEFAULT_MODEL),
         help=f"Model label to include in output metadata (default: {DEFAULT_MODEL})",
     )
     parser.add_argument(
         "--language",
-        default=os.getenv("HERMES_WHISPER_LANGUAGE", DEFAULT_LANGUAGE),
+        default=os.getenv("HERMES_TRANSCRIPTION_LANGUAGE", DEFAULT_LANGUAGE),
         help=f"Language hint, e.g. en or zh (default: {DEFAULT_LANGUAGE})",
     )
     parser.add_argument(
