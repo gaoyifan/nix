@@ -98,7 +98,10 @@ in {
     config.routeTables.ppp = 1000;
     networks."10-wan-ppp" = {
       linkConfig.RequiredForOnline = "routable";
-      networkConfig.KeepConfiguration = true;
+      networkConfig = {
+        KeepConfiguration = true;
+        LinkLocalAddressing = false;
+      };
     };
   };
 
