@@ -48,7 +48,7 @@
         inherit entries;
         priority = priorityFor selector;
       })
-      cfg.${family}.routingPolicyRules
+      (lib.filterAttrs (_: entries: entries != []) cfg.${family}.routingPolicyRules)
     );
   prioritiesAreUnique = family:
     lib.allUnique (map (bucket: bucket.priority) (bucketsFor family));
