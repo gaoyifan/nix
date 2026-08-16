@@ -174,15 +174,12 @@ in {
       };
     };
 
-    networking.nftables.tables.home-router-monitoring = {
-      family = "inet";
-      content = ''
-        chain input {
-          type filter hook input priority filter; policy accept;
-          iifname { ${grafanaInputInterfaceSet} } tcp dport ${toString config.services.grafana.settings.server.http_port} accept
-          tcp dport ${toString config.services.grafana.settings.server.http_port} drop
-        }
-      '';
-    };
+    networking.nftables.tables.home-router.content = ''
+      chain monitoring-input {
+        type filter hook input priority filter; policy accept;
+        iifname { ${grafanaInputInterfaceSet} } tcp dport ${toString config.services.grafana.settings.server.http_port} accept
+        tcp dport ${toString config.services.grafana.settings.server.http_port} drop
+      }
+    '';
   };
 }

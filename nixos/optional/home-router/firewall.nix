@@ -45,59 +45,30 @@
   markedWanEntries;
 in {
   config = lib.mkIf cfg.enable (lib.mkMerge [
-    (lib.mkIf hasIPv4Nat {
-      networking.nftables.tables.nat = {
-        family = "ip";
-        content = ''
-          chain postrouting {
-            type nat hook postrouting priority srcnat; policy accept;
-            ${ipv4NatRules}
-          }
-        '';
-      };
-    })
-
-    (lib.mkIf hasIPv6Nat {
-      networking.nftables.tables.nat6 = {
-        family = "ip6";
-        content = ''
-          chain postrouting {
-            type nat hook postrouting priority srcnat; policy accept;
-            ${ipv6NatRules}
-          }
-        '';
-      };
+    (lib.mkIf (hasIPv4Nat || hasIPv6Nat) {
+      networking.nftables.tables.home-router.content = ''
+        chain nat-postrouting {
+          type nat hook postrouting priority srcnat; policy accept;
+          ${ipv4NatRules}
+          ${ipv6NatRules}
+        }
+      '';
     })
 
     (lib.mkIf (markedWanEntries != []) {
-      networking.nftables.tables.home-router-wan-routing = {
-        family = "inet";
-        content = ''
-          chain prerouting {
-            type filter hook prerouting priority mangle; policy accept;
-            ct state established,related ct mark != 0 meta mark set ct mark
-            ${conntrackMarkRules}
-            ct mark != 0 meta mark set ct mark
-          }
+      networking.nftables.tables.home-router.content = ''
+        chain wan-prerouting {
+          type filter hook prerouting priority mangle; policy accept;
+          ct state established,related ct mark != 0 meta mark set ct mark
+          ${conntrackMarkRules}
+          ct mark != 0 meta mark set ct mark
+        }
 
-          chain output {
-            type route hook output priority mangle; policy accept;
-            ct mark != 0 meta mark set ct mark
-          }
-        '';
-      };
+        chain wan-output {
+          type route hook output priority mangle; policy accept;
+          ct mark != 0 meta mark set ct mark
+        }
+      '';
     })
-
-    {
-      networking.nftables.tables.home-router-mss = {
-        family = "inet";
-        content = ''
-          chain forward {
-            type filter hook forward priority mangle; policy accept;
-            tcp flags syn tcp option maxseg size set rt mtu
-          }
-        '';
-      };
-    }
   ]);
 }

@@ -117,7 +117,7 @@ in {
   };
 
   networking.nftables.tables = {
-    cjia-egress = {
+    cjia = {
       family = "inet";
       content = ''
         include "${pkgs.nft-geo-sets}/set-cn.conf"
@@ -162,12 +162,7 @@ in {
           ip daddr @cn meta mark set ${pppMark} return
           meta nfproto ipv4 meta mark set ${homeRouter.wgIplc.mark}
         }
-      '';
-    };
 
-    cjia-tunnel-nat = {
-      family = "ip";
-      content = ''
         chain postrouting {
           type nat hook postrouting priority srcnat; policy accept;
           meta mark ${homeRouter.wgIplc.mark} oifname "wg-iplc" masquerade

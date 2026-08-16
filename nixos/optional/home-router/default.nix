@@ -31,6 +31,15 @@ in {
     networking.firewall.enable = false;
     networking.nftables.enable = true;
     networking.nftables.flushRuleset = false;
+    networking.nftables.tables.home-router = {
+      family = "inet";
+      content = ''
+        chain mss-forward {
+          type filter hook forward priority mangle; policy accept;
+          tcp flags syn tcp option maxseg size set rt mtu
+        }
+      '';
+    };
     networking.policyRouting = {
       enable = true;
       ipv4.routingPolicyRules.main = ["lookup main suppress_prefixlength 0"];

@@ -151,7 +151,7 @@ in {
       nylonMssV6 = cfg.mtu - 8 - 60;
     in {
       networking.nftables.enable = true;
-      networking.nftables.tables.nylon-mss = {
+      networking.nftables.tables.nylon = {
         family = "inet";
         content = ''
           chain prerouting-mss {
@@ -232,16 +232,13 @@ in {
 
     (lib.mkIf (cfg.overlay.nat.enable && overlayConfigured) {
       networking.nftables.enable = true;
-      networking.nftables.tables.nylon-nat = {
-        family = "inet";
-        content = ''
-          chain postrouting {
-            type nat hook postrouting priority srcnat; policy accept;
-            ${lib.optionalString (cfg.overlay.ipv4Subnet != null) ''oifname "${cfg.interfaceName}" ip saddr != ${cfg.overlay.ipv4Subnet} masquerade''}
-            ${lib.optionalString (cfg.overlay.ipv6Subnet != null) ''oifname "${cfg.interfaceName}" ip6 saddr != ${cfg.overlay.ipv6Subnet} masquerade''}
-          }
-        '';
-      };
+      networking.nftables.tables.nylon.content = ''
+        chain overlay-nat-postrouting {
+          type nat hook postrouting priority srcnat; policy accept;
+          ${lib.optionalString (cfg.overlay.ipv4Subnet != null) ''oifname "${cfg.interfaceName}" ip saddr != ${cfg.overlay.ipv4Subnet} masquerade''}
+          ${lib.optionalString (cfg.overlay.ipv6Subnet != null) ''oifname "${cfg.interfaceName}" ip6 saddr != ${cfg.overlay.ipv6Subnet} masquerade''}
+        }
+      '';
     })
 
     (lib.mkIf cfg.policyRouting.enable {
@@ -293,36 +290,31 @@ in {
 
     (lib.mkIf cfg.cloudflareWarp.enable {
       networking = {
-        nftables = {
-          enable = true;
-          tables.warp = {
-            family = "inet";
-            content = ''
-              set warp_endpoints_v4 {
-                type ipv4_addr
-                elements = { 162.159.192.1, 162.159.192.2, 162.159.192.3, 162.159.192.4, 162.159.192.5, 162.159.193.1, 162.159.193.2, 162.159.193.3, 162.159.193.4, 162.159.193.5 }
-              }
-              set warp_endpoints_v6 {
-                type ipv6_addr
-                elements = { 2606:4700:d0::a29f:c001, 2606:4700:d0::a29f:c002, 2606:4700:d0::a29f:c003, 2606:4700:d0::a29f:c004, 2606:4700:d0::a29f:c005 }
-              }
-              set warp_udp_ports {
-                type inet_service
-                elements = { 500, 1701, 2408, 4500 }
-              }
-              chain warp-in {
-                type filter hook input priority mangle; policy accept;
-                ip saddr @warp_endpoints_v4 udp sport @warp_udp_ports @th,72,24 set 0x0
-                ip6 saddr @warp_endpoints_v6 udp sport @warp_udp_ports @th,72,24 set 0x0
-              }
-              chain warp-out {
-                type filter hook output priority mangle; policy accept;
-                ip daddr @warp_endpoints_v4 udp dport @warp_udp_ports @th,72,24 set ${cfg.cloudflareWarp.reserved}
-                ip6 daddr @warp_endpoints_v6 udp dport @warp_udp_ports @th,72,24 set ${cfg.cloudflareWarp.reserved}
-              }
-            '';
-          };
-        };
+        nftables.enable = true;
+        nftables.tables.nylon.content = ''
+          set warp_endpoints_v4 {
+            type ipv4_addr
+            elements = { 162.159.192.1, 162.159.192.2, 162.159.192.3, 162.159.192.4, 162.159.192.5, 162.159.193.1, 162.159.193.2, 162.159.193.3, 162.159.193.4, 162.159.193.5 }
+          }
+          set warp_endpoints_v6 {
+            type ipv6_addr
+            elements = { 2606:4700:d0::a29f:c001, 2606:4700:d0::a29f:c002, 2606:4700:d0::a29f:c003, 2606:4700:d0::a29f:c004, 2606:4700:d0::a29f:c005 }
+          }
+          set warp_udp_ports {
+            type inet_service
+            elements = { 500, 1701, 2408, 4500 }
+          }
+          chain warp-in {
+            type filter hook input priority mangle; policy accept;
+            ip saddr @warp_endpoints_v4 udp sport @warp_udp_ports @th,72,24 set 0x0
+            ip6 saddr @warp_endpoints_v6 udp sport @warp_udp_ports @th,72,24 set 0x0
+          }
+          chain warp-out {
+            type filter hook output priority mangle; policy accept;
+            ip daddr @warp_endpoints_v4 udp dport @warp_udp_ports @th,72,24 set ${cfg.cloudflareWarp.reserved}
+            ip6 daddr @warp_endpoints_v6 udp dport @warp_udp_ports @th,72,24 set ${cfg.cloudflareWarp.reserved}
+          }
+        '';
         wireguard.interfaces.wg-cloudflare = {
           ips = [
             "172.16.0.2/32"
@@ -363,23 +355,20 @@ in {
 
       # tc act_ct tracks conntrack inline but never registers netfilter's
       # inbound conntrack/nat hooks, so replies would stay UNREPLIED and never
-      # be reverse-translated. The masquerade rules in nylon-nat/nat likely
+      # be reverse-translated. The masquerade rules in the Nylon or system NAT
       # register these hooks already; this anchor makes the exit independent.
-      networking.nftables.tables.nylon-exit = {
-        family = "inet";
-        content = ''
-          chain track {
-            type filter hook prerouting priority -300; policy accept;
-            ct state established,related accept
-          }
-          chain pre {
-            type nat hook prerouting priority -90; policy accept;
-          }
-          chain post {
-            type nat hook postrouting priority 90; policy accept;
-          }
-        '';
-      };
+      networking.nftables.tables.nylon.content = ''
+        chain exit-track {
+          type filter hook prerouting priority -300; policy accept;
+          ct state established,related accept
+        }
+        chain exit-nat-prerouting {
+          type nat hook prerouting priority -90; policy accept;
+        }
+        chain exit-nat-postrouting {
+          type nat hook postrouting priority 90; policy accept;
+        }
+      '';
     })
 
     (lib.mkIf (exitsEnabled && overlayConfigured) {

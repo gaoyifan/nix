@@ -137,7 +137,7 @@ in {
     };
 
     networking.nftables.tables = {
-      gnet-edge-egress = {
+      gnet-edge = {
         family = "inet";
         content = ''
           include "${pkgs.nft-geo-sets}/set-cn.conf"
@@ -174,12 +174,7 @@ in {
             type route hook output priority mangle + 1; policy accept;
             jump classify
           }
-        '';
-      };
 
-      gnet-edge-nat = {
-        family = "inet";
-        content = ''
           chain postrouting {
             type nat hook postrouting priority srcnat; policy accept;
             ${masqueradeRules}

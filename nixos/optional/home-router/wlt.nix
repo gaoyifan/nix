@@ -19,7 +19,7 @@
 
   configD = "/var/lib/wlt/config.d";
   persistDir = "/var/lib/wlt/persist";
-  snapshotFile = "${persistDir}/wlt_src2mark-v2.conf";
+  snapshotFile = "${persistDir}/wlt_src2mark-v3.conf";
   wltSecrets = {
     sshHostKeyFile = "/run/agenix/wlt-ssh-host-key";
     tls = {
@@ -52,7 +52,7 @@
 
     [nftables]
     family = "inet"
-    table = "wlt"
+    table = "home-router"
     map = "src2mark"
     map_v6 = "src2mark6"
 
@@ -126,37 +126,34 @@ in {
         "f ${snapshotFile} 0644 root root -"
       ];
 
-      networking.nftables.tables.wlt = {
-        family = "inet";
-        content = ''
-          include "${geoSets}/set-cn.conf"
-          include "${geoSets}/set-cn6.conf"
+      networking.nftables.tables.home-router.content = ''
+        include "${geoSets}/set-cn.conf"
+        include "${geoSets}/set-cn6.conf"
 
-          map src2mark {
-            type ipv4_addr : mark
-            flags interval, timeout
-          }
-          map src2mark6 {
-            type ipv6_addr : mark
-            flags timeout
-          }
+        map src2mark {
+          type ipv4_addr : mark
+          flags interval, timeout
+        }
+        map src2mark6 {
+          type ipv6_addr : mark
+          flags timeout
+        }
 
-          chain prerouting {
-            type filter hook prerouting priority mangle - 1; policy accept;
-            ip daddr @cn    meta mark set ip saddr map @src2mark meta mark set mark >> 12
-            ip daddr != @cn meta mark set ip saddr map @src2mark meta mark set mark & 0xfff
-            ip6 daddr @cn6    meta mark set ip6 saddr map @src2mark6 meta mark set mark >> 12
-            ip6 daddr != @cn6 meta mark set ip6 saddr map @src2mark6 meta mark set mark & 0xfff
-            ${defaultOutletRules}
-          }
+        chain wlt-prerouting {
+          type filter hook prerouting priority mangle - 1; policy accept;
+          ip daddr @cn    meta mark set ip saddr map @src2mark meta mark set mark >> 12
+          ip daddr != @cn meta mark set ip saddr map @src2mark meta mark set mark & 0xfff
+          ip6 daddr @cn6    meta mark set ip6 saddr map @src2mark6 meta mark set mark >> 12
+          ip6 daddr != @cn6 meta mark set ip6 saddr map @src2mark6 meta mark set mark & 0xfff
+          ${defaultOutletRules}
+        }
 
-          chain portal-dnat {
-            type nat hook prerouting priority dstnat; policy accept;
-            ip daddr ${portalIpv4} tcp dport 22 dnat ip to ${portalIpv4}:2222
-            ip6 daddr ${portalIpv6} tcp dport 22 dnat ip6 to [${portalIpv6}]:2222
-          }
-        '';
-      };
+        chain wlt-portal-dnat {
+          type nat hook prerouting priority dstnat; policy accept;
+          ip daddr ${portalIpv4} tcp dport 22 dnat ip to ${portalIpv4}:2222
+          ip6 daddr ${portalIpv6} tcp dport 22 dnat ip6 to [${portalIpv6}]:2222
+        }
+      '';
 
       networking.nftables.ruleset = ''
         include "${snapshotFile}"

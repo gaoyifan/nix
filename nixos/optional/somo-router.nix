@@ -179,7 +179,7 @@ in {
       };
     };
 
-    networking.nftables.tables.filter = {
+    networking.nftables.tables.somo-router = {
       family = "inet";
       content = ''
         chain input {
@@ -196,12 +196,7 @@ in {
           iifname "${guestInterface}" meta nfproto ipv4 oifname "${homeRouter.wans.cmcc.interface}" accept
           iifname "${guestInterface}" drop
         }
-      '';
-    };
 
-    networking.nftables.tables.somo-host-egress = {
-      family = "inet";
-      content = ''
         include "${pkgs.nft-geo-sets}/set-cn.conf"
         include "${pkgs.nft-geo-sets}/set-cn6.conf"
 
@@ -215,24 +210,10 @@ in {
           ip6 daddr != @cn6 meta l4proto tcp reject with tcp reset
           ip6 daddr != @cn6 reject with icmpv6 type no-route
         }
-      '';
-    };
 
-    networking.nftables.tables.wg-iplc-nat = {
-      family = "ip";
-      content = ''
         chain postrouting {
           type nat hook postrouting priority srcnat; policy accept;
           oifname "wg-iplc" meta mark ${homeRouter.wgIplc.mark} masquerade
-        }
-      '';
-    };
-
-    networking.nftables.tables.usb-wan-nat = {
-      family = "ip";
-      content = ''
-        chain postrouting {
-          type nat hook postrouting priority srcnat; policy accept;
           ip saddr 100.64.0.0/10 oifgroup ${toString usbWanGroup} masquerade
         }
       '';
