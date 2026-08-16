@@ -43,7 +43,6 @@ in {
     ./whisper-server.nix
     ./wifi-ap.nix
     ./tailscale.nix
-    ./wg-iplc.nix
   ];
 
   services.hermes-nspawn = {

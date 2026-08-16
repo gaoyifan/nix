@@ -5,7 +5,6 @@
     ./networking.nix
     ./services.nix
     ./tailscale.nix
-    ./wg-iplc.nix
   ];
 
   networking.hostName = "el";

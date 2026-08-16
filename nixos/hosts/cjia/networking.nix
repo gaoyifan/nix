@@ -29,7 +29,11 @@ in {
 
   networking.homeRouter = {
     enable = true;
-    wgIplc.enable = true;
+    wgIplc = {
+      enable = true;
+      ip = "11.13.112.43/24";
+      privateKeyFile = config.services.secrets.filesDir + "/nixos/cjia/wg-iplc-private-key.age";
+    };
 
     switch.ports.enp1s0.untagged = 651;
 

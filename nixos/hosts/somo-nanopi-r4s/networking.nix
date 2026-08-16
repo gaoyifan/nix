@@ -18,6 +18,10 @@
   ];
 
   networking.hostName = "somo-nanopi-r4s";
+  networking.homeRouter.wgIplc = {
+    ip = "11.13.112.79/24";
+    privateKeyFile = config.services.secrets.filesDir + "/nixos/somo-nanopi-r4s/wg-iplc-private-key.age";
+  };
 
   services.oobSsh = {
     enable = true;

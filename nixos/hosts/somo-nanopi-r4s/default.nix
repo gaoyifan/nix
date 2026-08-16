@@ -4,7 +4,6 @@
     ../../optional/nanopi-r4s.nix
     ./networking.nix
     ./tailscale.nix
-    ./wg-iplc.nix
   ];
 
   system.stateVersion = "26.05";

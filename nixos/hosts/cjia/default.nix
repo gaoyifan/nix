@@ -5,7 +5,6 @@
     ./pppoe.nix
     ./services.nix
     ./tailscale.nix
-    ./wireguard.nix
   ];
 
   networking.hostName = "cjia";

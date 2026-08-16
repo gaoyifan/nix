@@ -18,6 +18,10 @@
   ];
 
   networking.hostName = "somo-minisforum";
+  networking.homeRouter.wgIplc = {
+    ip = "11.13.112.80/24";
+    privateKeyFile = config.services.secrets.filesDir + "/nixos/somo-minisforum/wg-iplc-private-key.age";
+  };
 
   services.oobSsh = {
     enable = true;

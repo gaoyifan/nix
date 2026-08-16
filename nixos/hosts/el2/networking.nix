@@ -17,6 +17,10 @@ in {
 
   networking.homeRouter = {
     enable = true;
+    wgIplc = {
+      ip = "11.13.112.77/24";
+      privateKeyFile = config.services.secrets.filesDir + "/nixos/el2/wg-iplc-private-key.age";
+    };
 
     monitoring = {
       enable = true;

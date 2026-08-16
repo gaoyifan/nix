@@ -77,6 +77,9 @@
       ! ip -o -6 address show dev br-core | grep -q .
 
       systemctl is-active --quiet policy-routing.service
+      ip -o link show dev wg-iplc | grep -F 'mtu 1392'
+      ip -4 address show dev wg-iplc | grep -F '10.255.255.100/24'
+      wg show wg-iplc dump | tail -n +2 | awk '$4 == "0.0.0.0/0" && $8 == 60'
       ip -4 rule show | grep -F 'fwmark 0x100/0xfff lookup 5100'
       ip -6 rule show | grep -F 'fwmark 0xfff/0xfff lookup 4095'
       ip -4 route get 10.64.2.2 mark 198 | grep -F 'dev br-core.642'
@@ -97,9 +100,23 @@
     '';
   in {
     imports = [
+      inputs.agenix.nixosModules.default
+      {
+        options.services.secrets = {
+          hasRealFiles = lib.mkOption {
+            type = lib.types.bool;
+            default = false;
+            readOnly = true;
+          };
+          filesDir = lib.mkOption {
+            type = lib.types.path;
+            default = ../../secrets/files-example;
+            internal = true;
+          };
+        };
+      }
       ../optional/gnet-edge-router.nix
       ../optional/home-router
-      ../../secrets
     ];
 
     networking.hostName = "router";
@@ -168,6 +185,11 @@
         defaultOutlet.ipv6 = "disabled";
       };
 
+      wgIplc = {
+        ip = "10.255.255.100/24";
+        privateKeyFile = pkgs.writeText "unused-wg-iplc-test-private-key.age" "";
+      };
+
       dnsmasq.domain = "test.invalid";
     };
 
@@ -178,9 +200,8 @@
       lan = "internal";
     };
 
-    networking.wireguard.interfaces.wg-iplc = {
-      privateKeyFile = toString (pkgs.writeText "wg-iplc-test-private-key" "SHU/G83Hd3I1CH1EM8zifA5ja9QpKzcQljsZmDvuw3k=");
-    };
+    networking.wireguard.interfaces.wg-iplc.privateKeyFile =
+      lib.mkForce (toString (pkgs.writeText "wg-iplc-test-private-key" "SHU/G83Hd3I1CH1EM8zifA5ja9QpKzcQljsZmDvuw3k="));
 
     systemd.network.networks."50-vm-access" = {
       matchConfig.Name = "vm-access0";

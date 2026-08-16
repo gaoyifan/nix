@@ -9,7 +9,6 @@
     ./services.nix
     ./tailscale.nix
     ./virtualisation.nix
-    ./wg-iplc.nix
     ./wg0.nix
   ];
 
