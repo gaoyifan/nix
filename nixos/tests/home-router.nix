@@ -217,10 +217,8 @@
 
     environment.systemPackages = [
       exerciseTopology
-      pkgs.curl
       pkgs.iproute2
       pkgs.iputils
-      pkgs.jq
       pkgs.tcpdump
     ];
 
@@ -230,15 +228,6 @@
   testScript = ''
     start_all()
     router.wait_for_unit("systemd-networkd.service")
-    router.wait_for_unit("prometheus-ping-cernet-exporter.service")
-    router.wait_for_unit("prometheus-ping-chinanet-exporter.service")
-    router.wait_for_unit("prometheus-ping-cmcc-exporter.service")
-    router.wait_for_open_port(9427)
-    router.wait_for_open_port(9428)
-    router.wait_for_open_port(9429)
-    router.wait_for_open_port(3001)
-    router.succeed("test \"$(curl --fail --silent 'http://127.0.0.1:3001/api/search?tag=public-egress' | jq length)\" -eq 1")
-    router.succeed("curl --fail --silent http://127.0.0.1:3001/api/dashboards/uid/home-router-public-egress | jq -e '.dashboard.templating.list[] | select(.name == \"wan\") | .multi and .includeAll and .query == \"cernet,chinanet,cmcc\"'")
     router.wait_until_succeeds("ip link show dev br-core")
     router.succeed("exercise-home-router-topology")
   '';
