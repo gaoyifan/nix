@@ -77,6 +77,7 @@
       ! ip -o -6 address show dev br-core | grep -q .
 
       systemctl is-active --quiet policy-routing.service
+      ip -4 route get 10.64.2.2 mark 198 | grep -F 'dev br-core.642'
       ip -4 route get 203.0.113.10 mark 198 | grep -F 'via 198.51.100.1 dev br-core.931 table cernet src 198.51.100.2'
       ip -4 route get 203.0.113.10 mark 201 | grep -F 'via 192.0.2.1 dev br-core.22 table chinanet src 192.0.2.2'
       ip -4 route get 203.0.113.10 mark 202 | grep -F 'via 192.0.2.1 dev br-core.22 table cmcc src 192.0.2.3'
