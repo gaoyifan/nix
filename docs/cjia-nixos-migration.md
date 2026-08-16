@@ -23,7 +23,7 @@ cjia 是 4 GiB NanoPi R4S。Armbian 从 32 GiB SD 卡启动，内置 GMAC `lan0`
 | `wg-el` | 删除 | USTC 流量改走 Nylon，不再保留独立 WireGuard 接口和私钥 |
 | `wgnd-tw` | 删除 | 已十天没有握手，Apple 流量被送入该隧道后全部超时；删除黑洞规则后按普通国内/海外策略路由 |
 | Nylon | `nixos/optional/nylon.nix` | 保留节点配置、overlay 和本机 PPPoE exit label 100；不迁移 FRR 和旧 `nylon-exit-*` units |
-| WLT | `networking.homeRouter.wlt` | 改用原生服务；保留 selector 快照，默认海外 IPv4 为 `wg-iplc`，IPv6 禁用 |
+| WLT | `networking.homeRouter.wlt` | 改用原生服务；三位 mark 切换时重置 selector 快照，默认海外 IPv4 为 `wg-iplc`，IPv6 禁用 |
 | diverge | `nixos/optional/diverge.nix` | 使用当前主线的原生模块，监听 `127.0.0.1:1054`；删除 Docker 容器 |
 | Tailscale | `tailscale-gnet.nix` | 保留节点状态、UDP 6627、exit node 和 `100.65.1.0/24` 路由广告；不注册新节点 |
 | Homebridge | 不安装 | 不迁移 Snap 或 Docker/macvlan 实例的配置、pairing、插件及状态 |
@@ -43,9 +43,9 @@ cjia 是 4 GiB NanoPi R4S。Armbian 从 32 GiB SD 卡启动，内置 GMAC `lan0`
   `192.168.125.2/24` DHCP 地址，改用静态地址 `192.168.125.254/24`。
 - `ppp0` 安装 main 和 `ppp` 表的默认路由，并作为 homeRouter 的 NAT、监控和 Nylon
   本地 exit 接口。
-- `wg-iplc` 保留 `11.13.112.43/24`，路由表 `wg-iplc`，用于海外 IPv4。
-- USTC 目的网段使用 selector mark `0x38`，命中 Nylon 维护流程渲染的 el2 CERNET
-  route：当前拓扑为 `encap mpls 20/101`、table 5008。PPPoE 兜底规则位于 Nylon
+- `wg-iplc` 保留 `11.13.112.43/24`，路由表 5100，用于海外 IPv4。
+- USTC 目的网段使用 selector mark `0x200`，命中 Nylon 维护流程渲染的 el2 CERNET
+  route：当前拓扑为 `encap mpls 20/100`、table 5200。PPPoE 兜底规则位于 Nylon
   selector rules 之后。
 - LAN 暂无可用原生 IPv6 前缀，因此不发送 RA；WLT 的 IPv6 outlet 明确禁用。
 
@@ -121,7 +121,7 @@ bootstrap 不包含目标服务，可在部署 cjia profile 前安全恢复状�
 1. 恢复 `/var/lib/tailscale`，核对 root 所有权和 0700 目录模式。
 2. 恢复 `/home/yifan/.ssh/id_ed25519{,.pub}`，核对私钥模式为 0600。
 3. 恢复 `/etc/nylon`，再由维护流程渲染当前拓扑的 route/rule batches；确认 cjia
-   存在当前生成的 `encap mpls 20/101 dev nylon0 table 5008` 和 `0x38` 到 table 5008
+   存在当前生成的 `encap mpls 20/100 dev nylon0 table 5200` 和 `0x200` 到 table 5200
    的规则。
 4. 执行 `just deploy-nanopi-from-bootstrap cjia`，成功后重启进入目标 profile，依次
    验证 Tailscale、Nylon 和 WLT。

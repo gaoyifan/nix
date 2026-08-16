@@ -94,7 +94,7 @@ el2 当前没有把 `wg-iplc` 加入可信接口；其 `trustedInterfaces = ["wg
 以下规则不属于通用 input/forward 过滤，不应为了形式一致而复制：
 
 - cjia 保留 PPPoE NAT、`wg-iplc` masquerade、Nylon NAT 和 cjia 自己的出口分类。
-- cjia 的 USTC 流量继续使用 mark `0x38` 进入 Nylon；不恢复 `wg-el`。
+- cjia 的 USTC 流量继续使用 mark `0x200` 进入 el2 的 CERNET Nylon 出口；不恢复 `wg-el`。
 - el/el2 保留各自的 CERNET、China Telecom、China Mobile 固定 SNAT 和多 WAN 分类。
 - cjia 不复制 el 的 UDP 2197 DNAT、light-server 端口或服务端口范围。
 - WLT、Nylon MSS/exit 和 homeRouter MSS 等共享规则继续由原模块生成。

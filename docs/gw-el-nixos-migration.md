@@ -72,7 +72,7 @@ docker ps --no-trunc; docker inspect diverge ttr light-single ssserver-rust
 | CERNET/管理地址 | CERNET 接口持有 `202.38.93.152` 和 IPv6 `...::152`；独立 `ens161` 管理口持有 `192.168.93.152` | VLAN 931 持有 `202.38.93.98` 与 IPv6 `...::98`；独立 `ens49f3` 持有 `192.168.93.98` | 两台主机都使用 management 9300 表和管理口 NAT，但设备名与地址不同 |
 | 电信/移动地址 | 电信 `202.141.162.122/24`，移动 `202.141.178.12/24` | 电信 `.72/25`，移动 `.7/25` | 两个路由身份共用 VLAN 22，但保留各自网关、表和 SNAT 地址 |
 | 专用路由 | 保留 `192.168.174.0/24`、`202.38.64.0/24` 经 CERNET | 无这两条 el 专用路由 | 删除旧机重复的 `192.168.93.0/24` 静态路由和已失效的 WireGuard endpoint host route |
-| 策略路由 | 表 93/162/178、management 9300、wg-iplc 5110 | 表号相同 | 删除两台主机误加的 `cernetSourcePrefixes`，共享 datapath 从 WAN 配置派生 mark |
+| 策略路由 | 表 93/162/178、management 9300、wg-iplc 5100 | 表号相同 | 删除两台主机误加的 `cernetSourcePrefixes`，共享 datapath 从 WAN 配置派生 mark |
 | Nylon exits | label 100/101/102，使用 el 的三个公网源地址 | 相同 label，使用 el2 地址 | 复用原生 module，不迁移 FRR/MPLS 静态配置 |
 | WLT | 当前 Debian 没有 WLT；目标 NixOS 必须启用 | 已启用 WLT，并以 `wg-iplc` 作为默认 outlet | 采用 `el2` 的 WLT 入口、selector 持久化和默认出口语义 |
 | DNS/DHCP 域 | 目标 dnsmasq 使用 `el.gaof.net`；旧机是 AdGuard Home + 容器 diverge | dnsmasq 使用 `el2.gaof.net` + 原生 diverge | 共享模块只复用机制，不复制 el2 的域名 |
@@ -106,9 +106,9 @@ docker ps --no-trunc; docker inspect diverge ttr light-single ssserver-rust
 
 ### 策略路由、出口和 WireGuard
 
-使用 homeRouter 的 policy routing 和主线 `el2` 的分类思路：CERNET/电信/移动目的地址分别标记 93/162/178，中国地址默认走电信，其他 IPv4 标记 `0x100` 进入 `wg-iplc` 表 5110。WLT 负责内部客户端的 outlet 选择，默认 IPv4 outlet 为 `0x100`，默认 IPv6 禁用；自定义 egress classifier 只处理 WLT 未标记的主机、转发和 Nylon/Tailscale 流量。保留已确认的 Nylon/Tailscale UDP 源端口（6622、6627）和管理源地址的出口选择；不要把旧机的 conntrack mark 数字原样复制。
+使用 homeRouter 的 policy routing 和主线 `el2` 的分类思路：CERNET/电信/移动目的地址分别标记 93/162/178，中国地址默认走电信，其他 IPv4 标记 `0x100` 进入 `wg-iplc` 表 5100。WLT 负责内部客户端的 outlet 选择，默认 IPv4 outlet 为 `0x100`，默认 IPv6 禁用；自定义 egress classifier 只处理 WLT 未标记的主机、转发和 Nylon/Tailscale 流量。保留已确认的 Nylon/Tailscale UDP 源端口（6622、6627）和管理源地址的出口选择；不要把旧机的 conntrack mark 数字原样复制。
 
-`wg-iplc` 使用当前 `11.13.112.74/24`、MTU 1392、运行时私钥 `/var/lib/wireguard/wg-iplc-private-key`、table 5110、fwMark `0x90000` 和现有 peer endpoint。主机 IPv6 继续采用主线的明确策略：国内 IPv6 可走 CERNET，海外 IPv6 直接拒绝，避免误经 IPv4 隧道。
+`wg-iplc` 使用当前 `11.13.112.74/24`、MTU 1392、运行时私钥 `/var/lib/wireguard/wg-iplc-private-key`、table 5100、fwMark `0x90000` 和现有 peer endpoint。主机 IPv6 继续采用主线的明确策略：国内 IPv6 可走 CERNET，海外 IPv6 直接拒绝，避免误经 IPv4 隧道。
 
 ### Nylon（不使用 FRR）
 
