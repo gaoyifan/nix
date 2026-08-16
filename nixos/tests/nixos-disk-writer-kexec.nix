@@ -9,23 +9,8 @@
     snakeOilEd25519PrivateKey
     snakeOilEd25519PublicKey
     ;
-  installedImage = mkNixosBootstrap {
-    host = hostConfig.extendModules {
-      modules = [
-        {
-          disko.imageBuilder.extraConfig = {
-            environment.systemPackages = [pkgs.util-linux];
-            systemd.network.networks."99-test" = {
-              matchConfig.Type = "ether";
-              networkConfig.DHCP = "yes";
-            };
-            users.users.root.openssh.authorizedKeys.keys = [snakeOilEd25519PublicKey];
-          };
-        }
-      ];
-    };
-  };
-  rawImage = "${installedImage}/google-bootstrap.raw";
+  installedImage = mkNixosBootstrap {host = hostConfig;};
+  rawImage = "${installedImage}/${hostConfig.config.networking.hostName}-bootstrap.raw";
   kexecArchive = "${kexecInstallerTarball}/nixos-disk-writer-kexec-x86_64-linux.tar.gz";
 in
   pkgs.testers.runNixOSTest {
@@ -185,14 +170,18 @@ in
       assert literal_data, resumed.stdout
       assert int(literal_data.group(1).replace(",", "")) < os.path.getsize("${rawImage}")
 
+      reboot_started = time.monotonic()
       ssh("reboot", check=False)
       wait_for_ssh(False)
       wait_for_ssh(True)
       wait_for_unit("multi-user.target")
+      installed_boot_seconds = time.monotonic() - reboot_started
+      print("Installed image boot seconds:", installed_boot_seconds)
+      assert installed_boot_seconds < 30
       wait_for_unit("growpart.service")
       wait_for_unit("systemd-growfs-root.service")
 
-      assert ssh("hostnamectl --static").stdout.strip() == "google"
+      assert ssh("hostnamectl --static").stdout.strip() == "${hostConfig.config.networking.hostName}"
       assert ssh("findmnt -no FSTYPE /").stdout.strip() == "btrfs"
       assert "compress=zstd:3" in ssh("findmnt -no OPTIONS /").stdout
       ssh("test -d /sys/firmware/efi")

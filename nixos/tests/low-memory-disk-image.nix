@@ -10,23 +10,8 @@
     snakeOilEd25519PrivateKey
     snakeOilEd25519PublicKey
     ;
-  gptImage = mkNixosBootstrap {
-    host = hostConfig.extendModules {
-      modules = [
-        {
-          disko.imageBuilder.extraConfig = {
-            environment.systemPackages = [pkgs.util-linux];
-            systemd.network.networks."99-test" = {
-              matchConfig.Type = "ether";
-              networkConfig.DHCP = "yes";
-            };
-            users.users.root.openssh.authorizedKeys.keys = [snakeOilEd25519PublicKey];
-          };
-        }
-      ];
-    };
-  };
-  gptRawImage = "${gptImage}/google-bootstrap.raw";
+  gptImage = mkNixosBootstrap {host = hostConfig;};
+  gptRawImage = "${gptImage}/${hostConfig.config.networking.hostName}-bootstrap.raw";
   mbrSystemModule = {
     lib,
     modulesPath,
@@ -244,13 +229,14 @@ in
           wait_for_unit("multi-user.target")
           return time.monotonic() - started
 
-      gpt_image = copy_image(gpt_raw_image, "google-bootstrap-")
+      gpt_image = copy_image(gpt_raw_image, "gpt-btrfs-bootstrap-")
       gpt_before = partition_table(gpt_image)
       print("GPT image partition table before resize:", json.dumps(gpt_before, sort_keys=True))
       assert gpt_before["label"] == "gpt"
       subprocess.run([qemu_img, "resize", "-f", "raw", gpt_image, "30G"], check=True)
       gpt_boot_seconds = boot_image(gpt, gpt_image)
       print("GPT image first boot seconds:", gpt_boot_seconds)
+      assert gpt_boot_seconds < 30
       wait_for_unit("growpart.service")
       wait_for_unit("systemd-growfs-root.service")
 
@@ -270,10 +256,14 @@ in
       gpt_filesystem_size = int(ssh("df --block-size=1 --output=size / | tail -n 1").stdout)
       assert gpt_filesystem_size > 25 * 1000**3
 
+      gpt_reboot_started = time.monotonic()
       gpt.reboot()
       wait_for_ssh(False)
       wait_for_ssh(True)
       wait_for_unit("multi-user.target")
+      gpt_second_boot_seconds = time.monotonic() - gpt_reboot_started
+      print("GPT image second boot seconds:", gpt_second_boot_seconds)
+      assert gpt_second_boot_seconds < 30
       wait_for_unit("growpart.service")
       wait_for_unit("systemd-growfs-root.service")
       gpt_after_reboot = json.loads(ssh("sfdisk --json /dev/vda").stdout)["partitiontable"]

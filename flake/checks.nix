@@ -21,19 +21,24 @@
       self.deploy;
     deployChecks = builtins.mapAttrs (_system: deployLib: deployLib.deployChecks deployForChecks) deploy-rs.lib;
     x86Pkgs = (pkgsFor "x86_64-linux").extend overlay;
+    lowMemoryGptHost = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [inputs.disko.nixosModules.disko ../nixos/tests/low-memory-gpt-host.nix];
+    };
   in
     nixpkgs.lib.recursiveUpdate deployChecks {
       x86_64-linux = {
         home-router = x86Pkgs.testers.runNixOSTest (import ../nixos/tests/home-router.nix {inherit inputs;});
         low-memory-disk-image = import ../nixos/tests/low-memory-disk-image.nix {
           inherit (inputs) disko;
-          hostConfig = self.nixosConfigurations.google;
+          hostConfig = lowMemoryGptHost;
           inherit (self.lib) mkNixosBootstrap;
           inherit nixpkgs;
           pkgs = x86Pkgs;
         };
+        nixos-bootstrap-image-google = self.packages.x86_64-linux.nixos-bootstrap-image-google;
         nixos-disk-writer-kexec = import ../nixos/tests/nixos-disk-writer-kexec.nix {
-          hostConfig = self.nixosConfigurations.google;
+          hostConfig = lowMemoryGptHost;
           kexecInstallerTarball = self.packages.x86_64-linux.nixos-disk-writer-kexec;
           inherit (self.lib) mkNixosBootstrap;
           pkgs = x86Pkgs;
