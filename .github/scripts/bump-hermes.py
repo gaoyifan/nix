@@ -13,6 +13,7 @@ FLAKE = ROOT / "flake.nix"
 RELEASE_API = "https://api.github.com/repos/NousResearch/hermes-agent/releases/latest"
 TAG_PATTERN = re.compile(r"^v[0-9]{4}\.[0-9]{1,2}\.[0-9]{1,2}(?:\.[0-9]+)?$")
 INPUT_PATTERN = re.compile(r'(url = "github:NousResearch/hermes-agent)(?:/([^"]+))?(";)')
+EXCLUDED_TAGS = {"v2026.8.13"}
 
 
 def latest_release_tag():
@@ -70,6 +71,20 @@ def main():
     latest_tag = latest_release_tag()
     text = FLAKE.read_text()
     current_tag = current_release_tag(text)
+    if latest_tag in EXCLUDED_TAGS:
+        version = hermes_version()
+        summary = f"Hermes: skipped excluded release {latest_tag}; staying on {current_tag} ({version})"
+
+        set_output("changed", "false")
+        set_output("files", "flake.nix flake.lock")
+        set_output("tag", current_tag)
+        set_output("version", version)
+        set_output("commit_subject", "")
+        set_output("commit_body", "")
+        set_output("summary", summary)
+        print(summary)
+        return
+
     changed = current_tag != latest_tag
 
     if changed:
