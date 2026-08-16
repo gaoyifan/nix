@@ -58,7 +58,7 @@
     if builtins.isString entry
     then emit "rule add pref ${toString priority} ${entry}"
     else ''
-      sed -E \
+      ${lib.getExe pkgs.gnused} -E \
         -e '/^[[:space:]]*$/d' \
         -e '/^[[:space:]]*#/d' \
         -e 's/^[[:space:]]*pref[[:space:]]+[0-9]+[[:space:]]+//' \
@@ -104,11 +104,6 @@ in {
         "systemd-networkd.service"
         "tailscaled.service"
       ];
-      path = [
-        pkgs.coreutils
-        pkgs.gnused
-        pkgs.iproute2
-      ];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
@@ -120,12 +115,12 @@ in {
           "rule add pref 32766 lookup main"
           "rule add pref 32767 lookup default"
         ]}
-        } | ip -4 -force -batch -
+        } | ${lib.getExe' pkgs.iproute2 "ip"} -4 -force -batch -
 
         {
           echo 'rule flush'
           ${renderFamily "ipv6" ["rule add pref 32766 lookup main"]}
-        } | ip -6 -force -batch -
+        } | ${lib.getExe' pkgs.iproute2 "ip"} -6 -force -batch -
       '';
     };
   };
