@@ -4,7 +4,6 @@
   ...
 }: let
   managementTable = 9300;
-  wgIplcMark = "0x100";
 in {
   age.secrets = lib.mkIf config.services.secrets.hasRealFiles {
     wlt-server-key.file = config.services.secrets.filesDir + "/nixos/wlt-server-key.pem.age";
@@ -95,10 +94,7 @@ in {
     wlt = {
       enable = true;
       domain = "gaof.net";
-      defaultOutlet = {
-        ipv4Mark = wgIplcMark;
-        ipv6 = "disabled";
-      };
+      defaultOutlet.ipv6 = "disabled";
     };
   };
 
@@ -130,7 +126,6 @@ in {
   networking.gnetEdgeRouter = {
     enable = true;
     lan = "gnet642";
-    wgIplc.mark = wgIplcMark;
     unclassifiedIpv4Sources = ["192.168.93.98"];
     masqueradeInterfaces = ["ens49f3"];
   };

@@ -27,7 +27,6 @@
   cernetMark = toString cernet.routingTable;
   chinanetMark = toString chinanet.routingTable;
   cmccMark = toString cmcc.routingTable;
-  wgIplcTable = config.networking.wireguard.interfaces.wg-iplc.table;
   preservedUdpSourcePorts = [
     2197
     6622
@@ -55,14 +54,6 @@ in {
       type = types.listOf types.str;
       default = [];
       description = "IPv4 source addresses left to source-policy routing before destination classification.";
-    };
-
-    wgIplc = {
-      mark = lib.mkOption {
-        type = types.str;
-        default = "0x100";
-        description = "Packet mark selecting the wg-iplc route table.";
-      };
     };
 
     masqueradeInterfaces = lib.mkOption {
@@ -104,9 +95,7 @@ in {
       }
     ];
 
-    networking.policyRouting.ipv4.routingPolicyRules.wltOutlet = [
-      "fwmark ${cfg.wgIplc.mark}/0xffffffff lookup ${wgIplcTable}"
-    ];
+    networking.homeRouter.wgIplc.enable = true;
 
     services.nylon = {
       enable = true;
@@ -169,7 +158,7 @@ in {
             ip daddr @chinanet meta mark set ${chinanetMark} return
             ip daddr @cmcc meta mark set ${cmccMark} return
             ip daddr @cn meta mark set ${chinanetMark} return
-            meta nfproto ipv4 meta mark set ${cfg.wgIplc.mark} return
+            meta nfproto ipv4 meta mark set ${homeRouter.wgIplc.mark} return
 
             ip6 daddr @cn6 meta mark set ${cernetMark} return
             ip6 daddr != @cn6 meta l4proto ipv6-icmp return
@@ -194,7 +183,7 @@ in {
           chain postrouting {
             type nat hook postrouting priority srcnat; policy accept;
             ${masqueradeRules}
-            meta mark ${cfg.wgIplc.mark} oifname "wg-iplc" masquerade
+            meta mark ${homeRouter.wgIplc.mark} oifname "wg-iplc" masquerade
             meta mark ${cernetMark} oifname "${cernetInterface}" snat ip to ${cernetIpv4}
             meta mark ${chinanetMark} oifname "${chinanetInterface}" snat ip to ${chinanetIpv4}
             meta mark ${cmccMark} oifname "${cmccInterface}" snat ip to ${cmccIpv4}

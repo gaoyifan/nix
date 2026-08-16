@@ -77,6 +77,8 @@
       ! ip -o -6 address show dev br-core | grep -q .
 
       systemctl is-active --quiet policy-routing.service
+      ip -4 rule show | grep -F 'fwmark 0x100/0xfff lookup 5100'
+      ip -6 rule show | grep -F 'fwmark 0xfff/0xfff lookup 4095'
       ip -4 route get 10.64.2.2 mark 198 | grep -F 'dev br-core.642'
       ip -4 route get 203.0.113.10 mark 198 | grep -F 'via 198.51.100.1 dev br-core.931 table cernet src 198.51.100.2'
       ip -4 route get 203.0.113.10 mark 201 | grep -F 'via 192.0.2.1 dev br-core.22 table chinanet src 192.0.2.2'
@@ -178,7 +180,6 @@
 
     networking.wireguard.interfaces.wg-iplc = {
       privateKeyFile = toString (pkgs.writeText "wg-iplc-test-private-key" "SHU/G83Hd3I1CH1EM8zifA5ja9QpKzcQljsZmDvuw3k=");
-      table = "5110";
     };
 
     systemd.network.networks."50-vm-access" = {

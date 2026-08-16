@@ -3,8 +3,6 @@
     ips = ["11.13.112.74/24"];
     privateKeyFile = "/var/lib/wireguard/wg-iplc-private-key";
     mtu = 1392;
-    table = "5110";
-    fwMark = "0x90000";
     peers = [
       {
         publicKey = "AfdrmhJVEoehssQxblgVRsdCn/ly4hOQjL04T+YxPCY=";

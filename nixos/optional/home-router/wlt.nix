@@ -10,8 +10,8 @@
   homeRouter = config.networking.homeRouter;
   cfg = homeRouter.wlt;
   lanInterfaceSet = "{ ${lib.concatMapStringsSep ", " (name: "\"${name}\"") homeRouter.internalInterfaces} }";
-  disabledIpv6Mark = "0xff";
-  disabledIpv6Table = 5255;
+  disabledIpv6Mark = "0xfff";
+  disabledIpv6Table = 4095;
   defaultOutletRules = ''
     ${lib.optionalString (cfg.defaultOutlet.ipv4Mark != null) ''fib saddr oifname ${lanInterfaceSet} ip daddr != @cn meta mark 0 meta mark set ${cfg.defaultOutlet.ipv4Mark}''}
     ${lib.optionalString (cfg.defaultOutlet.ipv6 == "disabled") ''fib saddr oifname ${lanInterfaceSet} ip6 daddr != @cn6 meta mark 0 meta mark set ${disabledIpv6Mark}''}
@@ -19,7 +19,7 @@
 
   configD = "/var/lib/wlt/config.d";
   persistDir = "/var/lib/wlt/persist";
-  snapshotFile = "${persistDir}/wlt_src2mark.conf";
+  snapshotFile = "${persistDir}/wlt_src2mark-v2.conf";
   wltSecrets = {
     sshHostKeyFile = "/run/agenix/wlt-ssh-host-key";
     tls = {
@@ -64,22 +64,22 @@
 
     [[outlet_groups]]
     title = "国内出口"
-    mask = 0xFF00
+    mask = 0xFFF000
     [outlet_groups.outlets]
     "默认" = 0x0
     [outlet_groups.outlets_v6]
     "默认" = 0x0
-    "禁用 IPv6" = 0xff00
+    "禁用 IPv6" = 0xfff000
 
     [[outlet_groups]]
     title = "海外出口"
     cn_last = true
-    mask = 0xFF
+    mask = 0xFFF
     [outlet_groups.outlets]
     "默认" = 0x0
     [outlet_groups.outlets_v6]
     "默认" = 0x0
-    "禁用 IPv6" = 0xff
+    "禁用 IPv6" = 0xfff
   '';
 in {
   imports = [inputs.wlt.nixosModules.default];
@@ -143,10 +143,10 @@ in {
 
           chain prerouting {
             type filter hook prerouting priority mangle - 1; policy accept;
-            ip daddr @cn    meta mark set ip saddr map @src2mark meta mark set mark >> 8
-            ip daddr != @cn meta mark set ip saddr map @src2mark meta mark set mark & 0xff
-            ip6 daddr @cn6    meta mark set ip6 saddr map @src2mark6 meta mark set mark >> 8
-            ip6 daddr != @cn6 meta mark set ip6 saddr map @src2mark6 meta mark set mark & 0xff
+            ip daddr @cn    meta mark set ip saddr map @src2mark meta mark set mark >> 12
+            ip daddr != @cn meta mark set ip saddr map @src2mark meta mark set mark & 0xfff
+            ip6 daddr @cn6    meta mark set ip6 saddr map @src2mark6 meta mark set mark >> 12
+            ip6 daddr != @cn6 meta mark set ip6 saddr map @src2mark6 meta mark set mark & 0xfff
             ${defaultOutletRules}
           }
 

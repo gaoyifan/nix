@@ -13,6 +13,7 @@ in {
     ./services.nix
     ./monitoring.nix
     ./wlt.nix
+    ./wg-iplc.nix
   ];
 
   config = lib.mkIf cfg.enable {

@@ -11,8 +11,6 @@
     ips = ["11.13.112.43/24"];
     privateKeyFile = "/run/agenix/cjia-wg-iplc-private-key";
     mtu = 1412;
-    table = "2000";
-    fwMark = "0x90000";
     peers = [
       {
         publicKey = "AfdrmhJVEoehssQxblgVRsdCn/ly4hOQjL04T+YxPCY=";

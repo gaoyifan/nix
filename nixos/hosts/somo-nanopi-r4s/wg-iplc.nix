@@ -10,12 +10,10 @@ in {
     somo-nanopi-r4s-wg-iplc-private-key.file = filesDir + "/nixos/somo-nanopi-r4s/wg-iplc-private-key.age";
   };
 
-  networking.wireguard.interfaces.${wg.interfaceName} = {
+  networking.wireguard.interfaces.wg-iplc = {
     ips = wg.ips;
     privateKeyFile = "/run/agenix/somo-nanopi-r4s-wg-iplc-private-key";
     mtu = wg.mtu;
-    table = wg.routeTable;
-    fwMark = wg.socketMark;
     peers = [wg.peer];
   };
 }

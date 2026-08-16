@@ -8,8 +8,7 @@
   lanInterface = homeRouter.lans.cjia.interface;
   dhcpHosts = import (config.services.secrets.filesDir + "/nixos/cjia/dhcp-hosts.nix");
   pppMark = "0x1";
-  wgIplcMark = "0x2";
-  nylonEl2CernetMark = "0x37";
+  nylonEl2CernetMark = "0x200";
 in {
   imports = [
     ../../optional/edge-firewall.nix
@@ -30,6 +29,7 @@ in {
 
   networking.homeRouter = {
     enable = true;
+    wgIplc.enable = true;
 
     switch.ports.enp1s0.untagged = 651;
 
@@ -72,10 +72,7 @@ in {
     wlt = {
       enable = true;
       domain = "gaof.net";
-      defaultOutlet = {
-        ipv4Mark = wgIplcMark;
-        ipv6 = "disabled";
-      };
+      defaultOutlet.ipv6 = "disabled";
     };
   };
 
@@ -107,8 +104,7 @@ in {
 
   networking.policyRouting.ipv4.routingPolicyRules = {
     wltOutlet = [
-      "fwmark ${pppMark}/0xff lookup ppp"
-      "fwmark ${wgIplcMark}/0xff lookup 2000"
+      "fwmark ${pppMark}/0xfff lookup ppp"
     ];
     defaultOutlet = ["lookup ppp"];
   };
@@ -139,7 +135,7 @@ in {
           meta mark 0 tcp dport 5223 meta mark set ${pppMark}
           meta mark 0 ip daddr @ustc meta mark set ${nylonEl2CernetMark}
           meta mark 0 ip daddr @cn meta mark set ${pppMark}
-          meta mark 0 meta nfproto ipv4 meta mark set ${wgIplcMark}
+          meta mark 0 meta nfproto ipv4 meta mark set ${homeRouter.wgIplc.mark}
           ct mark set meta mark
         }
 
@@ -157,7 +153,7 @@ in {
           udp sport { ${toString config.services.nylon.udpPort}, ${toString config.services.tailscale.port} } return
           ip daddr @ustc meta mark set ${nylonEl2CernetMark} return
           ip daddr @cn meta mark set ${pppMark} return
-          meta nfproto ipv4 meta mark set ${wgIplcMark}
+          meta nfproto ipv4 meta mark set ${homeRouter.wgIplc.mark}
         }
       '';
     };
@@ -167,7 +163,7 @@ in {
       content = ''
         chain postrouting {
           type nat hook postrouting priority srcnat; policy accept;
-          meta mark ${wgIplcMark} oifname "wg-iplc" masquerade
+          meta mark ${homeRouter.wgIplc.mark} oifname "wg-iplc" masquerade
         }
       '';
     };

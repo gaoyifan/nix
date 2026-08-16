@@ -8,7 +8,6 @@
   homeRouter = config.networking.homeRouter;
   lanDomain = "somo.gaof.net";
   usbWanGroup = 6505;
-  wgIplc = import (config.services.secrets.filesDir + "/nixos/${config.networking.hostName}/wg-iplc.nix");
   guestInterface = homeRouter.lans.guest.interface;
   somoInterface = homeRouter.lans.somo.interface;
   subnet = offset: toString (cfg.lanSubnetBase + offset);
@@ -60,6 +59,7 @@ in {
 
     networking.homeRouter = {
       enable = true;
+      wgIplc.enable = true;
 
       monitoring = {
         enable = true;
@@ -141,10 +141,7 @@ in {
       wlt = {
         enable = true;
         domain = "gaof.net";
-        defaultOutlet = {
-          ipv4Mark = wgIplc.mark;
-          ipv6 = "disabled";
-        };
+        defaultOutlet.ipv6 = "disabled";
       };
     };
 
@@ -160,10 +157,6 @@ in {
         interface = homeRouter.wans.cmcc.interface;
       };
     };
-
-    networking.policyRouting.ipv4.routingPolicyRules.wltOutlet = [
-      "fwmark ${wgIplc.mark}/0xffffffff lookup ${wgIplc.routeTable}"
-    ];
 
     services.resolved.settings.Resolve = {
       DNS = [
@@ -217,7 +210,7 @@ in {
           ct direction reply ct state established,related return
           meta mark != 0 return
           udp sport ${toString config.services.nylon.udpPort} return
-          ip daddr != @cn meta mark set ${wgIplc.mark}
+          ip daddr != @cn meta mark set ${homeRouter.wgIplc.mark}
           ip6 daddr != @cn6 meta l4proto ipv6-icmp return
           ip6 daddr != @cn6 meta l4proto tcp reject with tcp reset
           ip6 daddr != @cn6 reject with icmpv6 type no-route
@@ -230,7 +223,7 @@ in {
       content = ''
         chain postrouting {
           type nat hook postrouting priority srcnat; policy accept;
-          oifname "${wgIplc.interfaceName}" meta mark ${wgIplc.mark} masquerade
+          oifname "wg-iplc" meta mark ${homeRouter.wgIplc.mark} masquerade
         }
       '';
     };
