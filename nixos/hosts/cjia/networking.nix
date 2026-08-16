@@ -9,7 +9,7 @@
   dhcpHosts = import (config.services.secrets.filesDir + "/nixos/cjia/dhcp-hosts.nix");
   pppMark = "0x1";
   wgIplcMark = "0x2";
-  nylonEl2CernetMark = "0x38";
+  nylonEl2CernetMark = "0x37";
 in {
   imports = [
     ../../optional/edge-firewall.nix
