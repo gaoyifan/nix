@@ -161,19 +161,9 @@ in {
       };
     };
 
-    networking.policyRouting = {
-      enable = true;
-      ipv4.rules = [
-        "pref 100 lookup main suppress_prefixlength 0"
-        "pref 200 fwmark ${wgIplc.mark}/0xffffffff lookup ${wgIplc.routeTable}"
-        "pref 32766 lookup main"
-        "pref 32767 lookup default"
-      ];
-      ipv6.rules = [
-        "pref 100 lookup main suppress_prefixlength 0"
-        "pref 32766 lookup main"
-      ];
-    };
+    networking.policyRouting.ipv4.routingPolicyRules.wltOutlet = [
+      "fwmark ${wgIplc.mark}/0xffffffff lookup ${wgIplc.routeTable}"
+    ];
 
     services.resolved.settings.Resolve = {
       DNS = [

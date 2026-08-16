@@ -72,10 +72,10 @@
     lib.filter (entry: entry.value.via == wanName) routingPolicyEntries;
   sourcePrefixesForPolicy = policy:
     lib.unique (ipv4Addresses (policyLan policy).addresses);
-  routingPolicyRules = lib.concatMap (entry:
+  preMainRules = lib.concatMap (entry:
     lib.concatMap (sourcePrefix: [
-      "pref 90 from ${sourcePrefix} lookup ${entry.name}"
-      "pref 91 from ${sourcePrefix} unreachable"
+      "from ${sourcePrefix} lookup ${entry.name}"
+      "from ${sourcePrefix} unreachable"
     ])
     (sourcePrefixesForPolicy entry.value))
   routingPolicyEntries;
@@ -106,23 +106,6 @@
     })
     (routingPoliciesForWan wanName);
 
-  ipv4RulesForWan = wanName: let
-    wan = cfg.wans.${wanName};
-  in
-    lib.optionals (wan.routingTable != null) (
-      lib.optional (wan.gateway4 != null) "pref 200 fwmark ${toString wan.routingTable} lookup ${wanName}"
-      ++ map (address: "pref 300 from ${addressWithoutPrefix address}/32 lookup ${wanName}") (ipv4Addresses wan.addresses)
-      ++ map (subnet: "pref 400 from ${subnet} lookup ${wanName}") wan.masquerade.ipv4SourceSubnets
-    );
-  ipv6RulesForWan = wanName: let
-    wan = cfg.wans.${wanName};
-  in
-    lib.optionals (wan.routingTable != null) (
-      lib.optional (wan.gateway6 != null) "pref 200 fwmark ${toString wan.routingTable} lookup ${wanName}"
-      ++ map (address: "pref 300 from ${addressWithoutPrefix address}/128 lookup ${wanName}") (ipv6Addresses wan.addresses)
-      ++ map (subnet: "pref 400 from ${subnet} lookup ${wanName}") wan.masquerade.ipv6SourceSubnets
-    );
-
   addressesForInterface = interface:
     lib.concatMap (lan: lan.addresses) (lansForInterface interface)
     ++ lib.concatMap (name: cfg.wans.${name}.addresses) (wanNamesForInterface interface);
@@ -137,13 +120,29 @@
   ipv6PrefixesForInterface = interface:
     lib.concatMap (lan: lan.ipv6.prefixes) (lansForInterface interface);
 
-  ipv4PolicyRules =
-    routingPolicyRules
-    ++ lib.optional (lib.any (entry: entry.value.gateway4 != null) routedWanEntries) "pref 100 lookup main suppress_prefixlength 0"
-    ++ lib.concatMap (entry: ipv4RulesForWan entry.name) routedWanEntries;
-  ipv6PolicyRules =
-    lib.optional (lib.any (entry: entry.value.gateway6 != null) routedWanEntries) "pref 100 lookup main suppress_prefixlength 0"
-    ++ lib.concatMap (entry: ipv6RulesForWan entry.name) routedWanEntries;
+  ipv4PolicyRules = {
+    preMain = preMainRules;
+    wltOutlet = lib.concatMap (entry:
+      lib.optional (entry.value.gateway4 != null)
+      "fwmark ${toString entry.value.routingTable} lookup ${entry.name}")
+    routedWanEntries;
+    wanSource = lib.concatMap (entry:
+      map (address: "from ${addressWithoutPrefix address}/32 lookup ${entry.name}")
+      (ipv4Addresses entry.value.addresses))
+    routedWanEntries;
+  };
+  ipv6PolicyRules = {
+    wltOutlet = lib.concatMap (entry:
+      lib.optional (entry.value.gateway6 != null)
+      "fwmark ${toString entry.value.routingTable} lookup ${entry.name}")
+    routedWanEntries;
+    wanSource = lib.concatMap (entry:
+      map (address: "from ${addressWithoutPrefix address}/128 lookup ${entry.name}")
+      (ipv6Addresses entry.value.addresses))
+    routedWanEntries;
+  };
+  mkRuleBuckets = rules:
+    lib.mapAttrs (_: value: lib.mkBefore value) (lib.filterAttrs (_: value: value != []) rules);
 
   portNames = lib.attrNames cfg.switch.ports;
   bondPortNames = lib.filter (portName: cfg.switch.ports.${portName}.bond != null) portNames;
@@ -371,12 +370,11 @@ in {
       };
     }
 
-    (lib.mkIf (ipv4PolicyRules != [] || ipv6PolicyRules != []) {
+    {
       networking.policyRouting = {
-        enable = true;
-        ipv4.rules = lib.mkBefore ipv4PolicyRules;
-        ipv6.rules = lib.mkBefore ipv6PolicyRules;
+        ipv4.routingPolicyRules = mkRuleBuckets ipv4PolicyRules;
+        ipv6.routingPolicyRules = mkRuleBuckets ipv6PolicyRules;
       };
-    })
+    }
   ]);
 }

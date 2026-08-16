@@ -123,8 +123,8 @@ in {
     };
   };
 
-  networking.policyRouting.ipv4.rules = lib.mkBefore [
-    "pref 150 from 192.168.93.98/32 lookup management"
+  networking.policyRouting.ipv4.routingPolicyRules.preMain = lib.mkBefore [
+    "from 192.168.93.98/32 lookup management"
   ];
 
   networking.gnetEdgeRouter = {

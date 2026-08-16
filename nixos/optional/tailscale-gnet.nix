@@ -4,6 +4,7 @@
   lib,
   ...
 }: let
+  overlayRule = "lookup 52 suppress_prefixlength 0";
   gnetFlags = [
     "--accept-dns=false"
     "--accept-routes"
@@ -24,8 +25,8 @@ in {
     };
 
   networking.policyRouting = {
-    ipv4.rules = lib.mkBefore ["pref 110 lookup 52 suppress_prefixlength 0"];
-    ipv6.rules = lib.mkBefore ["pref 110 lookup 52 suppress_prefixlength 0"];
+    ipv4.routingPolicyRules.postMain = lib.mkBefore [overlayRule];
+    ipv6.routingPolicyRules.postMain = lib.mkBefore [overlayRule];
   };
 
   services.tailscale = {

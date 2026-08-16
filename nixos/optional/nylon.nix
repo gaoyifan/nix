@@ -20,7 +20,6 @@
   types = lib.types;
 in {
   disabledModules = ["services/networking/nylon.nix"];
-
   imports = [./policy-routing.nix];
 
   options.services.nylon = {
@@ -287,8 +286,8 @@ in {
 
     (lib.mkIf cfg.policyRouting.enable {
       networking.policyRouting = {
-        ipv4.ruleFiles = [rules4File];
-        ipv6.ruleFiles = [rules6File];
+        ipv4.routingPolicyRules.wltOutlet = [{file = rules4File;}];
+        ipv6.routingPolicyRules.wltOutlet = [{file = rules6File;}];
       };
     })
 

@@ -30,6 +30,11 @@ in {
     networking.firewall.enable = false;
     networking.nftables.enable = true;
     networking.nftables.flushRuleset = false;
+    networking.policyRouting = {
+      enable = true;
+      ipv4.routingPolicyRules.main = ["lookup main suppress_prefixlength 0"];
+      ipv6.routingPolicyRules.main = ["lookup main suppress_prefixlength 0"];
+    };
 
     boot.kernel.sysctl = {
       "net.ipv4.conf.*.rp_filter" = 0;

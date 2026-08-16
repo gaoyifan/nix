@@ -105,17 +105,12 @@ in {
     };
   };
 
-  networking.policyRouting = {
-    enable = true;
-    ipv4.rules = [
-      "pref 100 lookup main suppress_prefixlength 0"
-      "pref 200 fwmark ${pppMark}/0xff lookup ppp"
-      "pref 201 fwmark ${wgIplcMark}/0xff lookup 2000"
-      "pref 400 lookup ppp"
-      "pref 32766 lookup main"
-      "pref 32767 lookup default"
+  networking.policyRouting.ipv4.routingPolicyRules = {
+    wltOutlet = [
+      "fwmark ${pppMark}/0xff lookup ppp"
+      "fwmark ${wgIplcMark}/0xff lookup 2000"
     ];
-    ipv6.rules = ["pref 32766 lookup main"];
+    defaultOutlet = ["lookup ppp"];
   };
 
   networking.nftables.tables = {

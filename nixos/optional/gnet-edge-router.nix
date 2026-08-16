@@ -104,16 +104,9 @@ in {
       }
     ];
 
-    networking.policyRouting = {
-      enable = true;
-      ipv4.rules =
-        ["pref 200 fwmark ${cfg.wgIplc.mark}/0xffffffff lookup ${wgIplcTable}"]
-        ++ [
-          "pref 32766 lookup main"
-          "pref 32767 lookup default"
-        ];
-      ipv6.rules = ["pref 32766 lookup main"];
-    };
+    networking.policyRouting.ipv4.routingPolicyRules.wltOutlet = [
+      "fwmark ${cfg.wgIplc.mark}/0xffffffff lookup ${wgIplcTable}"
+    ];
 
     services.nylon = {
       enable = true;

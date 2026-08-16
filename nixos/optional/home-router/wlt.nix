@@ -169,9 +169,8 @@ in {
 
     (lib.mkIf (cfg.defaultOutlet.ipv6 == "disabled") {
       networking.policyRouting = {
-        enable = true;
-        ipv6.rules = lib.mkBefore [
-          "pref 300 fwmark ${disabledIpv6Mark}/${disabledIpv6Mark} lookup ${toString disabledIpv6Table}"
+        ipv6.routingPolicyRules.wltOutlet = lib.mkBefore [
+          "fwmark ${disabledIpv6Mark}/${disabledIpv6Mark} lookup ${toString disabledIpv6Table}"
         ];
       };
 
