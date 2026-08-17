@@ -119,6 +119,7 @@
           };
         };
       }
+      ../common/internal-dns.nix
       ../optional/gnet-edge-router.nix
       ../optional/home-router
     ];
@@ -229,10 +230,12 @@
     virtualisation.memorySize = 1024;
   };
 
-  testScript = ''
+  testScript = {nodes, ...}: ''
     start_all()
     router.wait_for_unit("systemd-networkd.service")
     router.wait_until_succeeds("ip link show dev br-core")
+    router.succeed("grep -F 'server=/cjia.gaof.net/100.65.1.254' ${nodes.router.services.dnsmasq.configFile}")
+    router.fail("grep -F 'server=/test.invalid/' ${nodes.router.services.dnsmasq.configFile}")
     router.succeed("exercise-home-router-topology")
   '';
 }

@@ -60,11 +60,7 @@ in {
 
     dnsmasq = {
       domain = "cjia.gaof.net";
-      servers = [
-        "/taildeb190.ts.net/100.100.100.100"
-        "/somo.gaof.net/100.65.2.254"
-        "127.0.0.1#1054"
-      ];
+      servers = ["127.0.0.1#1054"];
       extraInterfaces = ["tailscale0"];
     };
 

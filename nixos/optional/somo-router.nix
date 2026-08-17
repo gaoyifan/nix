@@ -131,10 +131,7 @@ in {
 
       dnsmasq = {
         domain = lanDomain;
-        servers = [
-          "/cjia.gaof.net/100.65.1.254"
-          "127.0.0.1#1054"
-        ];
+        servers = ["127.0.0.1#1054"];
         extraInterfaces = ["tailscale0"];
       };
 
@@ -165,18 +162,12 @@ in {
       ];
       Domains = ["~."];
     };
-    services.resolved.dnsDelegates = {
-      cjia.Delegate = {
-        DNS = ["100.65.1.254"];
-        Domains = ["cjia.gaof.net"];
-      };
-      wgIplcEndpoint.Delegate = {
-        DNS = [
-          "223.5.5.5"
-          "223.6.6.6"
-        ];
-        Domains = ["int.automesh.org"];
-      };
+    services.resolved.dnsDelegates.wgIplcEndpoint.Delegate = {
+      DNS = [
+        "223.5.5.5"
+        "223.6.6.6"
+      ];
+      Domains = ["int.automesh.org"];
     };
 
     networking.nftables.tables.somo-router = {

@@ -6,6 +6,7 @@
     ./backup.nix
     ./core.nix
     ./home-manager.nix
+    ./internal-dns.nix
     ./nix.nix
     ./users.nix
     ./openssh.nix

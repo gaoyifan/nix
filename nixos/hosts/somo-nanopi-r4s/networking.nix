@@ -36,6 +36,7 @@
     nativeVlan = 653;
     lanSubnetBase = 12;
   };
+  networking.homeRouter.dnsmasq.domain = lib.mkForce "somo2.gaof.net";
 
   systemd.network.wait-online.anyInterface = true;
   systemd.network.networks."11-usb-wan".linkConfig.RequiredForOnline = "routable";

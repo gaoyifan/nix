@@ -288,7 +288,7 @@ in {
       servers = lib.mkOption {
         type = types.listOf types.str;
         default = [];
-        description = "Upstream DNS servers for dnsmasq.";
+        description = "Extra dnsmasq upstreams; internal site zones are forwarded automatically.";
       };
       extraInterfaces = lib.mkOption {
         type = types.listOf types.str;
