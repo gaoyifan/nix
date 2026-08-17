@@ -154,14 +154,6 @@ in {
       };
     };
 
-    services.resolved.settings.Resolve = {
-      DNS = [
-        "1.1.1.1"
-        "1.0.0.1"
-      ];
-      Domains = ["~."];
-    };
-
     networking.nftables.tables.somo-router = {
       family = "inet";
       content = ''

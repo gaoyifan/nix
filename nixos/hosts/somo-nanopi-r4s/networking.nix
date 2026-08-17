@@ -35,5 +35,4 @@
 
   systemd.network.wait-online.anyInterface = true;
   systemd.network.networks."11-usb-wan".linkConfig.RequiredForOnline = "routable";
-  services.resolved.settings.Resolve.DNS = lib.mkAfter ["223.5.5.5"];
 }

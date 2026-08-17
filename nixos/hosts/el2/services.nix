@@ -110,9 +110,4 @@ in {
       extraOptions = ["--network=host"];
     };
   };
-
-  services.resolved.settings.Resolve = {
-    DNS = [config.networking.homeRouter.serviceAddresses.ipv4];
-    Domains = ["~."];
-  };
 }

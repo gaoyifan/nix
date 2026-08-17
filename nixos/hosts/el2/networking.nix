@@ -80,7 +80,6 @@ in {
     dnsmasq = {
       domain = "el2.gaof.net";
       extraInterfaces = [
-        "lo"
         "tailscale0"
         "wg0"
       ];

@@ -28,9 +28,4 @@ in {
     volumes = ["${certDir}:/usr/local/openresty/nginx/conf/ssl:ro"];
     extraOptions = ["--network=host"];
   };
-
-  services.resolved.settings.Resolve = {
-    DNS = [config.networking.homeRouter.serviceAddresses.ipv4];
-    Domains = ["~."];
-  };
 }

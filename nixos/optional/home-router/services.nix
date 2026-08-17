@@ -15,7 +15,11 @@
 in {
   config = lib.mkIf cfg.enable (lib.mkMerge [
     {
-      services.resolved.settings.Resolve.MulticastDNS = false;
+      services.resolved.settings.Resolve = {
+        MulticastDNS = false;
+        DNS = [cfg.serviceAddresses.ipv4];
+        Domains = ["~."];
+      };
 
       systemd.network.networks."60-lo-host-services" = {
         matchConfig.Name = "lo";
@@ -33,7 +37,7 @@ in {
           [
             {
               bind-dynamic = true;
-              interface = allLanInterfaceNames ++ cfg.dnsmasq.extraInterfaces;
+              interface = lib.unique (["lo"] ++ allLanInterfaceNames ++ cfg.dnsmasq.extraInterfaces);
               no-resolv = true;
               server = cfg.dnsmasq.servers;
               domain = cfg.dnsmasq.domain;
