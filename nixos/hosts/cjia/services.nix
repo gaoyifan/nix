@@ -4,7 +4,6 @@
   ...
 }: {
   imports = [
-    ../../optional/diverge.nix
     ../../optional/nylon.nix
   ];
 
@@ -12,7 +11,6 @@
     cjia-godns-password.file = config.services.secrets.filesDir + "/nixos/cjia/godns-password.age";
   };
 
-  services.diverge.enable = true;
   services.fail2ban.enable = true;
 
   services.nylon = {

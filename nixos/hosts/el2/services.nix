@@ -27,12 +27,10 @@ in {
 
   imports = [
     ../../optional/acme-certificates.nix
-    ../../optional/diverge.nix
   ];
 
   services.openssh.settings.MaxStartups = 100;
   services.fail2ban.enable = true;
-  services.diverge.enable = true;
   services.ncps = {
     enable = true;
     analytics.reporting.enable = false;

@@ -15,7 +15,6 @@
   ipv6Prefix = offset: "fd9a:2d16:5c3e:${subnet offset}";
 in {
   imports = [
-    ./diverge.nix
     ./home-router
     ./nylon.nix
   ];
@@ -42,7 +41,6 @@ in {
 
   config = lib.mkIf cfg.enable {
     services.usbmuxd.enable = true;
-    services.diverge.enable = true;
 
     systemd.network.networks."11-usb-wan" = {
       matchConfig.Driver = "ipheth rndis_host";

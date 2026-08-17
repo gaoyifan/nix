@@ -7,7 +7,6 @@
 in {
   imports = [
     ../../optional/acme-certificates.nix
-    ../../optional/diverge.nix
   ];
 
   age.secrets = lib.mkIf config.services.secrets.hasRealFiles {
@@ -16,7 +15,6 @@ in {
 
   services.openssh.settings.MaxStartups = 100;
   services.fail2ban.enable = true;
-  services.diverge.enable = true;
 
   services.acmeCertificates = {
     enable = true;

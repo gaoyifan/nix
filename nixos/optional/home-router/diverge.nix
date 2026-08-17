@@ -1,11 +1,11 @@
 {
+  config,
   inputs,
   lib,
   pkgs,
-  config,
   ...
 }: let
-  cfg = config.services.diverge;
+  cfg = config.networking.homeRouter;
   configFile = pkgs.writeText "diverge.conf" ''
     [global]
     listen = 127.0.0.1:1054
@@ -25,6 +25,10 @@ in {
   imports = [inputs.diverge.nixosModules.default];
 
   config = lib.mkIf cfg.enable {
-    services.diverge.configFile = configFile;
+    services.diverge = {
+      enable = true;
+      configFile = configFile;
+    };
+    services.dnsmasq.settings.server = ["127.0.0.1#1054"];
   };
 }

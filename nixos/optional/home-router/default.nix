@@ -8,6 +8,7 @@ in {
   imports = [
     ../policy-routing.nix
     ./options.nix
+    ./diverge.nix
     ./networkd.nix
     ./firewall.nix
     ./services.nix
