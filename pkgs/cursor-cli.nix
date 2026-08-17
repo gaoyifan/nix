@@ -54,17 +54,6 @@ in
       cp -R dist-package/. "$out/share/cursor-agent/"
       chmod -R u+w "$out/share/cursor-agent"
       patchShebangs "$out/share/cursor-agent/cursor-agent"
-
-      # Allow disabling Max Mode for models whose variants are all flagged
-      # isMaxMode (e.g. claude-fable-5). Upstream forces maxMode back to true
-      # in setCurrentModelWithParameters whenever the selected variant has
-      # isMaxMode, which also re-locks Max Mode on --resume. The GUI does not
-      # do this. Drop the variant check so only supportsNonMaxMode counts.
-      target=$(grep -lF 'supportsNonMaxMode||!0===' "$out/share/cursor-agent"/*.js)
-      substituteInPlace $target \
-        --replace-fail \
-          'return!1===e.supportsNonMaxMode||!0===(null==t?void 0:t.isMaxMode)' \
-          'return!1===e.supportsNonMaxMode'
       substituteInPlace "$out/share/cursor-agent/cursor-agent" \
         --replace-fail "set -euo pipefail" "set -euo pipefail
       export PATH=${lib.makeBinPath [pkgs.coreutils]}:\$PATH"
