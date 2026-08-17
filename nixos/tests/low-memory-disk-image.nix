@@ -1,7 +1,7 @@
 {
   disko,
   hostConfig,
-  mkNixosBootstrap,
+  mkNixosDiskImage,
   nixpkgs,
   pkgs,
 }: let
@@ -10,8 +10,8 @@
     snakeOilEd25519PrivateKey
     snakeOilEd25519PublicKey
     ;
-  gptImage = mkNixosBootstrap {host = hostConfig;};
-  gptRawImage = "${gptImage}/${hostConfig.config.networking.hostName}-bootstrap.raw";
+  gptImage = mkNixosDiskImage {host = hostConfig;};
+  gptRawImage = "${gptImage}/${hostConfig.config.networking.hostName}-disk-image.raw";
   mbrSystemModule = {
     lib,
     modulesPath,
@@ -71,8 +71,8 @@
     system = pkgs.stdenv.hostPlatform.system;
     modules = [disko.nixosModules.disko mbrSystemModule mbrDiskModule];
   };
-  mbrImage = mkNixosBootstrap {host = mbrHost;};
-  mbrRawImage = "${mbrImage}/bios-mbr-bootstrap.img";
+  mbrImage = mkNixosDiskImage {host = mbrHost;};
+  mbrRawImage = "${mbrImage}/bios-mbr-disk-image.img";
   gptNode = {
     lib,
     modulesPath,

@@ -65,12 +65,12 @@
     xtom-sjc = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/xtom-sjc];
     xtom-syd = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/xtom-syd];
   };
-  mkNixosBootstrap = {host}: let
+  mkNixosDiskImage = {host}: let
     diskNames = builtins.attrNames host.config.disko.devices.disk;
     diskName = builtins.head diskNames;
     disk = host.config.disko.devices.disk.${diskName};
-    imageName = "${host.config.networking.hostName}-bootstrap";
-    bootstrapHost = host.extendModules {
+    imageName = "${host.config.networking.hostName}-disk-image";
+    imageHost = host.extendModules {
       modules = [
         {
           boot.growPartition = nixpkgs.lib.mkForce true;
@@ -84,7 +84,7 @@
       if disk.content.type == "table" && disk.content.format == "msdos"
       then
         import "${nixpkgs}/nixos/lib/make-disk-image.nix" {
-          config = bootstrapHost.config;
+          config = imageHost.config;
           inherit (host) pkgs;
           inherit (nixpkgs) lib;
           baseName = imageName;
@@ -93,7 +93,7 @@
           partitionTableType = "legacy";
         }
       else
-        (bootstrapHost.extendModules {
+        (imageHost.extendModules {
           modules = [
             {
               disko.devices.disk.${diskName} = {
@@ -103,10 +103,10 @@
             }
           ];
         }).config.system.build.diskoImages
-    else throw "mkNixosBootstrap requires exactly one disko disk for ${host.config.networking.hostName}";
+    else throw "mkNixosDiskImage requires exactly one disko disk for ${host.config.networking.hostName}";
 in {
   nixosConfigurations = configs;
-  lib = {inherit mkNixosBootstrap;};
+  lib = {inherit mkNixosDiskImage;};
 
   deploy.nodes = {
     blog = mkDeployNode "x86_64-linux" "blog.ts.gaof.net" configs.blog;

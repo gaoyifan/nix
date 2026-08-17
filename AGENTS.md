@@ -18,6 +18,8 @@
 - Prefer the repository's `just` subcommands for switching configurations. Invoke `nixos-rebuild`, `darwin-rebuild`, or `home-manager` directly only when necessary, and include flake submodules with `.?submodules=1`.
 - `just deploy <target>`: Deploy NixOS via deploy-rs
 - `just sync-and-rebuild <target>`: Sync the repository and run target-side `nixos-rebuild switch` with explicit substituters
+- `just build-disk-image <target>`: Build the target's NixOS disk image for its configured architecture
+- `just build-nanopi-bootstrap-image`: Build the universal NanoPi R4S bootstrap SD image
 - `just fmt`: Format all supported languages through treefmt
 - `just fmt-check`: Check formatting without changing files
 - `just check`: Evaluate the current machine's configuration

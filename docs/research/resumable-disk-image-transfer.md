@@ -10,7 +10,7 @@
 ```sh
 rsync --ignore-times --no-whole-file --write-devices --fsync \
   --compress-choice=zstd --compress-level=3 --info=progress2 \
-  bootstrap.raw \
+  target-disk-image.raw \
   root@target:/dev/disk/by-id/target-disk
 ```
 

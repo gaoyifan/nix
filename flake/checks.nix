@@ -32,15 +32,15 @@
         low-memory-disk-image = import ../nixos/tests/low-memory-disk-image.nix {
           inherit (inputs) disko;
           hostConfig = lowMemoryGptHost;
-          inherit (self.lib) mkNixosBootstrap;
+          inherit (self.lib) mkNixosDiskImage;
           inherit nixpkgs;
           pkgs = x86Pkgs;
         };
-        nixos-bootstrap-image-google = self.packages.x86_64-linux.nixos-bootstrap-image-google;
+        nixos-disk-image-google = self.packages.x86_64-linux.nixos-disk-image-google;
         nixos-disk-writer-kexec = import ../nixos/tests/nixos-disk-writer-kexec.nix {
           hostConfig = lowMemoryGptHost;
           kexecInstallerTarball = self.packages.x86_64-linux.nixos-disk-writer-kexec;
-          inherit (self.lib) mkNixosBootstrap;
+          inherit (self.lib) mkNixosDiskImage;
           pkgs = x86Pkgs;
         };
         oob-ssh = x86Pkgs.testers.runNixOSTest (import ../nixos/tests/oob-ssh.nix {pkgs = x86Pkgs;});

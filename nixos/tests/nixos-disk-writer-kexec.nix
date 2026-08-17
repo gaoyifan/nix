@@ -1,7 +1,7 @@
 {
   hostConfig,
   kexecInstallerTarball,
-  mkNixosBootstrap,
+  mkNixosDiskImage,
   pkgs,
 }: let
   inherit
@@ -9,8 +9,8 @@
     snakeOilEd25519PrivateKey
     snakeOilEd25519PublicKey
     ;
-  installedImage = mkNixosBootstrap {host = hostConfig;};
-  rawImage = "${installedImage}/${hostConfig.config.networking.hostName}-bootstrap.raw";
+  installedImage = mkNixosDiskImage {host = hostConfig;};
+  rawImage = "${installedImage}/${hostConfig.config.networking.hostName}-disk-image.raw";
   kexecArchive = "${kexecInstallerTarball}/nixos-disk-writer-kexec-x86_64-linux.tar.gz";
 in
   pkgs.testers.runNixOSTest {

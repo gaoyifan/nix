@@ -21,10 +21,12 @@ Google 主机只作为现有 NixOS 配置的测试样本，不是本方案的目
 每个带有 disko 磁盘配置的 NixOS host 都会自动得到一个 package：
 
 ```sh
-nix build .#nixos-bootstrap-image-target
+just build-disk-image target
 ```
 
-每次只构建指定主机的镜像。NanoPi SD image 等其他镜像路径不属于这个入口。
+该入口读取目标 NixOS configuration 的架构，再构建对应的
+`nixos-disk-image-<target>` package。NanoPi bootstrap SD image 使用独立的
+`just build-nanopi-bootstrap-image` 入口。
 
 为目标架构构建写盘环境：
 
@@ -35,11 +37,11 @@ nix build .#nixos-disk-writer-kexec
 该 kexec image 只包含启动框架、SSH、rsync 和磁盘工具，不在目标机运行 Nix、disko
 或 `nixos-install`。
 
-入口在内部调用 `self.lib.mkNixosBootstrap`。它接收任意符合约束的 NixOS host 配置，
+通用 disko 路径在内部调用 `self.lib.mkNixosDiskImage`。它接收任意符合约束的 NixOS host 配置，
 返回对应的安装镜像：
 
 ```nix
-self.lib.mkNixosBootstrap {
+self.lib.mkNixosDiskImage {
   host = self.nixosConfigurations.target;
 }
 ```
@@ -77,7 +79,7 @@ mountpoints=$(ssh root@target lsblk -no MOUNTPOINTS "$target_device")
 test -z "$mountpoints"
 rsync --ignore-times --no-whole-file --write-devices --fsync \
   --compress-choice=zstd --compress-level=3 --info=progress2 \
-  bootstrap.raw \
+  target-disk-image.raw \
   "root@target:$target_device"
 ```
 
@@ -112,7 +114,7 @@ ssh-keygen -R target
 `checks.x86_64-linux.nixos-disk-writer-kexec` 覆盖基础系统启动、kexec、从部分写入状态继续
 rsync、从新镜像重启以及 root 扩容的完整流程。
 
-`checks.x86_64-linux.nixos-bootstrap-image-google` 单独构建真实 Google 主机配置，避免 VM
+`checks.x86_64-linux.nixos-disk-image-google` 单独构建真实 Google 主机配置，避免 VM
 测试载入与镜像机制无关的生产服务。
 
 未来主机只要满足单系统盘、root 最后分区的约束，就可复用同一套写盘和首次启动流程。

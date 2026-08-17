@@ -83,11 +83,11 @@ Nixpkgs 的 [`make-disk-image.nix`](https://github.com/NixOS/nixpkgs/blob/531670
 `disko.devices.disk.system.imageSize` 设为 6 GiB，使 root partition 约为
 4 GiB。最终大小应根据实际构建结果留出明确余量，而不是写死为所有主机通用值。
 
-`flake.lib.mkNixosBootstrap` 从任意满足上述布局约束的 host config 派生构建 variant，
+`flake.lib.mkNixosDiskImage` 从任意满足上述布局约束的 host config 派生构建 variant，
 不改变普通运行中的 host profile：
 
 ```nix
-flake.lib.mkNixosBootstrap {
+flake.lib.mkNixosDiskImage {
   host = flake.nixosConfigurations.target;
   imageSize = "6G";
 }
@@ -119,7 +119,7 @@ BIOS + MBR 验收还要求固件环境中不存在 EFI runtime、partition table
 
 ## 实现与 VM 验收记录
 
-已加入通用的 `flake.lib.mkNixosBootstrap`，设置 `boot.growPartition`、root
+已加入通用的 `flake.lib.mkNixosDiskImage`，设置 `boot.growPartition`、root
 `autoResize` 以及唯一 disko disk 的 `imageName`/`imageSize`。测试以现有 Google host
 调用同一 interface；仓库不增加没有实际部署用途的 Google bootstrap output。
 
@@ -165,7 +165,7 @@ runtime package。rsync 不把完整镜像读入 RAM，并使用目标块设备�
 ```sh
 rsync --ignore-times --no-whole-file --write-devices --fsync \
   --compress-choice=zstd --compress-level=3 --info=progress2 \
-  bootstrap.raw \
+  target-disk-image.raw \
   root@target:/dev/disk/by-id/target-disk
 ```
 

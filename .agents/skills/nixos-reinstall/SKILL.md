@@ -33,7 +33,7 @@ The repository exposes one package per NixOS host that has a disko disk configur
 target_system=$(nix eval --raw \
   .#nixosConfigurations.<host>.pkgs.stdenv.hostPlatform.system)
 image_dir=$(nix build --accept-flake-config --no-link --print-out-paths \
-  ".#packages.${target_system}.nixos-bootstrap-image-<host>")
+  ".#packages.${target_system}.nixos-disk-image-<host>")
 raw_image=$(find "$image_dir" -maxdepth 1 -type f \
   \( -name '*.raw' -o -name '*.img' \) -print -quit)
 kexec_dir=$(nix build --accept-flake-config --no-link --print-out-paths \
@@ -131,7 +131,7 @@ ssh-keygen -R <address>
 scripts/wait-for-ssh.sh root@<address>
 ```
 
-The bootstrap configuration expands its final root partition and filesystem on first boot.
+The disk-image configuration expands its final root partition and filesystem on first boot.
 
 ## Standard path: nixos-anywhere
 
