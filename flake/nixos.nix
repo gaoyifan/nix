@@ -57,6 +57,7 @@
       ];
     };
     oracle2 = mkNixosHost "aarch64-linux" [disko.nixosModules.disko ../nixos/hosts/oracle2];
+    oracle3 = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/oracle3 ../nixos/hosts/oracle3/services.nix];
     somo-minisforum = mkNixosHost "x86_64-linux" [../nixos/hosts/somo-minisforum];
     somo-nanopi-r4s = mkNixosHost "aarch64-linux" [../nixos/hosts/somo-nanopi-r4s];
     somo-gw = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/somo-gw];
@@ -117,6 +118,7 @@ in {
     misc0-jp = mkDeployNode "x86_64-linux" "misc0-jp.ts.gaof.net" configs.misc0-jp;
     oracle = mkDeployNode "x86_64-linux" "oracle.ts.gaof.net" configs.oracle;
     oracle2 = mkDeployNode "aarch64-linux" "oracle2.ts.gaof.net" configs.oracle2;
+    oracle3 = mkDeployNode "x86_64-linux" "oracle3.ts.gaof.net" configs.oracle3;
     somo-minisforum = mkDeployNode "x86_64-linux" "somo-minisforum.ts.gaof.net" configs.somo-minisforum;
     somo-nanopi-r4s = mkDeployNode "aarch64-linux" "somo-nanopi-r4s.ts.gaof.net" configs.somo-nanopi-r4s;
     somo-gw = mkDeployNode "x86_64-linux" "somo-gw.ts.gaof.net" configs.somo-gw;
