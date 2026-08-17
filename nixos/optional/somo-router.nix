@@ -162,13 +162,6 @@ in {
       ];
       Domains = ["~."];
     };
-    services.resolved.dnsDelegates.wgIplcEndpoint.Delegate = {
-      DNS = [
-        "223.5.5.5"
-        "223.6.6.6"
-      ];
-      Domains = ["int.automesh.org"];
-    };
 
     networking.nftables.tables.somo-router = {
       family = "inet";

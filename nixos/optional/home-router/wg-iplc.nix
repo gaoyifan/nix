@@ -5,6 +5,7 @@
 }: let
   cfg = config.networking.homeRouter.wgIplc;
   peer = import (config.services.secrets.filesDir + "/nixos/wg-iplc.nix");
+  endpointHost = lib.head (lib.splitString ":" peer.endpoint);
 in {
   options.networking.homeRouter.wgIplc = {
     enable = lib.mkEnableOption "the shared wgIplc outlet";
@@ -52,5 +53,14 @@ in {
     networking.policyRouting.ipv4.routingPolicyRules.wltOutlet = [
       "fwmark ${cfg.mark}/0xfff lookup ${toString cfg.table}"
     ];
+    services.resolved.dnsDelegates = lib.mkIf (builtins.match ".*[[:alpha:]].*" endpointHost != null) {
+      wgIplcEndpoint.Delegate = {
+        DNS = [
+          "223.5.5.5"
+          "223.6.6.6"
+        ];
+        Domains = [endpointHost];
+      };
+    };
   };
 }

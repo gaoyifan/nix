@@ -115,11 +115,4 @@ in {
     DNS = [config.networking.homeRouter.serviceAddresses.ipv4];
     Domains = ["~."];
   };
-  services.resolved.dnsDelegates.wgIplcEndpoint.Delegate = {
-    DNS = [
-      "223.5.5.5"
-      "223.6.6.6"
-    ];
-    Domains = ["int.automesh.org"];
-  };
 }
