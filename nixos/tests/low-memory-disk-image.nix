@@ -6,7 +6,7 @@
   pkgs,
 }: let
   inherit
-    (import "${pkgs.path}/nixos/tests/ssh-keys.nix" pkgs)
+    (import (pkgs.path + "/nixos/tests/ssh-keys.nix") pkgs)
     snakeOilEd25519PrivateKey
     snakeOilEd25519PublicKey
     ;
