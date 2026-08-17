@@ -17,7 +17,10 @@
         enableWrapper = false;
         program = "copilot";
       };
-      cursor-agent = from "cursor-cli";
+      cursor-agent = {
+        packagePath = ["cursor-cli"];
+        wrapperArgs = ["--disable-auto-update"];
+      };
       cursor-cli = {
         enableWrapper = false;
         program = "cursor-agent";
