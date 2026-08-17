@@ -126,8 +126,7 @@ in {
           interfaceLans = lansForInterface interface;
           interfaceWans = wansForInterface interface;
           altnames = lib.unique (
-            lib.concatMap (lan: lan.altnames) (lib.attrValues interfaceLans)
-            ++ lib.concatMap (wan: wan.altnames) (lib.attrValues interfaceWans)
+            lib.attrNames interfaceLans ++ lib.attrNames interfaceWans
           );
         in
           lib.optional (altnames != []) (lib.nameValuePair "20-home-router-${lib.head (lib.attrNames interfaceLans ++ lib.attrNames interfaceWans)}" {

@@ -93,8 +93,6 @@ in {
 
     wlt = {
       enable = true;
-      domain = "gaof.net";
-      defaultOutlet.ipv6 = "disabled";
     };
   };
 
@@ -138,7 +136,7 @@ in {
     ];
     publicUdpPorts = [
       "5201"
-      "6622"
+      (toString config.services.nylon.udpPort)
       "6627"
       "61001-61999"
     ];

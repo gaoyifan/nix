@@ -28,7 +28,7 @@
       "lo"
       "tailscale0"
     ]
-    ++ cfg.internalInterfaces ++ monitoringCfg.grafana.extraInterfaces;
+    ++ cfg.internalInterfaces;
   grafanaInputInterfaceSet = lib.concatMapStringsSep ", " (interface: ''"${interface}"'') grafanaInputInterfaces;
   monitoredWans =
     lib.imap0 (index: name: {
@@ -145,7 +145,7 @@ in {
       enable = true;
       settings = {
         server.http_addr = "";
-        server.http_port = monitoringCfg.grafana.port;
+        server.http_port = 3001;
         auth.disable_login_form = true;
         "auth.anonymous".enabled = true;
         "auth.basic".enabled = false;

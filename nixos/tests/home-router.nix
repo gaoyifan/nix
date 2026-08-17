@@ -185,9 +185,7 @@
 
       wlt = {
         enable = true;
-        domain = "test.invalid";
         defaultOutlet.ipv4Mark = "201";
-        defaultOutlet.ipv6 = "disabled";
       };
 
       wgIplc = {

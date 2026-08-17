@@ -14,7 +14,7 @@
   disabledIpv6Table = 4095;
   defaultOutletRules = ''
     ${lib.optionalString (cfg.defaultOutlet.ipv4Mark != null) ''fib saddr oifname ${lanInterfaceSet} ip daddr != @cn meta mark 0 meta mark set ${cfg.defaultOutlet.ipv4Mark}''}
-    ${lib.optionalString (cfg.defaultOutlet.ipv6 == "disabled") ''fib saddr oifname ${lanInterfaceSet} ip6 daddr != @cn6 meta mark 0 meta mark set ${disabledIpv6Mark}''}
+    fib saddr oifname ${lanInterfaceSet} ip6 daddr != @cn6 meta mark 0 meta mark set ${disabledIpv6Mark}
   '';
 
   configD = "/var/lib/wlt/config.d";
@@ -57,10 +57,10 @@
     map_v6 = "src2mark6"
 
     [portal]
-    domain = "${cfg.domain}"
-    v4_host = "wlt-ipv4.${cfg.domain}"
-    v6_host = "wlt-ipv6.${cfg.domain}"
-    cors_domain = "${cfg.domain}"
+    domain = "gaof.net"
+    v4_host = "wlt-ipv4.gaof.net"
+    v6_host = "wlt-ipv6.gaof.net"
+    cors_domain = "gaof.net"
 
     [[outlet_groups]]
     title = "国内出口"
@@ -86,22 +86,10 @@ in {
 
   options.networking.homeRouter.wlt = {
     enable = lib.mkEnableOption "WLT outlet selector";
-    domain = lib.mkOption {
-      type = lib.types.str;
-      example = "gaof.net";
-      description = "Public domain used by the WLT portal.";
-    };
-    defaultOutlet = {
-      ipv4Mark = lib.mkOption {
-        type = lib.types.nullOr lib.types.str;
-        default = null;
-        description = "Default IPv4 overseas outlet mark for internal LAN clients.";
-      };
-      ipv6 = lib.mkOption {
-        type = lib.types.enum ["default" "disabled"];
-        default = "default";
-        description = "Default IPv6 overseas behavior for internal LAN clients.";
-      };
+    defaultOutlet.ipv4Mark = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      description = "Default IPv4 overseas outlet mark for internal LAN clients.";
     };
   };
 
@@ -169,7 +157,7 @@ in {
       '';
     }
 
-    (lib.mkIf (cfg.defaultOutlet.ipv6 == "disabled") {
+    {
       networking.policyRouting = {
         ipv6.routingPolicyRules.wltOutlet = lib.mkBefore [
           "fwmark ${disabledIpv6Mark}/${disabledIpv6Mark} lookup ${toString disabledIpv6Table}"
@@ -183,6 +171,6 @@ in {
           Type = "unreachable";
         }
       ];
-    })
+    }
   ]);
 }

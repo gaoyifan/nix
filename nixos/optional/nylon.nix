@@ -11,7 +11,10 @@
 }: let
   cfg = config.services.nylon;
   exitsEnabled = cfg.exits != {};
-  overlayConfigured = cfg.overlay.ipv4Subnet != null || cfg.overlay.ipv6Subnet != null;
+  interfaceName = "nylon0";
+  configDir = "/etc/nylon";
+  centralConfigFile = "${configDir}/central.yaml";
+  nodeConfigFile = "${configDir}/node.yaml";
   policyRoutingDir = "/var/lib/nylon/policy-routing";
   routes4File = "${policyRoutingDir}/routes4.batch";
   routes6File = "${policyRoutingDir}/routes6.batch";
@@ -25,68 +28,16 @@ in {
   options.services.nylon = {
     enable = lib.mkEnableOption "Nylon mesh router";
 
-    package = lib.mkOption {
-      type = types.package;
-      default = pkgs.nylon;
-      description = "Nylon package to run and expose on PATH.";
-    };
-
-    interfaceName = lib.mkOption {
-      type = types.str;
-      default = "nylon0";
-      description = "Nylon TUN interface name.";
+    overlay.nat.enable = lib.mkOption {
+      type = types.bool;
+      default = true;
+      description = "Whether to masquerade non-overlay sources leaving through Nylon.";
     };
 
     udpPort = lib.mkOption {
       type = types.port;
       default = 6622;
       description = "Nylon UDP transport source port.";
-    };
-
-    mtu = lib.mkOption {
-      type = types.ints.positive;
-      default = 1400;
-      description = "Mesh-wide Nylon interface MTU.";
-    };
-
-    configDir = lib.mkOption {
-      type = types.str;
-      default = "/etc/nylon";
-      description = "Directory containing Nylon node configuration.";
-    };
-
-    centralConfigFile = lib.mkOption {
-      type = types.str;
-      default = "${cfg.configDir}/central.yaml";
-      defaultText = lib.literalExpression ''"${config.services.nylon.configDir}/central.yaml"'';
-      description = "Path to Nylon central.yaml.";
-    };
-
-    nodeConfigFile = lib.mkOption {
-      type = types.str;
-      default = "${cfg.configDir}/node.yaml";
-      defaultText = lib.literalExpression ''"${config.services.nylon.configDir}/node.yaml"'';
-      description = "Path to Nylon node.yaml.";
-    };
-
-    overlay = {
-      ipv4Subnet = lib.mkOption {
-        type = types.nullOr types.str;
-        default = null;
-        example = "10.0.10.0/24";
-        description = "IPv4 overlay subnet used by exits for reverse translation.";
-      };
-      ipv6Subnet = lib.mkOption {
-        type = types.nullOr types.str;
-        default = null;
-        example = "fd00:10::/64";
-        description = "IPv6 overlay subnet used by exits for reverse translation.";
-      };
-      nat.enable = lib.mkOption {
-        type = types.bool;
-        default = true;
-        description = "Whether to masquerade non-overlay sources leaving through Nylon.";
-      };
     };
 
     policyRouting.enable = lib.mkEnableOption "loading rendered Nylon policy rules through networking.policyRouting";
@@ -148,7 +99,7 @@ in {
 
   config = lib.mkIf cfg.enable (lib.mkMerge [
     (let
-      nylonMssV6 = cfg.mtu - 8 - 60;
+      nylonMssV6 = 1400 - 8 - 60;
     in {
       networking.nftables.enable = true;
       networking.nftables.tables.nylon = {
@@ -156,7 +107,7 @@ in {
         content = ''
           chain prerouting-mss {
             type filter hook prerouting priority mangle; policy accept;
-            iifname "${cfg.interfaceName}" tcp flags syn tcp option maxseg size > ${toString nylonMssV6} tcp option maxseg size set ${toString nylonMssV6}
+            iifname "${interfaceName}" tcp flags syn tcp option maxseg size > ${toString nylonMssV6} tcp option maxseg size set ${toString nylonMssV6}
           }
         '';
       };
@@ -164,12 +115,6 @@ in {
 
     {
       assertions = [
-        {
-          assertion =
-            !(cfg.overlay.nat.enable || exitsEnabled)
-            || overlayConfigured;
-          message = "Nylon NAT and exits require an overlay IPv4 or IPv6 subnet.";
-        }
         {
           assertion =
             builtins.length (map (exit: exit.label) (lib.attrValues cfg.exits))
@@ -191,13 +136,13 @@ in {
       # `nylon` on PATH lets Ansible generate/verify keys and configs; python3
       # is what Ansible modules run under on this host.
       environment.systemPackages = [
-        cfg.package
+        pkgs.nylon
         pkgs.python3
       ];
 
       systemd.tmpfiles.rules =
         [
-          "d ${cfg.configDir} 0700 root root -"
+          "d ${configDir} 0700 root root -"
         ]
         ++ lib.optionals cfg.policyRouting.enable [
           "d ${policyRoutingDir} 0755 root root -"
@@ -212,31 +157,31 @@ in {
         wants =
           ["network-online.target"]
           ++ lib.optional cfg.policyRouting.enable "nylon-routes.service"
-          ++ lib.optional (exitsEnabled && overlayConfigured) "nylon-exit.service";
+          ++ lib.optional exitsEnabled "nylon-exit.service";
         after = ["network-online.target"];
         wantedBy = ["multi-user.target"];
         # nylon shells out to `ip` for interface/route setup.
         path = [pkgs.iproute2];
         unitConfig.ConditionPathExists = [
-          cfg.centralConfigFile
-          cfg.nodeConfigFile
+          centralConfigFile
+          nodeConfigFile
         ];
         serviceConfig = {
-          ExecStart = "${lib.getExe cfg.package} run -c ${cfg.centralConfigFile} -n ${cfg.nodeConfigFile}";
-          WorkingDirectory = cfg.configDir;
+          ExecStart = "${lib.getExe pkgs.nylon} run -c ${centralConfigFile} -n ${nodeConfigFile}";
+          WorkingDirectory = configDir;
           Restart = "on-failure";
           RestartSec = "5s";
         };
       };
     }
 
-    (lib.mkIf (cfg.overlay.nat.enable && overlayConfigured) {
+    (lib.mkIf cfg.overlay.nat.enable {
       networking.nftables.enable = true;
       networking.nftables.tables.nylon.content = ''
         chain overlay-nat-postrouting {
           type nat hook postrouting priority srcnat; policy accept;
-          ${lib.optionalString (cfg.overlay.ipv4Subnet != null) ''oifname "${cfg.interfaceName}" ip saddr != ${cfg.overlay.ipv4Subnet} masquerade''}
-          ${lib.optionalString (cfg.overlay.ipv6Subnet != null) ''oifname "${cfg.interfaceName}" ip6 saddr != ${cfg.overlay.ipv6Subnet} masquerade''}
+          oifname "${interfaceName}" ip saddr != 10.250.10.0/24 masquerade
+          oifname "${interfaceName}" ip6 saddr != fd10:250:10::/64 masquerade
         }
       '';
     })
@@ -252,8 +197,8 @@ in {
         wantedBy = ["multi-user.target"];
         path = [pkgs.iproute2];
         unitConfig.ConditionPathExists = [
-          cfg.centralConfigFile
-          cfg.nodeConfigFile
+          centralConfigFile
+          nodeConfigFile
         ];
         serviceConfig = {
           Type = "oneshot";
@@ -263,11 +208,11 @@ in {
         };
         script = ''
           for _ in {1..50}; do
-            ip -brief link show dev ${cfg.interfaceName} 2>/dev/null | grep -qw LOWER_UP && break
+            ip -brief link show dev ${interfaceName} 2>/dev/null | grep -qw LOWER_UP && break
             sleep 0.2
           done
-          if ! ip -brief link show dev ${cfg.interfaceName} | grep -qw LOWER_UP; then
-            echo "${cfg.interfaceName} not LOWER_UP; cannot apply Nylon route batches" >&2
+          if ! ip -brief link show dev ${interfaceName} | grep -qw LOWER_UP; then
+            echo "${interfaceName} not LOWER_UP; cannot apply Nylon route batches" >&2
             exit 1
           fi
 
@@ -371,8 +316,8 @@ in {
       '';
     })
 
-    (lib.mkIf (exitsEnabled && overlayConfigured) {
-      # ${cfg.interfaceName} is created by nylon at startup, and its MPLS input
+    (lib.mkIf exitsEnabled {
+      # ${interfaceName} is created by nylon at startup, and its MPLS input
       # flag dies with it, so this must re-run on every nylon restart (PartOf).
       # The LSP and tc filters live on the WAN interface and would survive, but
       # replacing them is idempotent.
@@ -387,8 +332,8 @@ in {
           pkgs.gawk
         ];
         unitConfig.ConditionPathExists = [
-          cfg.centralConfigFile
-          cfg.nodeConfigFile
+          centralConfigFile
+          nodeConfigFile
         ];
         serviceConfig = {
           Type = "oneshot";
@@ -398,18 +343,18 @@ in {
         };
         script = ''
           for _ in {1..50}; do
-            ip link show ${cfg.interfaceName} >/dev/null 2>&1 && break
+            ip link show ${interfaceName} >/dev/null 2>&1 && break
             sleep 0.2
           done
-          if ! ip link show ${cfg.interfaceName} >/dev/null 2>&1; then
-            echo "${cfg.interfaceName} absent; cannot configure Nylon exits" >&2
+          if ! ip link show ${interfaceName} >/dev/null 2>&1; then
+            echo "${interfaceName} absent; cannot configure Nylon exits" >&2
             exit 1
           fi
 
           # Accept MPLS packets nylon writes to its TUN after the outer pop.
-          echo 1 > /proc/sys/net/mpls/conf/${cfg.interfaceName}/input
-          tc qdisc replace dev ${cfg.interfaceName} clsact
-          tc filter del dev ${cfg.interfaceName} ingress 2>/dev/null || true
+          echo 1 > /proc/sys/net/mpls/conf/${interfaceName}/input
+          tc qdisc replace dev ${interfaceName} clsact
+          tc filter del dev ${interfaceName} ingress 2>/dev/null || true
           declare -A configured_interfaces=()
           ${lib.concatMapAttrsStringSep "\n" (name: exitConfig:
             (
@@ -439,7 +384,7 @@ in {
             )
             + ''
               mark=$((0x10000 + ${toString exitConfig.label}))
-              tc filter add dev ${cfg.interfaceName} ingress protocol mpls_uc pref ${toString exitConfig.label} \
+              tc filter add dev ${interfaceName} ingress protocol mpls_uc pref ${toString exitConfig.label} \
                 flower mpls_label ${toString exitConfig.label} action skbedit mark "$mark"
 
               if [[ ! -v "configured_interfaces[$iface]" ]]; then
@@ -449,30 +394,26 @@ in {
               fi
 
               filters=0
-              ${lib.optionalString (cfg.overlay.ipv4Subnet != null) ''
-                ip4="${lib.optionalString (exitConfig.ipv4Address != null) exitConfig.ipv4Address}"
-                if [ -z "$ip4" ]; then
-                  ip4=$(ip -o -4 addr show dev "$iface" scope global | awk '{print $4}' | cut -d/ -f1 | head -1)
-                fi
-                if [ -n "$ip4" ]; then
-                  tc filter add dev "$iface" egress protocol ip pref ${toString exitConfig.label} handle "$mark" fw \
-                    action ct commit nat src addr "$ip4" pipe
-                  filters=$((filters + 1))
-                  echo "nylon-exit ${name}: IPv4 SNAT to $ip4 on $iface"
-                fi
-              ''}
-              ${lib.optionalString (cfg.overlay.ipv6Subnet != null) ''
-                ip6="${lib.optionalString (exitConfig.ipv6Address != null) exitConfig.ipv6Address}"
-                if [ -z "$ip6" ]; then
-                  ip6=$(ip -o -6 addr show dev "$iface" scope global | awk '{print $4}' | cut -d/ -f1 | head -1)
-                fi
-                if [ -n "$ip6" ]; then
-                  tc filter add dev "$iface" egress protocol ipv6 pref ${toString (exitConfig.label + 1000)} handle "$mark" fw \
-                    action ct commit nat src addr "$ip6" pipe
-                  filters=$((filters + 1))
-                  echo "nylon-exit ${name}: IPv6 SNAT to $ip6 on $iface"
-                fi
-              ''}
+              ip4="${lib.optionalString (exitConfig.ipv4Address != null) exitConfig.ipv4Address}"
+              if [ -z "$ip4" ]; then
+                ip4=$(ip -o -4 addr show dev "$iface" scope global | awk '{print $4}' | cut -d/ -f1 | head -1)
+              fi
+              if [ -n "$ip4" ]; then
+                tc filter add dev "$iface" egress protocol ip pref ${toString exitConfig.label} handle "$mark" fw \
+                  action ct commit nat src addr "$ip4" pipe
+                filters=$((filters + 1))
+                echo "nylon-exit ${name}: IPv4 SNAT to $ip4 on $iface"
+              fi
+              ip6="${lib.optionalString (exitConfig.ipv6Address != null) exitConfig.ipv6Address}"
+              if [ -z "$ip6" ]; then
+                ip6=$(ip -o -6 addr show dev "$iface" scope global | awk '{print $4}' | cut -d/ -f1 | head -1)
+              fi
+              if [ -n "$ip6" ]; then
+                tc filter add dev "$iface" egress protocol ipv6 pref ${toString (exitConfig.label + 1000)} handle "$mark" fw \
+                  action ct commit nat src addr "$ip6" pipe
+                filters=$((filters + 1))
+                echo "nylon-exit ${name}: IPv6 SNAT to $ip6 on $iface"
+              fi
               if [ "$filters" -eq 0 ]; then
                 echo "no configured overlay address family is available on $iface" >&2
                 exit 1

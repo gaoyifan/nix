@@ -29,7 +29,7 @@
   cmccMark = toString cmcc.routingTable;
   preservedUdpSourcePorts = [
     2197
-    6622
+    config.services.nylon.udpPort
     6627
   ];
 
@@ -100,10 +100,6 @@ in {
     services.nylon = {
       enable = true;
       policyRouting.enable = true;
-      overlay = {
-        ipv4Subnet = "10.250.10.0/24";
-        ipv6Subnet = "fd10:250:10::/64";
-      };
       exits = {
         cernet = {
           label = 100;

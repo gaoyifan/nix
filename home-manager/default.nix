@@ -210,7 +210,6 @@ in {
     host = "mutagen.yfgao.com";
     user = "syncd";
     port = 2221;
-    remotePath = "/data/syncd-dotfiles";
   };
 
   # Auto gc on Linux only - darwin handles this at system level

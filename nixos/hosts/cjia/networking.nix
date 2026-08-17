@@ -65,8 +65,6 @@ in {
 
     wlt = {
       enable = true;
-      domain = "gaof.net";
-      defaultOutlet.ipv6 = "disabled";
     };
   };
 

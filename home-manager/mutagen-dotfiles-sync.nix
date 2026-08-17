@@ -10,7 +10,7 @@
   stateDir = "${config.home.homeDirectory}/.local/state/mutagen-dotfiles-sync";
   specHashPath = "${stateDir}/spec-hash";
   mutagenDataDir = "${stateDir}/mutagen-data";
-  identityFile = cfg.identityFile;
+  identityFile = "${config.home.homeDirectory}/.ssh/id_ed25519";
   sessionName = "syncd-dotfiles";
   sessionLabels = {
     managed = "true";
@@ -18,8 +18,8 @@
   };
   sessionSelector = lib.concatStringsSep "," (lib.mapAttrsToList (name: value: "${name}==${value}") sessionLabels);
   # Mutagen 0.18.0 parses SCP-style SSH endpoints as user@host:port:path; ssh://... is not recognized by pkg/url.Parse.
-  remoteEndpoint = "${cfg.user}@${cfg.host}:${toString cfg.port}:${cfg.remotePath}";
-  remoteRsyncRoot = "${cfg.user}@${cfg.host}:${cfg.remotePath}/";
+  remoteEndpoint = "${cfg.user}@${cfg.host}:${toString cfg.port}:/data/syncd-dotfiles";
+  remoteRsyncRoot = "${cfg.user}@${cfg.host}:/data/syncd-dotfiles/";
   rsyncSshCommand = "${sshWrapper}/bin/ssh -F /dev/null -p ${toString cfg.port}";
   sessionCreateArguments = lib.cli.toCommandLineGNU {} {
     compression = "deflate";
@@ -320,7 +320,7 @@
         exit 1
       fi
 
-      key_path="''${1:-${cfg.identityFile}.pub}"
+      key_path="''${1:-${identityFile}.pub}"
       private_key_path="''${key_path%.pub}"
 
       if [ "$#" -eq 0 ]; then
@@ -374,18 +374,6 @@ in {
       type = lib.types.port;
       default = 2222;
       description = "SSH port for the central dotfiles sync server.";
-    };
-
-    remotePath = lib.mkOption {
-      type = lib.types.str;
-      default = "/data/syncd-dotfiles";
-      description = "Remote path inside the SSH container that stores the shared dotfiles.";
-    };
-
-    identityFile = lib.mkOption {
-      type = lib.types.str;
-      default = "${config.home.homeDirectory}/.ssh/id_ed25519";
-      description = "SSH private key file used by Mutagen for the central sync server.";
     };
   };
 

@@ -14,12 +14,13 @@
     else cfg.defaultLan;
   containerLan = container: homeRouter.lans.${containerLanName container};
   hostPkgs = pkgs;
-  newApiBaseUrl = "http://${cfg.listenAddress}:3000/v1";
+  listenAddress = homeRouter.serviceAddresses.ipv4;
+  newApiBaseUrl = "http://${listenAddress}:3000/v1";
   containerNameFor = userName: "hermes-nix-${userName}";
   newApiTokenFile = userName: "${cfg.newApiTokenDirectory}/hermes-${userName}";
   secretDirectory = containerName: "/run/${containerName}-secrets";
   honcho = cfg.honcho;
-  honchoBaseUrl = "http://${cfg.listenAddress}:${toString honcho.apiPort}";
+  honchoBaseUrl = "http://${listenAddress}:${toString honcho.apiPort}";
   jsonFormat = pkgs.formats.json {};
   honchoConfigTemplate = userName: let
     containerName = containerNameFor userName;
@@ -35,7 +36,7 @@
       };
     };
   telegramBotApi = cfg.telegramBotApi;
-  telegramBotApiBaseUrl = "http://${cfg.listenAddress}";
+  telegramBotApiBaseUrl = "http://${listenAddress}";
   staticLeases =
     lib.mapAttrsToList (userName: container: "${container.macAddress},${container.staticLease},${containerNameFor userName}")
     cfg.containers;
@@ -63,18 +64,6 @@ in {
       type = lib.types.attrsOf lib.types.path;
       default = {};
       description = "Encrypted New API token files used as service restart triggers.";
-    };
-    listenAddress = lib.mkOption {
-      type = lib.types.str;
-      default = homeRouter.serviceAddresses.ipv4;
-      defaultText = lib.literalExpression "config.networking.homeRouter.serviceAddresses.ipv4";
-      description = "Address on which services shared with Hermes containers listen.";
-    };
-    aptProxyAddress = lib.mkOption {
-      type = lib.types.str;
-      default = homeRouter.serviceAddresses.ipv4;
-      defaultText = lib.literalExpression "config.networking.homeRouter.serviceAddresses.ipv4";
-      description = "Address of the APT proxy used by Hermes terminal containers.";
     };
     dashboardDomain = lib.mkOption {
       type = lib.types.str;
@@ -214,7 +203,7 @@ in {
         };
         specialArgs = {
           inherit containerName dashboardPublicUrl hostPkgs inputs newApiBaseUrl telegramBotApi telegramBotApiBaseUrl;
-          inherit (cfg) aptProxyAddress;
+          aptProxyAddress = listenAddress;
         };
         config =
           if container.canary or false

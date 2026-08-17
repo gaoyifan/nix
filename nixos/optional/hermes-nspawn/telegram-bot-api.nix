@@ -6,16 +6,11 @@
 }: let
   cfg = config.services.hermes-nspawn;
   telegramBotApi = cfg.telegramBotApi;
+  listenAddress = config.networking.homeRouter.serviceAddresses.ipv4;
   allowedInterfaces = ["lo"] ++ config.networking.homeRouter.internalInterfaces;
 in {
   options.services.hermes-nspawn.telegramBotApi = {
     enable = lib.mkEnableOption "local Telegram Bot API server";
-
-    package = lib.mkOption {
-      type = lib.types.package;
-      default = pkgs.telegram-bot-api;
-      description = "Telegram Bot API package to run.";
-    };
 
     apiId = lib.mkOption {
       type = lib.types.int;
@@ -64,8 +59,8 @@ in {
         RuntimeDirectoryMode = "0700";
         EnvironmentFile = telegramBotApi.apiHashEnvironmentFile;
         ExecStart = lib.escapeShellArgs [
-          (lib.getExe telegramBotApi.package)
-          "--http-ip-address=${cfg.listenAddress}"
+          (lib.getExe pkgs.telegram-bot-api)
+          "--http-ip-address=${listenAddress}"
           "--http-port=${toString telegramBotApi.apiPort}"
           "--dir=/var/lib/telegram-bot-api"
           "--temp-dir=/run/telegram-bot-api"
@@ -94,7 +89,7 @@ in {
         default = true;
         listen = [
           {
-            addr = cfg.listenAddress;
+            addr = listenAddress;
             port = telegramBotApi.filePort;
           }
         ];

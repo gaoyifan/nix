@@ -38,7 +38,6 @@ in {
               bind-dynamic = true;
               interface = lib.unique (["lo"] ++ allLanInterfaceNames ++ cfg.dnsmasq.extraInterfaces);
               no-resolv = true;
-              server = cfg.dnsmasq.servers;
               domain = cfg.dnsmasq.domain;
               expand-hosts = true;
               dhcp-range = dhcpRanges;

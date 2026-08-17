@@ -16,10 +16,6 @@
   services.nylon = {
     enable = true;
     policyRouting.enable = true;
-    overlay = {
-      ipv4Subnet = "10.250.10.0/24";
-      ipv6Subnet = "fd10:250:10::/64";
-    };
     exits.ppp = {
       label = 100;
       interface = "ppp0";

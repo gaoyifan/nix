@@ -6,6 +6,7 @@
 }: let
   cfg = config.services.hermes-nspawn;
   honcho = cfg.honcho;
+  listenAddress = config.networking.homeRouter.serviceAddresses.ipv4;
   newApiTokenRestartTriggers = lib.optional (honcho.newApiTokenFileSource != null) honcho.newApiTokenFileSource;
   allowedInterfaces = ["lo"] ++ config.networking.homeRouter.internalInterfaces;
   honchoImage = "ghcr.io/plastic-labs/honcho:v3.0.12@sha256:1e9dbc40136d3f9213ce7482b0eecac914b630ee3e714ea961bd763945f94be5";
@@ -266,7 +267,7 @@ in {
         cmd = [
           "run"
           "--host"
-          cfg.listenAddress
+          listenAddress
           "--port"
           (toString honcho.apiPort)
           "src/main.py"
@@ -284,7 +285,7 @@ in {
         environmentFiles = [runtimeEnvironmentFile];
         extraOptions =
           ["--network=host"]
-          ++ healthOptions cfg.listenAddress honcho.apiPort [
+          ++ healthOptions listenAddress honcho.apiPort [
             "o200k_base"
             "cl100k_base"
           ];

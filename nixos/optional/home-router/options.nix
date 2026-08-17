@@ -59,11 +59,7 @@ in {
     };
 
     lans = lib.mkOption {
-      type = types.attrsOf (types.submodule ({
-        config,
-        name,
-        ...
-      }: let
+      type = types.attrsOf (types.submodule ({config, ...}: let
         lan = config;
       in {
         options = {
@@ -77,13 +73,6 @@ in {
             readOnly = true;
             default = interfaceForVlan lan.vlan;
             description = "Host VLAN interface derived from the LAN VLAN.";
-          };
-          # Alternative names are human-readable labels for an interface's
-          # purpose; the VLAN-derived primary name remains the stable identity.
-          altnames = lib.mkOption {
-            type = types.listOf types.str;
-            default = [name];
-            description = "Alternative names assigned to the host VLAN interface.";
           };
           addresses = lib.mkOption {
             type = types.listOf types.str;
@@ -141,11 +130,7 @@ in {
     };
 
     wans = lib.mkOption {
-      type = types.attrsOf (types.submodule ({
-        config,
-        name,
-        ...
-      }: let
+      type = types.attrsOf (types.submodule ({config, ...}: let
         wan = config;
       in {
         options = {
@@ -169,13 +154,6 @@ in {
               then wan.device
               else "";
             description = "Host interface derived from the WAN attachment.";
-          };
-          # Alternative names are human-readable labels for an interface's
-          # purpose; the VLAN-derived primary name remains the stable identity.
-          altnames = lib.mkOption {
-            type = types.listOf types.str;
-            default = [name];
-            description = "Alternative names assigned to the WAN interface.";
           };
           addresses = lib.mkOption {
             type = types.listOf types.str;
@@ -285,11 +263,6 @@ in {
         type = types.str;
         description = "Local LAN domain served by dnsmasq.";
       };
-      servers = lib.mkOption {
-        type = types.listOf types.str;
-        default = [];
-        description = "Extra dnsmasq upstreams; internal site zones are forwarded automatically.";
-      };
       extraInterfaces = lib.mkOption {
         type = types.listOf types.str;
         default = [];
@@ -303,18 +276,6 @@ in {
         type = types.listOf types.str;
         default = [];
         description = "WANs probed and displayed by public egress dashboards.";
-      };
-      grafana = {
-        port = lib.mkOption {
-          type = types.port;
-          default = 3001;
-          description = "Port on which Grafana listens.";
-        };
-        extraInterfaces = lib.mkOption {
-          type = types.listOf types.str;
-          default = [];
-          description = "Additional trusted interfaces allowed to access Grafana.";
-        };
       };
     };
   };

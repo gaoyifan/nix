@@ -134,18 +134,12 @@ in {
 
       wlt = {
         enable = true;
-        domain = "gaof.net";
-        defaultOutlet.ipv6 = "disabled";
       };
     };
 
     services.nylon = {
       enable = true;
       policyRouting.enable = true;
-      overlay = {
-        ipv4Subnet = "10.250.10.0/24";
-        ipv6Subnet = "fd10:250:10::/64";
-      };
       exits.default = {
         label = 100;
         interface = homeRouter.wans.cmcc.interface;
