@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  options,
   ...
 }: let
   cfg = config.networking.homeRouter;
@@ -46,6 +47,10 @@ in {
         );
       };
     }
+
+    (lib.mkIf (options.services ? diverge && config.services.diverge.enable) {
+      services.dnsmasq.settings.server = ["127.0.0.1#1054"];
+    })
 
     (lib.mkIf cfg.avahi.enable {
       services.avahi = {

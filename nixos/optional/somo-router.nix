@@ -131,7 +131,6 @@ in {
 
       dnsmasq = {
         domain = lanDomain;
-        servers = ["127.0.0.1#1054"];
         extraInterfaces = ["tailscale0"];
       };
 

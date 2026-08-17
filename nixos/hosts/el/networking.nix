@@ -85,7 +85,6 @@ in {
     avahi.enable = false;
     dnsmasq = {
       domain = "el.gaof.net";
-      servers = ["127.0.0.1#1054"];
       extraInterfaces = [
         "lo"
         "tailscale0"

@@ -55,7 +55,6 @@ in {
 
     dnsmasq = {
       domain = "cjia.gaof.net";
-      servers = ["127.0.0.1#1054"];
       extraInterfaces = ["tailscale0"];
     };
 
