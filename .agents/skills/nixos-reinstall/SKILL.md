@@ -76,6 +76,52 @@ Only write an unmounted destination.
 
 After a connection failure, rerun the same command. Rsync compares the image with the partially written device and transfers the differing blocks.
 
+### Preserve selected state metadata at backup time
+
+Before kexec, have the source host's root create an archive of only the state required by the migration and stream it directly to the controller. Do not first materialize the tree under an unprivileged controller user, because that loses numeric ownership before restoration begins.
+
+```bash
+state_archive=$(mktemp)
+chmod 600 "$state_archive"
+ssh root@<address> sh -s > "$state_archive" <<'REMOTE'
+set -eu
+cd /
+{
+  printf '%s\n' \
+    etc/nylon \
+    var/lib/tailscale \
+    'home/<user>/.ssh'
+  find etc/ssh -maxdepth 1 -type f -name 'ssh_host_*' -print
+} | tar --create --file=- --numeric-owner --acls --xattrs --files-from=-
+REMOTE
+```
+
+The archive must contain the selected leaf directories and files, but not implied system parents such as `.`, `etc`, `etc/ssh`, `var`, `var/lib`, or `home`. Inspect it numerically before destroying the source:
+
+```bash
+tar --list --verbose --numeric-owner --file "$state_archive"
+```
+
+Configure target users and service IDs to be compatible with the recorded numeric ownership. If ownership has already been lost, stop and regenerate the archive from the source or another backup format that retains metadata. Do not infer owners or compensate with broad `--chown` operations.
+
+After writing the image, mount the new root and extract the archive as root. Record and compare the metadata of the existing parents of every selected leaf; extraction must not change them.
+
+```bash
+scp "$state_archive" root@<address>:/root/selected-state.tar
+ssh root@<address> sh -s <<'REMOTE'
+set -eu
+mount /dev/disk/by-partlabel/<root-partition> /mnt
+parents='/mnt /mnt/etc /mnt/etc/ssh /mnt/var /mnt/var/lib /mnt/home /mnt/home/<user>'
+before=$(mktemp)
+stat -c '%a %u:%g %n' $parents > "$before"
+tar --extract --file=/root/selected-state.tar --directory=/mnt \
+  --numeric-owner --same-owner --same-permissions --acls --xattrs
+stat -c '%a %u:%g %n' $parents | diff -u "$before" -
+REMOTE
+```
+
+Archive SSH host-key files individually, as above. Never restore the old `/etc/ssh` directory or generated SSH configuration.
+
 Reboot from disk after rsync succeeds. Wait for the old SSH service to stop before removing its host key, then accept the new system's key:
 
 ```bash
