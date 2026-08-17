@@ -30,14 +30,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: python3 .github/scripts/bump-hermes.py
 
-      - name: Validate flake
+      - name: Evaluate checks
         if: steps.bump.outputs.changed == 'true'
         run: |
-          # Materialize filtered sources before the full check to work around lazy store paths in Nix 2.34:
+          # Materialize filtered sources before evaluating checks to work around lazy store paths in Nix 2.34:
           # https://github.com/NixOS/nix/pull/16078
           # https://github.com/NixOS/nix/blob/2.35.2/doc/manual/source/release-notes/rl-2.35.md#performance-improvements
           nix eval .#packages.x86_64-linux.nixos-hosts-cache.drvPath --accept-flake-config >/dev/null
-          nix flake check --accept-flake-config --all-systems --no-build
+          nix eval --accept-flake-config --json .#checks \
+            --apply 'builtins.mapAttrs (_: builtins.mapAttrs (_: check: check.drvPath))' \
+            >/dev/null
 
       - name: Commit and push
         if: steps.bump.outputs.changed == 'true'

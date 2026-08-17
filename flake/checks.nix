@@ -36,7 +36,6 @@
           inherit nixpkgs;
           pkgs = x86Pkgs;
         };
-        nixos-disk-image-google = self.packages.x86_64-linux.nixos-disk-image-google;
         nixos-disk-writer-kexec = import ../nixos/tests/nixos-disk-writer-kexec.nix {
           hostConfig = lowMemoryGptHost;
           kexecInstallerTarball = self.packages.x86_64-linux.nixos-disk-writer-kexec;
