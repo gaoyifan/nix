@@ -10,11 +10,6 @@
   managementAddress = "192.168.93.152";
   managementTable = 9300;
 in {
-  age.secrets = lib.mkIf config.services.secrets.hasRealFiles {
-    wlt-server-key.file = config.services.secrets.filesDir + "/nixos/wlt-server-key.pem.age";
-    wlt-ssh-host-key.file = config.services.secrets.filesDir + "/nixos/wlt-ssh-host-key.age";
-  };
-
   imports = [
     ../../optional/gnet-edge-router.nix
     ../../optional/home-router

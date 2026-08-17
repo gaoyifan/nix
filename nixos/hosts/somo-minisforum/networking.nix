@@ -7,11 +7,6 @@
   lib,
   ...
 }: {
-  age.secrets = lib.mkIf config.services.secrets.hasRealFiles {
-    wlt-server-key.file = config.services.secrets.filesDir + "/nixos/wlt-server-key.pem.age";
-    wlt-ssh-host-key.file = config.services.secrets.filesDir + "/nixos/wlt-ssh-host-key.age";
-  };
-
   imports = [
     ../../optional/oob-ssh.nix
     ../../optional/somo-router.nix

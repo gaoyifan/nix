@@ -120,6 +120,11 @@ in {
         configDirectory = configD;
       };
 
+      age.secrets = lib.mkIf config.services.secrets.hasRealFiles {
+        wlt-server-key.file = config.services.secrets.filesDir + "/nixos/wlt-server-key.pem.age";
+        wlt-ssh-host-key.file = config.services.secrets.filesDir + "/nixos/wlt-ssh-host-key.age";
+      };
+
       systemd.tmpfiles.rules = [
         "d ${configD} 0755 root root -"
         "d ${persistDir} 0755 root root -"
