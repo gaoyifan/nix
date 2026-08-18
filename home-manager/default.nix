@@ -131,6 +131,16 @@ in {
 
   programs.home-manager.enable = true;
 
+  xdg.configFile."ncdu/config" = lib.mkIf isDarwin {
+    text = ''
+      -x
+      --exclude com~apple~CloudDocs
+      --exclude Mobile Documents
+      --exclude CloudStorage
+      --exclude Documents
+    '';
+  };
+
   home.file = lib.mkMerge [
     (lib.mkIf config.services.mutagen.dotfileSync.enable {
       ".agents".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.syncd-dotfiles/.agents";
