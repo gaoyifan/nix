@@ -150,13 +150,9 @@ in {
     networking.edgeFirewall = {
       enable = true;
       extraInputRules = [
-        ''iifname "${guestInterface}" udp dport 67 accept''
         ''iifname "${guestInterface}" drop''
-        "udp sport 67 udp dport 68 accept"
-        "udp sport 547 udp dport 546 accept"
       ];
       extraForwardRules = [
-        ''iifname "${somoInterface}" oifname "tailscale0" ct state established,related accept''
         ''iifname "${somoInterface}" oifname "tailscale0" ip daddr 100.65.1.63 tcp dport 8178 accept''
         ''iifname "${somoInterface}" oifname "tailscale0" drop''
         ''iifname "${guestInterface}" meta nfproto ipv4 oifname "${homeRouter.wans.cmcc.interface}" accept''

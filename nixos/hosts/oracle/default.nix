@@ -19,10 +19,6 @@
         "3334"
         "57175"
       ];
-      extraInputRules = [
-        "udp sport 67 udp dport 68 accept"
-        "udp sport 547 udp dport 546 accept"
-      ];
     };
   };
 

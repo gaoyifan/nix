@@ -54,6 +54,7 @@
 
       nft list chain inet edge-filter input | grep -F 'policy drop'
       nft list chain inet edge-filter input | grep 'iifname' | grep -F '"br-core.642"'
+      nft list chain inet edge-filter input | grep -F 'iifname "br-core.654" udp dport 67 accept'
       nft list chain inet edge-filter input | grep -F 'tcp dport 5201 accept'
       nft list chain inet edge-filter input | grep 'udp dport' | grep -F '5201' | grep -F '6622' | grep -F '61001-61999'
       nft list chain inet edge-filter forward | grep -F 'policy drop'
@@ -157,6 +158,7 @@
           vlan = 654;
           addresses = ["10.64.4.254/24"];
           guest = true;
+          dhcpServer.range = "10.64.4.100,10.64.4.200,1h";
           ipv6.enable = false;
         };
       };

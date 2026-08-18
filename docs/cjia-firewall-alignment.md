@@ -108,6 +108,7 @@ el2 当前没有把 `wg-iplc` 加入可信接口；其 `extraTrustedInterfaces =
 - 信任已启用 homeRouter 的所有内部接口
 - 开放已启用的 OpenSSH、Tailscale 和 Nylon 端口
 - 开放 TCP/UDP 5201 和 UDP 61001–61999
+- 从网络配置和 homeRouter LAN 自动生成 DHCP 客户端与服务器规则
 
 主机通过 `extraTrustedInterfaces`、`extraPublicTcpPorts`、`extraPublicUdpPorts` 及确有
 需要的 `extraInputRules`/`extraForwardRules` 扩展该基线。

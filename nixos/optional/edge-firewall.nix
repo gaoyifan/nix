@@ -13,6 +13,16 @@
     ++ lib.optionals nylonEnabled ["nylon0"]
     ++ lib.optionals homeRouterEnabled config.networking.homeRouter.internalInterfaces
     ++ cfg.extraTrustedInterfaces;
+  networkdDhcpModes = map (network: network.networkConfig.DHCP or "no") (lib.attrValues config.systemd.network.networks);
+  dhcpV4Client = config.networking.useDHCP || lib.any (mode: lib.elem mode ["yes" "ipv4"]) networkdDhcpModes;
+  dhcpV6Client = config.networking.useDHCP || lib.any (mode: lib.elem mode ["yes" "ipv6"]) networkdDhcpModes;
+  dhcpServerInterfaces = lib.unique (
+    lib.optionals homeRouterEnabled (
+      map
+      (lan: lan.interface)
+      (lib.filter (lan: lan.dhcpServer.range != null) (lib.attrValues config.networking.homeRouter.lans))
+    )
+  );
   publicTcpPorts =
     lib.optionals config.services.openssh.enable (map toString config.services.openssh.ports)
     ++ ["5201"]
@@ -24,7 +34,14 @@
     ++ ["61001-61999"]
     ++ cfg.extraPublicUdpPorts;
   nftSet = values: lib.concatMapStringsSep ", " toString values;
-  interfaceSet = lib.concatMapStringsSep ", " (interface: ''"${interface}"'') (lib.unique trustedInterfaces);
+  interfaceSet = interfaces: lib.concatMapStringsSep ", " (interface: ''"${interface}"'') interfaces;
+  dhcpServerRules = lib.optionalString (dhcpServerInterfaces != []) ''
+    iifname { ${interfaceSet dhcpServerInterfaces} } udp dport 67 accept
+  '';
+  dhcpClientRules = lib.concatStringsSep "\n" (
+    lib.optional dhcpV4Client "udp sport 67 udp dport 68 accept"
+    ++ lib.optional dhcpV6Client "udp sport 547 udp dport 546 accept"
+  );
   extraInputRules = lib.concatStringsSep "\n" cfg.extraInputRules;
   extraForwardRules = lib.concatStringsSep "\n" cfg.extraForwardRules;
 in {
@@ -69,23 +86,25 @@ in {
       content = ''
         chain input {
           type filter hook input priority filter; policy drop;
-          ${extraInputRules}
-
           ct state established,related accept
+          ${dhcpServerRules}
+          ${extraInputRules}
+          ${dhcpClientRules}
+
           iifname "lo" accept
           ip protocol icmp accept
           meta l4proto ipv6-icmp accept
 
-          ${lib.optionalString (trustedInterfaces != []) "iifname { ${interfaceSet} } accept"}
+          ${lib.optionalString (trustedInterfaces != []) "iifname { ${interfaceSet (lib.unique trustedInterfaces)} } accept"}
           tcp dport { ${nftSet (lib.unique publicTcpPorts)} } accept
           udp dport { ${nftSet (lib.unique publicUdpPorts)} } accept
         }
 
         chain forward {
           type filter hook forward priority filter; policy drop;
-          ${extraForwardRules}
           ct state established,related accept
-          ${lib.optionalString (trustedInterfaces != []) "iifname { ${interfaceSet} } accept"}
+          ${extraForwardRules}
+          ${lib.optionalString (trustedInterfaces != []) "iifname { ${interfaceSet (lib.unique trustedInterfaces)} } accept"}
         }
       '';
     };

@@ -8,7 +8,6 @@
   honcho = cfg.honcho;
   listenAddress = config.networking.homeRouter.serviceAddresses.ipv4;
   newApiTokenRestartTriggers = lib.optional (honcho.newApiTokenFileSource != null) honcho.newApiTokenFileSource;
-  allowedInterfaces = ["lo"] ++ config.networking.homeRouter.internalInterfaces;
   honchoImage = "ghcr.io/plastic-labs/honcho:v3.0.12@sha256:1e9dbc40136d3f9213ce7482b0eecac914b630ee3e714ea961bd763945f94be5";
   litellmImage = "docker.litellm.ai/berriai/litellm:v1.93.0@sha256:a1745e629abfb17d434426ff48b115f54f4f4c4a0f5af241de569e93c63c411e";
   runtimeEnvironmentFile = "/run/honcho/env";
@@ -309,17 +308,6 @@ in {
         dependsOn = ["honcho-api"];
         extraOptions = ["--network=host"];
       };
-    };
-
-    networking.nftables.tables.honcho = {
-      family = "inet";
-      content = ''
-        chain input {
-          type filter hook input priority filter;
-          iifname { ${lib.concatMapStringsSep ", " (interface: ''"${interface}"'') allowedInterfaces} } tcp dport ${toString honcho.apiPort} accept
-          tcp dport ${toString honcho.apiPort} reject with tcp reset
-        }
-      '';
     };
   };
 }
