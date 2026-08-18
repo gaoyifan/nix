@@ -123,23 +123,12 @@ in {
 
   networking.elRouter = {
     enable = true;
-    lan = "gnet641";
     unclassifiedIpv4Sources = [managementAddress];
     masqueradeInterfaces = [managementInterface];
   };
 
   networking.edgeFirewall = {
-    publicTcpPorts = [
-      "22"
-      "5201"
-      "29979-29980"
-    ];
-    publicUdpPorts = [
-      "5201"
-      (toString config.services.nylon.udpPort)
-      "6627"
-      "61001-61999"
-    ];
+    extraPublicTcpPorts = ["29979-29980"];
     extraForwardRules = ["ct status dnat accept"];
   };
 

@@ -15,6 +15,7 @@
   ipv6Prefix = offset: "fd9a:2d16:5c3e:${subnet offset}";
 in {
   imports = [
+    ./edge-firewall.nix
     ./home-router
     ./nylon.nix
   ];
@@ -146,24 +147,26 @@ in {
       };
     };
 
+    networking.edgeFirewall = {
+      enable = true;
+      extraInputRules = [
+        ''iifname "${guestInterface}" udp dport 67 accept''
+        ''iifname "${guestInterface}" drop''
+        "udp sport 67 udp dport 68 accept"
+        "udp sport 547 udp dport 546 accept"
+      ];
+      extraForwardRules = [
+        ''iifname "${somoInterface}" oifname "tailscale0" ct state established,related accept''
+        ''iifname "${somoInterface}" oifname "tailscale0" ip daddr 100.65.1.63 tcp dport 8178 accept''
+        ''iifname "${somoInterface}" oifname "tailscale0" drop''
+        ''iifname "${guestInterface}" meta nfproto ipv4 oifname "${homeRouter.wans.cmcc.interface}" accept''
+        ''iifname "${guestInterface}" drop''
+      ];
+    };
+
     networking.nftables.tables.somo-router = {
       family = "inet";
       content = ''
-        chain input {
-          type filter hook input priority filter; policy accept;
-          iifname "${guestInterface}" udp dport 67 accept
-          iifname "${guestInterface}" drop
-        }
-
-        chain forward {
-          type filter hook forward priority filter; policy accept;
-          iifname "${somoInterface}" oifname "tailscale0" ct state established,related accept
-          iifname "${somoInterface}" oifname "tailscale0" ip daddr 100.65.1.63 tcp dport 8178 accept
-          iifname "${somoInterface}" oifname "tailscale0" drop
-          iifname "${guestInterface}" meta nfproto ipv4 oifname "${homeRouter.wans.cmcc.interface}" accept
-          iifname "${guestInterface}" drop
-        }
-
         include "${pkgs.nft-geo-sets}/set-cn.conf"
         include "${pkgs.nft-geo-sets}/set-cn6.conf"
 

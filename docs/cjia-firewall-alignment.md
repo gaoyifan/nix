@@ -45,13 +45,13 @@ chain input {
 
   iifname { "br-core.651", "tailscale0", "nylon0" } accept
   tcp dport { 22, 5201 } accept
-  udp dport { 5201, 6622, 6627 } accept
+  udp dport { 5201, 6622, 6627, 61001-61999 } accept
 }
 ```
 
 公开端口规则对所有非可信接口生效，因此管理网和 `wg-iplc` 对端仍可使用 SSH、
-iperf3、Nylon 和 Tailscale 的公开端口，但不能访问 Homebridge、dnsmasq、Grafana 等
-内部服务。
+iperf3、Nylon、Tailscale 和 tsshd 的公开端口，但不能访问 Homebridge、dnsmasq、
+Grafana 等内部服务。
 
 cjia 应启用 fail2ban，与 el 的公网 SSH 防护保持一致。现有 Grafana 3001 独立限制
 规则继续保留，仅允许 LAN、loopback 和 Tailscale 访问。
@@ -86,7 +86,7 @@ trustedInterfaces = ["wg-iplc"];
 该配置已删除。`wg-iplc` 仍能访问 el 声明的公开端口，但不能访问全部本机服务或
 主动转发。
 
-el2 当前没有把 `wg-iplc` 加入可信接口；其 `trustedInterfaces = ["wg0"]` 是另一条
+el2 当前没有把 `wg-iplc` 加入可信接口；其 `extraTrustedInterfaces = ["wg0"]` 是另一条
 独立的信任关系，本次不删除。
 
 ## 保持主机差异的规则
@@ -102,12 +102,15 @@ el2 当前没有把 `wg-iplc` 加入可信接口；其 `trustedInterfaces = ["wg
 
 ## 代码结构
 
-`nixos/optional/edge-firewall.nix` 只负责 input/forward，接受以下主机级输入：
+`nixos/optional/edge-firewall.nix` 只负责 input/forward，并提供共享的运维基线：
 
-- 可信接口集合
-- 公开 TCP 端口集合
-- 公开 UDP 端口集合
-- 确有需要时的额外 input/forward 规则
+- 信任已启用的 Tailscale 和 Nylon 接口
+- 信任已启用 homeRouter 的所有内部接口
+- 开放已启用的 OpenSSH、Tailscale 和 Nylon 端口
+- 开放 TCP/UDP 5201 和 UDP 61001–61999
+
+主机通过 `extraTrustedInterfaces`、`extraPublicTcpPorts`、`extraPublicUdpPorts` 及确有
+需要的 `extraInputRules`/`extraForwardRules` 扩展该基线。
 
 el、el2 和 cjia 共用该模块；`el-router.nix` 继续负责 el 和 el2 的 GNet 多 WAN 出口
 分类、SNAT 和 Nylon exits。不要把 cjia 的 PPPoE 或 USTC/Nylon 分类塞入通用防火墙

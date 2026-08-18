@@ -1,46 +1,64 @@
 {
   config,
   lib,
+  options,
   ...
 }: let
   cfg = config.networking.edgeFirewall;
   types = lib.types;
+  homeRouterEnabled = lib.hasAttrByPath ["networking" "homeRouter" "enable"] options && config.networking.homeRouter.enable;
+  nylonEnabled = lib.hasAttrByPath ["services" "nylon" "enable"] options && config.services.nylon.enable;
+  trustedInterfaces =
+    lib.optionals config.services.tailscale.enable ["tailscale0"]
+    ++ lib.optionals nylonEnabled ["nylon0"]
+    ++ lib.optionals homeRouterEnabled config.networking.homeRouter.internalInterfaces
+    ++ cfg.extraTrustedInterfaces;
+  publicTcpPorts =
+    lib.optionals config.services.openssh.enable (map toString config.services.openssh.ports)
+    ++ ["5201"]
+    ++ cfg.extraPublicTcpPorts;
+  publicUdpPorts =
+    ["5201"]
+    ++ lib.optionals nylonEnabled [(toString config.services.nylon.udpPort)]
+    ++ lib.optionals config.services.tailscale.enable [(toString config.services.tailscale.port)]
+    ++ ["61001-61999"]
+    ++ cfg.extraPublicUdpPorts;
   nftSet = values: lib.concatMapStringsSep ", " toString values;
-  interfaceSet = lib.concatMapStringsSep ", " (interface: ''"${interface}"'') cfg.trustedInterfaces;
+  interfaceSet = lib.concatMapStringsSep ", " (interface: ''"${interface}"'') (lib.unique trustedInterfaces);
   extraInputRules = lib.concatStringsSep "\n" cfg.extraInputRules;
   extraForwardRules = lib.concatStringsSep "\n" cfg.extraForwardRules;
 in {
   options.networking.edgeFirewall = {
     enable = lib.mkEnableOption "default-deny edge firewall";
 
-    trustedInterfaces = lib.mkOption {
+    extraTrustedInterfaces = lib.mkOption {
       type = types.listOf types.str;
       default = [];
-      description = "Interfaces allowed to access local services and initiate forwarded traffic.";
+      description = "Additional interfaces allowed to access local services and initiate forwarded traffic.";
     };
 
-    publicTcpPorts = lib.mkOption {
+    extraPublicTcpPorts = lib.mkOption {
       type = types.listOf types.str;
       default = [];
-      description = "TCP ports and ranges accepted from untrusted interfaces.";
+      description = "Additional TCP ports and ranges accepted from untrusted interfaces.";
     };
 
-    publicUdpPorts = lib.mkOption {
+    extraPublicUdpPorts = lib.mkOption {
       type = types.listOf types.str;
       default = [];
-      description = "UDP ports and ranges accepted from untrusted interfaces.";
+      description = "Additional UDP ports and ranges accepted from untrusted interfaces.";
     };
 
     extraInputRules = lib.mkOption {
       type = types.listOf types.lines;
       default = [];
-      description = "Host-specific nftables input rules appended after public service rules.";
+      description = "Host-specific nftables input rules evaluated before the common policy.";
     };
 
     extraForwardRules = lib.mkOption {
       type = types.listOf types.lines;
       default = [];
-      description = "Host-specific nftables forwarding rules appended after trusted interfaces.";
+      description = "Host-specific nftables forwarding rules evaluated before trusted interfaces.";
     };
   };
 
@@ -51,22 +69,23 @@ in {
       content = ''
         chain input {
           type filter hook input priority filter; policy drop;
+          ${extraInputRules}
+
           ct state established,related accept
           iifname "lo" accept
           ip protocol icmp accept
           meta l4proto ipv6-icmp accept
 
-          ${lib.optionalString (cfg.trustedInterfaces != []) "iifname { ${interfaceSet} } accept"}
-          ${lib.optionalString (cfg.publicTcpPorts != []) "tcp dport { ${nftSet cfg.publicTcpPorts} } accept"}
-          ${lib.optionalString (cfg.publicUdpPorts != []) "udp dport { ${nftSet cfg.publicUdpPorts} } accept"}
-          ${extraInputRules}
+          ${lib.optionalString (trustedInterfaces != []) "iifname { ${interfaceSet} } accept"}
+          tcp dport { ${nftSet (lib.unique publicTcpPorts)} } accept
+          udp dport { ${nftSet (lib.unique publicUdpPorts)} } accept
         }
 
         chain forward {
           type filter hook forward priority filter; policy drop;
-          ct state established,related accept
-          ${lib.optionalString (cfg.trustedInterfaces != []) "iifname { ${interfaceSet} } accept"}
           ${extraForwardRules}
+          ct state established,related accept
+          ${lib.optionalString (trustedInterfaces != []) "iifname { ${interfaceSet} } accept"}
         }
       '';
     };

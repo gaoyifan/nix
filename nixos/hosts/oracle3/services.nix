@@ -95,25 +95,17 @@ in {
 
   networking.edgeFirewall = {
     enable = true;
-    trustedInterfaces = [
-      "nylon0"
-      "podman0"
-      "tailscale0"
-    ];
-    publicTcpPorts = [
-      "22"
+    extraTrustedInterfaces = ["podman0"];
+    extraPublicTcpPorts = [
       "53"
       "80"
-      "5201"
     ];
-    publicUdpPorts = [
+    extraPublicUdpPorts = [
       "53"
-      "68"
-      "546"
-      "5201"
-      "6622"
-      "41641"
-      "61001-61999"
+    ];
+    extraInputRules = [
+      "udp sport 67 udp dport 68 accept"
+      "udp sport 547 udp dport 546 accept"
     ];
     extraForwardRules = [
       ''iifname "ens3" oifname "podman0" ct status dnat accept''

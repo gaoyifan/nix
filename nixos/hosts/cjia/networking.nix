@@ -68,23 +68,7 @@ in {
     };
   };
 
-  networking.edgeFirewall = {
-    enable = true;
-    trustedInterfaces = [
-      lanInterface
-      "tailscale0"
-      "nylon0"
-    ];
-    publicTcpPorts = [
-      "22"
-      "5201"
-    ];
-    publicUdpPorts = [
-      "5201"
-      (toString config.services.nylon.udpPort)
-      (toString config.services.tailscale.port)
-    ];
-  };
+  networking.edgeFirewall.enable = true;
 
   systemd.network = {
     config.routeTables.ppp = 1000;

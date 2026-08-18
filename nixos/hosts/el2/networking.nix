@@ -117,27 +117,20 @@ in {
 
   networking.elRouter = {
     enable = true;
-    lan = "gnet642";
     unclassifiedIpv4Sources = ["192.168.93.98"];
     masqueradeInterfaces = ["ens49f3"];
   };
 
   networking.edgeFirewall = {
-    trustedInterfaces = ["wg0"];
-    publicTcpPorts = [
-      "22"
-      "5201"
+    extraTrustedInterfaces = ["wg0"];
+    extraPublicTcpPorts = [
       "8501"
       "10000"
       "29979-29980"
     ];
-    publicUdpPorts = [
+    extraPublicUdpPorts = [
       "2197"
       "3478"
-      "5201"
-      (toString config.services.nylon.udpPort)
-      "6627"
-      "61001-61999"
     ];
     extraInputRules = [
       ''iifname "podman*" meta l4proto { tcp, udp } th dport 53 accept''

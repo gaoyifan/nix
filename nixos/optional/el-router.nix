@@ -13,7 +13,6 @@
   ipv4Addresses = addresses: lib.filter (address: !(lib.hasInfix ":" address)) addresses;
   ipv6Addresses = addresses: lib.filter (address: lib.hasInfix ":" address) addresses;
 
-  internalInterface = homeRouter.lans.${cfg.lan}.interface;
   cernet = homeRouter.wans.cernet;
   chinanet = homeRouter.wans.chinanet;
   cmcc = homeRouter.wans.cmcc;
@@ -45,11 +44,6 @@ in {
   options.networking.elRouter = {
     enable = lib.mkEnableOption "shared GNet multi-WAN edge datapath";
 
-    lan = lib.mkOption {
-      type = types.str;
-      description = "homeRouter LAN trusted by the edge filter.";
-    };
-
     unclassifiedIpv4Sources = lib.mkOption {
       type = types.listOf types.str;
       default = [];
@@ -65,10 +59,6 @@ in {
 
   config = lib.mkIf cfg.enable {
     assertions = [
-      {
-        assertion = lib.hasAttr cfg.lan homeRouter.lans;
-        message = "networking.elRouter.lan must name a homeRouter LAN.";
-      }
       {
         assertion = lib.all (name: lib.hasAttr name homeRouter.wans) [
           "cernet"
@@ -123,14 +113,7 @@ in {
       };
     };
 
-    networking.edgeFirewall = {
-      enable = true;
-      trustedInterfaces = [
-        internalInterface
-        "tailscale0"
-        "nylon0"
-      ];
-    };
+    networking.edgeFirewall.enable = true;
 
     networking.nftables.tables = {
       el-router = {

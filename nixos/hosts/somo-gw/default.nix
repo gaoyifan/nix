@@ -8,9 +8,9 @@
   filesDir = config.services.secrets.filesDir;
   hermesNspawn = import (filesDir + "/nixos/somo-minisforum/hermes-nspawn.nix");
   caddySecrets = import (filesDir + "/nixos/somo-gw/caddy.nix") {inherit hermesNspawn;};
-  publicInterface = "ens*";
 in {
   imports = [
+    ../../optional/edge-firewall.nix
     ../../optional/qemu-guest.nix
     ../../optional/tailscale-gnet-vm-exit.nix
     ./disk-config.nix
@@ -49,38 +49,17 @@ in {
   };
 
   networking.firewall.enable = false;
-  networking.nftables = {
+  networking.edgeFirewall = {
     enable = true;
-    tables.public-input = {
-      family = "inet";
-      content = ''
-        chain input {
-          type filter hook input priority filter; policy accept;
-          iifname != "${publicInterface}" return
-
-          # Existing connections and local diagnostics.
-          ct state established,related accept
-          iifname "lo" accept
-          ip protocol icmp accept
-          meta l4proto ipv6-icmp accept
-
-          # DHCP client renewals from the cloud network.
-          udp sport 67 udp dport 68 accept
-          udp sport 547 udp dport 546 accept
-
-          # Public SSH management and Caddy HTTP/HTTPS.
-          tcp dport { 22, 80, 443 } accept
-
-          # Tailscale WireGuard and Caddy HTTP/3.
-          udp dport { 41641, 443 } accept
-
-          # tsshd UDP roaming sessions.
-          udp dport 61001-61999 accept
-
-          counter drop
-        }
-      '';
-    };
+    extraPublicTcpPorts = [
+      "80"
+      "443"
+    ];
+    extraPublicUdpPorts = ["443"];
+    extraInputRules = [
+      "udp sport 67 udp dport 68 accept"
+      "udp sport 547 udp dport 546 accept"
+    ];
   };
 
   services.resolved = {

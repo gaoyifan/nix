@@ -15,21 +15,13 @@
     firewall.enable = false;
     edgeFirewall = {
       enable = true;
-      trustedInterfaces = [
-        "tailscale0"
-        "nylon0"
-      ];
-      publicTcpPorts = [
-        "22"
-        "5201"
-      ];
-      publicUdpPorts = [
-        "68"
-        "546"
+      extraPublicUdpPorts = [
         "3334"
         "57175"
-        "6627"
-        "61001-61999"
+      ];
+      extraInputRules = [
+        "udp sport 67 udp dport 68 accept"
+        "udp sport 547 udp dport 546 accept"
       ];
     };
   };

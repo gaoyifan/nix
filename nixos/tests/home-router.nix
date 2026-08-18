@@ -53,6 +53,9 @@
       ip -n guest route add default via 10.64.2.254 dev guest0
 
       nft list chain inet edge-filter input | grep -F 'policy drop'
+      nft list chain inet edge-filter input | grep 'iifname' | grep -F '"br-core.642"'
+      nft list chain inet edge-filter input | grep -F 'tcp dport 5201 accept'
+      nft list chain inet edge-filter input | grep 'udp dport' | grep -F '5201' | grep -F '6622' | grep -F '61001-61999'
       nft list chain inet edge-filter forward | grep -F 'policy drop'
       nft list chain inet home-router mss-forward | grep -F 'tcp option maxseg size set rt mtu'
       nft list chain inet home-router wlt-prerouting | grep -F 'meta mark set'
@@ -200,7 +203,6 @@
 
     networking.elRouter = {
       enable = true;
-      lan = "internal";
     };
 
     networking.wireguard.interfaces.wg-iplc.privateKeyFile =

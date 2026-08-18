@@ -5,7 +5,7 @@
 }: let
   inherit (import ../../common/ssh-keys.nix) sshKeys;
 in {
-  networking.edgeFirewall.publicTcpPorts = ["2221"];
+  networking.edgeFirewall.extraPublicTcpPorts = ["2221"];
 
   containers.mutagen-sync = {
     ephemeral = true;

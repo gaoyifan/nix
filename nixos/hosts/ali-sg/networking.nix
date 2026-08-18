@@ -1,4 +1,6 @@
 {...}: {
+  imports = [../../optional/edge-firewall.nix];
+
   networking = {
     hostName = "ali-sg";
     nameservers = [
@@ -8,32 +10,17 @@
     useDHCP = false;
     useNetworkd = true;
     firewall.enable = false;
-    nftables = {
+    edgeFirewall = {
       enable = true;
-      tables = {
-        public-input = {
-          family = "inet";
-          content = ''
-            chain input {
-              type filter hook input priority filter; policy accept;
-              iifname != "eth0" return
-
-              ct state established,related accept
-              iifname "lo" accept
-              ip protocol icmp accept
-              meta l4proto ipv6-icmp accept
-
-              udp sport 67 udp dport 68 accept
-              udp sport 547 udp dport 546 accept
-
-              tcp dport { 22, 53, 80 } accept
-              udp dport { 53, 6622, 6627 } accept
-
-              counter drop
-            }
-          '';
-        };
-      };
+      extraPublicTcpPorts = [
+        "53"
+        "80"
+      ];
+      extraPublicUdpPorts = ["53"];
+      extraInputRules = [
+        "udp sport 67 udp dport 68 accept"
+        "udp sport 547 udp dport 546 accept"
+      ];
     };
   };
 
