@@ -174,16 +174,17 @@
     },
     "diverge": {
       "inputs": {
+        "microvm": "microvm",
         "nixpkgs": [
           "nixpkgs"
         ]
       },
       "locked": {
-        "lastModified": 1786997532,
-        "narHash": "sha256-Vr/cQn74FgvG5LA/iMwDvJJTXkIJZsUJZK8T+Mc3M0Q=",
+        "lastModified": 1787050055,
+        "narHash": "sha256-NGHjBNSEA6QpG6a5HsPjHzdL5DyrD4Znq0mOvNSFqes=",
         "owner": "gaoyifan",
         "repo": "diverge-rs",
-        "rev": "17ec8ad8446a91b29c701a072806c3f4f4c80f9b",
+        "rev": "03b89594d40d4941386c8e0cafa2d80d275f9a89",
         "type": "github"
       },
       "original": {
@@ -375,6 +376,28 @@
       "original": {
         "owner": "larksuite",
         "repo": "cli",
+        "type": "github"
+      }
+    },
+    "microvm": {
+      "inputs": {
+        "nixpkgs": [
+          "diverge",
+          "nixpkgs"
+        ],
+        "spectrum": "spectrum"
+      },
+      "locked": {
+        "lastModified": 1786300091,
+        "narHash": "sha256-4UFJOVGpaYtHW5yasSv80MaJxTBYdk2zyf3jhKtt0wA=",
+        "owner": "microvm-nix",
+        "repo": "microvm.nix",
+        "rev": "71beea0076cd46dafcee97a5a2e7d00cbba5bd2f",
+        "type": "github"
+      },
+      "original": {
+        "owner": "microvm-nix",
+        "repo": "microvm.nix",
         "type": "github"
       }
     },
@@ -662,6 +685,22 @@
         "owner": "oxalica",
         "repo": "rust-overlay",
         "type": "github"
+      }
+    },
+    "spectrum": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1785761586,
+        "narHash": "sha256-MWOMVqJJERwjQGgRIv8d6rlEBqbLM3VZWxHkNKIIZNw=",
+        "ref": "refs/heads/main",
+        "rev": "a7762d6f54b40560dd5255ce902e6e6a5d980fe9",
+        "revCount": 1416,
+        "type": "git",
+        "url": "https://spectrum-os.org/git/spectrum"
+      },
+      "original": {
+        "type": "git",
+        "url": "https://spectrum-os.org/git/spectrum"
       }
     },
     "system-manager": {
