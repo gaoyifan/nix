@@ -17,6 +17,11 @@ in {
         type filter hook prerouting priority mangle + 2; policy accept;
         ip saddr 100.64.2.30 meta mark set ${chinanetMark}
       }
+
+      chain block-gnet {
+        type filter hook forward priority filter - 1; policy accept;
+        ip saddr 100.64.2.30 ip daddr 100.64.0.0/10 ct state new drop
+      }
     '';
   };
 }
