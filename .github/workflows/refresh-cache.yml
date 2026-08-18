@@ -7,11 +7,6 @@ on:
 
 permissions:
   actions: write
-  contents: read
-
-concurrency:
-  group: refresh-binary-cache
-  cancel-in-progress: false
 
 jobs:
   refresh:

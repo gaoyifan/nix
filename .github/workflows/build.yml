@@ -82,10 +82,6 @@ jobs:
       - name: Build devshell
         run: nix build --accept-flake-config .#devShells.${{ matrix.system }}.default -o result-devshell
 
-      - name: Initialize cache path list
-        run: |
-          : > cache-store-paths
-
       - name: Build NixOS host configurations
         if: runner.os == 'Linux'
         run: |
@@ -315,10 +311,7 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs['prune']
     runs-on: ubuntu-latest
     env:
-      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
       AWS_DEFAULT_REGION: auto
-      S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
       BUCKET: nix-cache
       LC_ALL: C
 
