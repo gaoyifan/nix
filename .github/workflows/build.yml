@@ -62,7 +62,10 @@ jobs:
         uses: nixbuild/nix-quick-install-action@v35
         with:
           nix_conf: |
+            http-connections = 64
             keep-env-derivations = true
+            max-jobs = auto
+            max-substitution-jobs = 64
 
       - name: Restore and save Nix store
         uses: nix-community/cache-nix-action@v7.0.2
