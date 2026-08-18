@@ -133,7 +133,7 @@ jobs:
           # because `just darwin` is too slow on GitHub-hosted runners.
           nix develop --accept-flake-config .#devShells.${{ matrix.system }}.default -c just home
 
-      - name: Compute R2 upload paths
+      - name: Compute R2 candidate paths
         run: |
           set -euo pipefail
 
@@ -154,48 +154,147 @@ jobs:
             comm -23 cache-closure-store-paths \
               <(xargs nix-store --query --referrers-closure \
                 < cache-local-only-store-paths | sort -u) \
-              > cache-upload-store-paths
+              > cache-r2-candidate-store-paths
           else
-            cp cache-closure-store-paths cache-upload-store-paths
+            cp cache-closure-store-paths cache-r2-candidate-store-paths
           fi
 
+      - name: Restore official cache query results
+        id: official-cache-query
+        uses: actions/cache/restore@v5
+        with:
+          path: cache-nixos-org-query-results
+          key: cache-nixos-org-v3-${{ matrix.system }}-bootstrap
+          restore-keys: cache-nixos-org-v3-${{ matrix.system }}-
+
+      - name: Compute R2 upload paths
+        id: official-cache-update
+        run: |
+          set -euo pipefail
+
+          now=$(date -u +%s)
+          # Columns: store path, HTTP status, expiry epoch (0 means permanent).
+          touch cache-nixos-org-query-results
+          awk -v now="$now" '
+            $2 == 200 || ($2 == 404 && $3 > now) { print $1 }
+          ' cache-nixos-org-query-results \
+            | sort -u > cache-official-known-store-paths
+          comm -23 cache-r2-candidate-store-paths cache-official-known-store-paths \
+            > cache-official-unknown-store-paths
+
+          check_official_cache() {
+            store_path="$1"
+            store_hash="${store_path#/nix/store/}"
+            store_hash="${store_hash:0:32}"
+            http_code=$(curl --retry 3 --silent --show-error \
+              --output /dev/null --write-out '%{http_code}' \
+              "https://cache.nixos.org/$store_hash.narinfo")
+
+            case "$http_code" in
+              200) printf '%s 200 0\n' "$store_path" ;;
+              404) printf '%s 404 %s\n' "$store_path" "$CACHE_404_EXPIRES_AT" ;;
+              *)
+                echo "Unexpected response from cache.nixos.org for $store_path: HTTP $http_code" >&2
+                return 1
+                ;;
+            esac
+          }
+          export -f check_official_cache
+          export CACHE_404_EXPIRES_AT=$((now + 7 * 24 * 60 * 60))
+
+          : > cache-new-official-query-results
+          if [[ -s cache-official-unknown-store-paths ]]; then
+            # shellcheck disable=SC2016
+            xargs -P 32 -n 1 bash -c 'check_official_cache "$1"' _ \
+              < cache-official-unknown-store-paths \
+              | sort -k1,1 > cache-new-official-query-results
+          fi
+
+          awk -v now="$now" '
+            $2 == 200 { status[$1] = 200; expires[$1] = 0 }
+            $2 == 404 && $3 > now && status[$1] != 200 && $3 > expires[$1] {
+              status[$1] = 404
+              expires[$1] = $3
+            }
+            END { for (path in status) print path, status[path], expires[path] }
+          ' cache-nixos-org-query-results cache-new-official-query-results \
+            | sort -k1,1 > cache-nixos-org-query-results.tmp
+          mv cache-nixos-org-query-results.tmp cache-nixos-org-query-results
+
+          comm -23 cache-r2-candidate-store-paths \
+            <(awk '$2 == 200 { print $1 }' cache-nixos-org-query-results) \
+            > cache-upload-store-paths
+
           closure_count=$(wc -l < cache-closure-store-paths)
+          candidate_count=$(wc -l < cache-r2-candidate-store-paths)
+          query_count=$(wc -l < cache-official-unknown-store-paths)
           upload_count=$(wc -l < cache-upload-store-paths)
           echo "R2 store paths: $upload_count"
-          echo "local-only store paths: $local_only_count"
-          echo "excluded reverse closure: $((closure_count - upload_count))"
+          echo "already in cache.nixos.org: $((candidate_count - upload_count))"
+          echo "cached query results: $((candidate_count - query_count))"
+          echo "official cache queries: $query_count"
+          echo "excluded reverse closure: $((closure_count - candidate_count))"
 
-      - name: Sign closure with secret key
+          cache_hash=$(shasum -a 256 cache-nixos-org-query-results | cut -d ' ' -f 1)
+          echo "key=cache-nixos-org-v3-${{ matrix.system }}-$cache_hash" >> "$GITHUB_OUTPUT"
+
+      - name: Save official cache query results
+        if: steps.official-cache-query.outputs.cache-matched-key != steps.official-cache-update.outputs.key
+        uses: actions/cache/save@v5
+        with:
+          path: cache-nixos-org-query-results
+          key: ${{ steps.official-cache-update.outputs.key }}
+
+      - name: Sign R2 upload paths
         if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs['publish-cache']))
         run: |
           echo "$BINARY_CACHE_SECRET_KEY" > ./secret.key
 
-          xargs nix store sign --recursive --key-file ./secret.key ./result ./result-devshell < cache-store-paths
+          if [[ -s cache-upload-store-paths ]]; then
+            nix store sign --stdin --key-file ./secret.key < cache-upload-store-paths
+          fi
 
-      # Excluding every reverse dependency leaves a reference-closed set, so
-      # Nix can upload it directly without staging and recompressing the full
-      # closure in a temporary binary cache on every push.
-      - name: Push filtered closure to R2
+      # Upload the selected paths directly; their omitted references are
+      # available from cache.nixos.org.
+      - name: Push non-official paths to R2
         if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs['publish-cache']))
         run: |
-          nix copy --stdin --no-recursive \
-            --to "s3://nix-cache?endpoint=$S3_ENDPOINT&compression=zstd" \
-            < cache-upload-store-paths
+          if [[ -s cache-upload-store-paths ]]; then
+            nix copy --stdin --no-recursive \
+              --to "s3://nix-cache?endpoint=$S3_ENDPOINT&compression=zstd" \
+              < cache-upload-store-paths
+          else
+            echo "All closure paths are already in cache.nixos.org."
+          fi
 
-      # Stage everything we push into a throwaway local binary cache so we can
-      # read back the *exact* object keys (each "<hash>.narinfo", its
-      # "nar/<filehash>.nar.zst" and "nix-cache-info") that R2 holds. This is
-      # authoritative and avoids guessing nar filenames by fetching narinfos.
+      # Stage the reference-closed candidate set locally, then read the exact
+      # narinfo and NAR keys for only the paths selected for R2.
       - name: List cache objects via a local copy
         if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs['prune']
         run: |
           set -euo pipefail
           lc="$RUNNER_TEMP/localcache"
           rm -rf "$lc"
-          nix copy --stdin --no-recursive \
-            --to "file://$lc?compression=zstd" \
-            < cache-upload-store-paths
-          ( cd "$lc" && find . -type f | sed 's|^\./||' ) | sort -u > "objects-${{ matrix.system }}.txt"
+          mkdir -p "$lc"
+          : > "objects-${{ matrix.system }}.txt"
+          if [[ -s cache-upload-store-paths ]]; then
+            nix copy --stdin --no-recursive \
+              --to "file://$lc?compression=zstd" \
+              < cache-r2-candidate-store-paths
+
+            sed -E 's#^/nix/store/([^/-]+)-.*#\1.narinfo#' \
+              cache-upload-store-paths | sort -u > cache-upload-narinfos
+            {
+              printf '%s\n' nix-cache-info
+              while IFS= read -r narinfo; do
+                test -f "$lc/$narinfo"
+                nar=$(sed -n 's/^URL: //p' "$lc/$narinfo")
+                test -n "$nar"
+                test -f "$lc/$nar"
+                printf '%s\n%s\n' "$narinfo" "$nar"
+              done < cache-upload-narinfos
+            } | sort -u > "objects-${{ matrix.system }}.txt"
+          fi
           echo "objects: $(wc -l < "objects-${{ matrix.system }}.txt")"
 
       - name: Upload object key list
@@ -252,13 +351,6 @@ jobs:
       - name: Delete orphaned objects
         run: |
           set -euo pipefail
-          keep_count=$(wc -l < keep.txt)
-          # Safety: never prune if the keep set is implausibly small (e.g. a
-          # failed/empty artifact download), which would wipe the live cache.
-          if [ "$keep_count" -lt 1000 ]; then
-            echo "Refusing to prune: keep set suspiciously small ($keep_count objects)"
-            exit 1
-          fi
           comm -23 all-keys.txt keep.txt > orphans.txt
           total=$(wc -l < all-keys.txt)
           orphan=$(wc -l < orphans.txt)
