@@ -107,7 +107,7 @@ _write_username:
     printf '"%s"\n' "$(whoami)" > username.nix
 
 # Switch this machine's nix-darwin configuration
-darwin hostname='':
+darwin:
     #!/usr/bin/env bash
     set -euo pipefail
     source <({{ self_just }} _emit_nix_env)
@@ -118,14 +118,10 @@ darwin hostname='':
         echo "Moving the existing Determinate Nix custom configuration to $backup..."
         sudo mv /etc/nix/nix.custom.conf "$backup"
     fi
-    hostname_args=()
-    if [ -n "{{ hostname }}" ]; then
-        hostname_args+=(--hostname "{{ hostname }}")
-    fi
     if command -v nh >/dev/null 2>&1; then
-        nh darwin switch --accept-flake-config "${hostname_args[@]}" "$FLAKE_REF" -- --option eval-cache false
+        nh darwin switch --accept-flake-config "$FLAKE_REF" -- --option eval-cache false
     else
-        nix run --accept-flake-config nixpkgs#nh -- darwin switch --accept-flake-config "${hostname_args[@]}" "$FLAKE_REF" -- --option eval-cache false
+        nix run --accept-flake-config nixpkgs#nh -- darwin switch --accept-flake-config "$FLAKE_REF" -- --option eval-cache false
     fi
     sudo launchctl kickstart -k system/systems.determinate.nix-daemon
 
@@ -159,7 +155,7 @@ home:
     fi
 
 # Switch this machine's NixOS configuration
-nixos hostname='':
+nixos:
     #!/usr/bin/env bash
     set -euo pipefail
     if [ "$(uname)" = "Darwin" ]; then
@@ -173,11 +169,7 @@ nixos hostname='':
     source <({{ self_just }} _emit_nix_env)
     source <({{ self_just }} _emit_flake_ref)
     {{ self_just }} _write_username
-    flake="$FLAKE_REF"
-    if [ -n "{{ hostname }}" ]; then
-        flake="$FLAKE_REF#{{ hostname }}"
-    fi
-    sudo nixos-rebuild switch --accept-flake-config --flake "$flake" --option eval-cache false
+    sudo nixos-rebuild switch --accept-flake-config --flake "$FLAKE_REF" --option eval-cache false
 
 # Switch this machine's system-manager configuration
 system:
