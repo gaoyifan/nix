@@ -33,6 +33,7 @@
         peerName = userName;
         aiPeer = containerName;
         pinUserPeer = true;
+        dialecticReasoningLevel = "high";
       };
     };
   telegramBotApi = cfg.telegramBotApi;

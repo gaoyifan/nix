@@ -12,7 +12,7 @@
   litellmImage = "docker.litellm.ai/berriai/litellm:v1.93.0@sha256:a1745e629abfb17d434426ff48b115f54f4f4c4a0f5af241de569e93c63c411e";
   runtimeEnvironmentFile = "/run/honcho/env";
   postgresqlSocket = "/run/postgresql";
-  model = "gpt-5.6-terra";
+  model = "gpt-5.6-luna";
   embeddingModel = "Qwen/Qwen3-Embedding-8B";
   healthCheck = pkgs.writeText "honcho-healthcheck.py" ''
     import json
