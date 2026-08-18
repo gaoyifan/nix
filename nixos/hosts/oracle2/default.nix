@@ -25,6 +25,7 @@ in {
     ../../optional/qemu-guest.nix
     ../../optional/tailscale-gnet-vm-exit.nix
     ./disk-config.nix
+    ./github-backup.nix
   ];
 
   networking = {
@@ -85,7 +86,6 @@ in {
 
   systemd.services = {
     bitmagnet-oracle2 = composeService "Bitmagnet Compose project" "${userHome}/docker-run-scripts/bitmagnet-oracle2";
-    github-backup = composeService "GitHub backup Compose project" "${userHome}/github-backup";
   };
 
   time.timeZone = "UTC";

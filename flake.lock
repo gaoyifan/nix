@@ -271,6 +271,26 @@
         "type": "github"
       }
     },
+    "github-backup": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1787081618,
+        "narHash": "sha256-ecf8kZKK0nK8/GCBbf6F4iFmj9yP/zQ2y4Lj5e3vrBs=",
+        "owner": "gaoyifan",
+        "repo": "github-backup",
+        "rev": "dd3e47f53e5a7582d8e8c762e0e193141d6364a7",
+        "type": "github"
+      },
+      "original": {
+        "owner": "gaoyifan",
+        "repo": "github-backup",
+        "type": "github"
+      }
+    },
     "gitignore": {
       "inputs": {
         "nixpkgs": [
@@ -647,6 +667,7 @@
         "diverge": "diverge",
         "flake-compat": "flake-compat",
         "flake-utils": "flake-utils",
+        "github-backup": "github-backup",
         "herdr": "herdr",
         "hermes-agent": "hermes-agent",
         "home-manager": "home-manager",
