@@ -34,6 +34,7 @@
     };
   };
   configs = {
+    ali-sg = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/ali-sg];
     blog = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/blog];
     cjia = mkNixosHost "aarch64-linux" [../nixos/hosts/cjia];
     do = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/do];
@@ -114,6 +115,7 @@ in {
   lib = {inherit mkNixosDiskImage;};
 
   deploy.nodes = {
+    ali-sg = mkDeployNode "x86_64-linux" "ali-sg.ts.gaof.net" configs.ali-sg;
     blog = mkDeployNode "x86_64-linux" "blog.ts.gaof.net" configs.blog;
     cjia = mkDeployNode "aarch64-linux" "cjia.ts.gaof.net" configs.cjia;
     do = mkDeployNode "x86_64-linux" "do.ts.gaof.net" configs.do;

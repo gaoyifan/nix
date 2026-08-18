@@ -8,20 +8,6 @@
     useDHCP = false;
     useNetworkd = true;
     firewall.enable = false;
-    nftables.tables.do-nat = {
-      family = "inet";
-      content = ''
-        chain prerouting {
-          type nat hook prerouting priority dstnat; policy accept;
-          ip saddr 58.84.55.67 udp dport 2408 dnat ip to 162.159.192.1:2408
-        }
-
-        chain postrouting {
-          type nat hook postrouting priority srcnat; policy accept;
-          oifname "eth0" ct status dnat masquerade
-        }
-      '';
-    };
   };
 
   systemd.network = {
@@ -58,13 +44,5 @@
     };
   };
 
-  services = {
-    nylon.cloudflareWarp = {
-      enable = true;
-      label = 101;
-      ipv6Address = "2606:4700:110:8e8b:797f:40b6:888f:acfb";
-      reserved = "0x1b0ed6";
-    };
-    tailscale.port = 6627;
-  };
+  services.tailscale.port = 6627;
 }

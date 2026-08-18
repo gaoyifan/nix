@@ -1,6 +1,7 @@
-{...}: {
+{lib, ...}: {
   imports = [
     ../../optional/authoritative-ns.nix
+    ../../optional/nylon-public-exit.nix
     ../../optional/qemu-guest.nix
     ../../optional/tailscale-gnet-vm-exit.nix
     ./disk-config.nix
@@ -9,13 +10,18 @@
   ];
 
   boot = {
-    loader.grub.enable = true;
+    loader = {
+      systemd-boot.enable = true;
+      efi.canTouchEfiVariables = true;
+    };
     kernelParams = [
       "console=tty0"
       "console=ttyS0,115200n8"
     ];
     zswap.enable = true;
   };
+
+  fileSystems."/".device = lib.mkForce "/dev/disk/by-label/nixos-root";
 
   system.stateVersion = "26.05";
 }
