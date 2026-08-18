@@ -27,17 +27,17 @@ Use nixos-anywhere when the target has enough memory for its upstream kexec imag
 
 ## Low-memory path: raw image and rsync
 
-Each NixOS configuration exposes its disk image lazily. Build the intended host image directly, then build the disk-writer kexec image for its architecture:
+Each NixOS configuration exposes its disk image lazily. Build the intended host image through the repository recipe, then build the disk-writer kexec image for its architecture:
 
 ```bash
 target_system=$(nix eval --raw \
-  .#nixosConfigurations.<host>.pkgs.stdenv.hostPlatform.system)
-image_dir=$(nix build --accept-flake-config --no-link --print-out-paths \
-  ".#nixosConfigurations.<host>.diskImage")
+  '.?submodules=1#nixosConfigurations.<host>.pkgs.stdenv.hostPlatform.system')
+just build-disk-image <host>
+image_dir=$(readlink -f result)
 raw_image=$(find "$image_dir" -maxdepth 1 -type f \
   \( -name '*.raw' -o -name '*.img' \) -print -quit)
 kexec_dir=$(nix build --accept-flake-config --no-link --print-out-paths \
-  ".#packages.${target_system}.nixos-disk-writer-kexec")
+  ".?submodules=1#packages.${target_system}.nixos-disk-writer-kexec")
 kexec_archive="$kexec_dir/nixos-disk-writer-kexec-${target_system}.tar.gz"
 ```
 
@@ -145,16 +145,16 @@ Choose `--build-on local` when the controller can build the target architecture 
 
 ```bash
 nix eval --raw \
-  .#nixosConfigurations.<host>.config.system.build.toplevel.drvPath
+  '.?submodules=1#nixosConfigurations.<host>.config.system.build.toplevel.drvPath'
 nix build --accept-flake-config --dry-run --no-link \
-  .#nixosConfigurations.<host>.config.system.build.toplevel
+  '.?submodules=1#nixosConfigurations.<host>.config.system.build.toplevel'
 ```
 
 Enter the upstream kexec environment as a separate, reversible phase:
 
 ```bash
 nix run "$nixos_anywhere" -- \
-  --flake .#<host> \
+  --flake '.?submodules=1#<host>' \
   --target-host root@<address> \
   --build-on <local-or-remote> \
   --phases kexec
@@ -181,16 +181,16 @@ Verify the address, route, SSH access, and selected disk in the installer. Then 
 
 ```bash
 nix run "$nixos_anywhere" -- \
-  --flake .#<host> --target-host root@<address> \
+  --flake '.?submodules=1#<host>' --target-host root@<address> \
   --build-on <local-or-remote> --phases disko
 
 nix run "$nixos_anywhere" -- \
-  --flake .#<host> --target-host root@<address> \
+  --flake '.?submodules=1#<host>' --target-host root@<address> \
   --build-on <local-or-remote> --extra-files "$extra_files" \
   --phases install
 
 nix run "$nixos_anywhere" -- \
-  --flake .#<host> --target-host root@<address> \
+  --flake '.?submodules=1#<host>' --target-host root@<address> \
   --build-on <local-or-remote> --phases reboot
 
 scripts/wait-for-ssh.sh --down root@<address>
