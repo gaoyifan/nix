@@ -67,7 +67,6 @@
 
     # Shell & terminal
     "asciinema" # Record and share terminal sessions
-    "mcat" # Terminal image/video/markdown viewer
     "tmate" # Instant terminal sharing
     "tuios" # Terminal multiplexer (alternative to tmux)
     "watch" # Execute command periodically
