@@ -10,6 +10,7 @@
     ./tailscale.nix
     ./virtualisation.nix
     ./wg0.nix
+    ./xu2hao.nix
   ];
 
   networking.hostName = "el2";
