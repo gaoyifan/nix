@@ -1,11 +1,11 @@
-# Shared edge datapath for the el and el2 GNet routers.
+# Shared edge datapath for the el and el2 routers.
 {
   config,
   lib,
   pkgs,
   ...
 }: let
-  cfg = config.networking.gnetEdgeRouter;
+  cfg = config.networking.elRouter;
   homeRouter = config.networking.homeRouter;
   types = lib.types;
 
@@ -42,7 +42,7 @@ in {
     ./nylon.nix
   ];
 
-  options.networking.gnetEdgeRouter = {
+  options.networking.elRouter = {
     enable = lib.mkEnableOption "shared GNet multi-WAN edge datapath";
 
     lan = lib.mkOption {
@@ -67,7 +67,7 @@ in {
     assertions = [
       {
         assertion = lib.hasAttr cfg.lan homeRouter.lans;
-        message = "networking.gnetEdgeRouter.lan must name a homeRouter LAN.";
+        message = "networking.elRouter.lan must name a homeRouter LAN.";
       }
       {
         assertion = lib.all (name: lib.hasAttr name homeRouter.wans) [
@@ -75,15 +75,15 @@ in {
           "chinanet"
           "cmcc"
         ];
-        message = "networking.gnetEdgeRouter requires cernet, chinanet, and cmcc homeRouter WANs.";
+        message = "networking.elRouter requires cernet, chinanet, and cmcc homeRouter WANs.";
       }
       {
         assertion = ipv4Addresses cernet.addresses != [] && ipv6Addresses cernet.addresses != [];
-        message = "networking.gnetEdgeRouter requires CERNET IPv4 and IPv6 addresses.";
+        message = "networking.elRouter requires CERNET IPv4 and IPv6 addresses.";
       }
       {
         assertion = ipv4Addresses chinanet.addresses != [] && ipv4Addresses cmcc.addresses != [];
-        message = "networking.gnetEdgeRouter requires China Telecom and China Mobile IPv4 addresses.";
+        message = "networking.elRouter requires China Telecom and China Mobile IPv4 addresses.";
       }
       {
         assertion = lib.all (wan: wan.routingTable != null) [
@@ -91,7 +91,7 @@ in {
           chinanet
           cmcc
         ];
-        message = "networking.gnetEdgeRouter requires dedicated routing tables for all WANs.";
+        message = "networking.elRouter requires dedicated routing tables for all WANs.";
       }
     ];
 
@@ -133,7 +133,7 @@ in {
     };
 
     networking.nftables.tables = {
-      gnet-edge = {
+      el-router = {
         family = "inet";
         content = ''
           include "${pkgs.nft-geo-sets}/set-cn.conf"

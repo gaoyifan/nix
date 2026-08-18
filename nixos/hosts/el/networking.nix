@@ -11,7 +11,7 @@
   managementTable = 9300;
 in {
   imports = [
-    ../../optional/gnet-edge-router.nix
+    ../../optional/el-router.nix
     ../../optional/home-router
   ];
 
@@ -121,7 +121,7 @@ in {
     "from ${managementAddress}/32 lookup management"
   ];
 
-  networking.gnetEdgeRouter = {
+  networking.elRouter = {
     enable = true;
     lan = "gnet641";
     unclassifiedIpv4Sources = [managementAddress];

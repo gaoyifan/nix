@@ -147,7 +147,7 @@ nixos/hosts/el/
 └── wg-iplc.nix
 ```
 
-`networking.nix` 导入 `../../optional/home-router` 和共享的 `../../optional/gnet-edge-router.nix`；后者封装 el/el2 共同的 Nylon exits、策略路由、GeoIP classifier、SNAT 和基础过滤器。`services.nix` 导入原生 diverge 与 ACME 证书模块，并声明 Fail2ban 和 `light-single`。目标不启用 Docker 兼容层；OCI backend 只运行 Light。
+`networking.nix` 导入 `../../optional/home-router` 和共享的 `../../optional/el-router.nix`；后者封装 el/el2 共同的 Nylon exits、策略路由、GeoIP classifier、SNAT 和基础过滤器。`services.nix` 导入原生 diverge 与 ACME 证书模块，并声明 Fail2ban 和 `light-single`。目标不启用 Docker 兼容层；OCI backend 只运行 Light。
 
 本次迁移不启用 `networking.homeRouter.monitoring`，不创建 Prometheus/Grafana 状态。
 

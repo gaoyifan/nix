@@ -109,7 +109,7 @@ el2 当前没有把 `wg-iplc` 加入可信接口；其 `trustedInterfaces = ["wg
 - 公开 UDP 端口集合
 - 确有需要时的额外 input/forward 规则
 
-el、el2 和 cjia 共用该模块；`gnet-edge-router.nix` 继续负责 GNet 特有的多 WAN 出口
+el、el2 和 cjia 共用该模块；`el-router.nix` 继续负责 el 和 el2 的 GNet 多 WAN 出口
 分类、SNAT 和 Nylon exits。不要把 cjia 的 PPPoE 或 USTC/Nylon 分类塞入通用防火墙
 模块。
 

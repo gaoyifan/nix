@@ -6,7 +6,7 @@
   managementTable = 9300;
 in {
   imports = [
-    ../../optional/gnet-edge-router.nix
+    ../../optional/el-router.nix
     ../../optional/home-router
   ];
 
@@ -115,7 +115,7 @@ in {
     "from 192.168.93.98/32 lookup management"
   ];
 
-  networking.gnetEdgeRouter = {
+  networking.elRouter = {
     enable = true;
     lan = "gnet642";
     unclassifiedIpv4Sources = ["192.168.93.98"];

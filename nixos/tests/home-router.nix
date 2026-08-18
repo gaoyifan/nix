@@ -56,7 +56,7 @@
       nft list chain inet edge-filter forward | grep -F 'policy drop'
       nft list chain inet home-router mss-forward | grep -F 'tcp option maxseg size set rt mtu'
       nft list chain inet home-router wlt-prerouting | grep -F 'meta mark set'
-      nft list chain inet gnet-edge postrouting | grep -F 'snat ip to'
+      nft list chain inet el-router postrouting | grep -F 'snat ip to'
       nft list chain inet nylon overlay-nat-postrouting | grep -F 'masquerade'
       ! ip netns exec upstream ping -c 1 -W 1 10.64.2.2
 
@@ -120,7 +120,7 @@
         };
       }
       ../common/internal-dns.nix
-      ../optional/gnet-edge-router.nix
+      ../optional/el-router.nix
       ../optional/home-router
     ];
 
@@ -198,7 +198,7 @@
 
     services.wlt.enable = lib.mkForce false;
 
-    networking.gnetEdgeRouter = {
+    networking.elRouter = {
       enable = true;
       lan = "internal";
     };
