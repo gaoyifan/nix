@@ -230,7 +230,7 @@ in {
         "io.cache" = "unsafe";
       };
       config = {
-        "limits.cpu" = "16";
+        "limits.cpu" = "8";
         "limits.memory" = "16GiB";
         "security.csm" = "false";
         "security.secureboot" = "true";
