@@ -5,7 +5,8 @@ submodule_path := "secrets/files"
 home_manager_backup_extension := "backup-$(date +%Y%m%d-%H%M%S)"
 self_just := quote(just_executable()) + " --justfile " + quote(justfile()) + " --working-directory " + quote(justfile_directory()) + " --quiet"
 
-# Default recipe: pulls the latest code, then applies the appropriate configuration
+# Update the repository and apply this machine's configuration
+[private]
 default:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -39,7 +40,8 @@ default:
         fi
     fi
 
-# Ensure nix is installed before proceeding
+# Ensure Nix is installed
+[group('setup')]
 ensure-nix:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -50,21 +52,7 @@ ensure-nix:
         echo "Nix is already installed."
     fi
 
-# Trust this flake's Nix settings for future runs.
-[group('setup')]
-trust-flake-config:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    source <({{ self_just }} _emit_nix_env)
-    mkdir -p ~/.local/share/nix
-    nix eval --raw --file flake.nix \
-        --apply '_: let settings = import ./nix-cache.nix; in builtins.toJSON {
-            extra-substituters = builtins.listToAttrs (map (name: { inherit name; value = true; }) settings.extra-substituters);
-            extra-trusted-public-keys = builtins.listToAttrs (map (name: { inherit name; value = true; }) settings.extra-trusted-public-keys);
-        }' > ~/.local/share/nix/trusted-settings.json
-    echo "Trusted flake settings are up to date."
-
-# Install nix using Determinate Systems installer
+# Install Nix using the Determinate Systems installer
 [group('setup')]
 install-nix:
     #!/usr/bin/env bash
@@ -81,6 +69,20 @@ install-nix:
     fi
     {{ self_just }} trust-flake-config
     echo "Nix installation complete!"
+
+# Update the trusted settings for this flake's binary caches
+[group('setup')]
+trust-flake-config:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source <({{ self_just }} _emit_nix_env)
+    mkdir -p ~/.local/share/nix
+    nix eval --raw --file flake.nix \
+        --apply '_: let settings = import ./nix-cache.nix; in builtins.toJSON {
+            extra-substituters = builtins.listToAttrs (map (name: { inherit name; value = true; }) settings.extra-substituters);
+            extra-trusted-public-keys = builtins.listToAttrs (map (name: { inherit name; value = true; }) settings.extra-trusted-public-keys);
+        }' > ~/.local/share/nix/trusted-settings.json
+    echo "Trusted flake settings are up to date."
 
 [private]
 _emit_nix_env:
@@ -104,30 +106,30 @@ _write_username:
     #!/usr/bin/env bash
     printf '"%s"\n' "$(whoami)" > username.nix
 
-# Switch NixOS configuration
-[group('config')]
-nixos hostname='':
+# Switch this machine's nix-darwin configuration
+darwin hostname='':
     #!/usr/bin/env bash
     set -euo pipefail
-    if [ "$(uname)" = "Darwin" ]; then
-        echo "Refusing to run NixOS switch on macOS. Use 'just darwin' instead." >&2
-        exit 1
-    fi
-    if [ ! -e /etc/NIXOS ]; then
-        echo "Refusing to run NixOS switch on non-NixOS Linux. Use 'just system' instead." >&2
-        exit 1
-    fi
     source <({{ self_just }} _emit_nix_env)
     source <({{ self_just }} _emit_flake_ref)
     {{ self_just }} _write_username
-    flake="$FLAKE_REF"
-    if [ -n "{{ hostname }}" ]; then
-        flake="$FLAKE_REF#{{ hostname }}"
+    if [ -f /etc/nix/nix.custom.conf ] && [ ! -L /etc/nix/nix.custom.conf ]; then
+        backup="/etc/nix/nix.custom.conf.before-nix-darwin.$(date +%Y%m%d-%H%M%S)"
+        echo "Moving the existing Determinate Nix custom configuration to $backup..."
+        sudo mv /etc/nix/nix.custom.conf "$backup"
     fi
-    sudo nixos-rebuild switch --accept-flake-config --flake "$flake" --option eval-cache false
+    hostname_args=()
+    if [ -n "{{ hostname }}" ]; then
+        hostname_args+=(--hostname "{{ hostname }}")
+    fi
+    if command -v nh >/dev/null 2>&1; then
+        nh darwin switch --accept-flake-config "${hostname_args[@]}" "$FLAKE_REF" -- --option eval-cache false
+    else
+        nix run --accept-flake-config nixpkgs#nh -- darwin switch --accept-flake-config "${hostname_args[@]}" "$FLAKE_REF" -- --option eval-cache false
+    fi
+    sudo launchctl kickstart -k system/systems.determinate.nix-daemon
 
-# Switch home-manager configuration
-[group('config')]
+# Switch this machine's standalone Home Manager configuration
 home:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -156,8 +158,28 @@ home:
         nix run nixpkgs#home-manager -- switch -b "$backup_extension" --flake "$FLAKE_REF" --option eval-cache false
     fi
 
-# Switch system-manager configuration
-[group('config')]
+# Switch this machine's NixOS configuration
+nixos hostname='':
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ "$(uname)" = "Darwin" ]; then
+        echo "Refusing to run NixOS switch on macOS. Use 'just darwin' instead." >&2
+        exit 1
+    fi
+    if [ ! -e /etc/NIXOS ]; then
+        echo "Refusing to run NixOS switch on non-NixOS Linux. Use 'just system' instead." >&2
+        exit 1
+    fi
+    source <({{ self_just }} _emit_nix_env)
+    source <({{ self_just }} _emit_flake_ref)
+    {{ self_just }} _write_username
+    flake="$FLAKE_REF"
+    if [ -n "{{ hostname }}" ]; then
+        flake="$FLAKE_REF#{{ hostname }}"
+    fi
+    sudo nixos-rebuild switch --accept-flake-config --flake "$flake" --option eval-cache false
+
+# Switch this machine's system-manager configuration
 system:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -191,67 +213,7 @@ system:
     nix run --accept-flake-config "$FLAKE_REF#system-manager" -- switch --sudo --flake "$FLAKE_REF" --nix-option eval-cache false
     sudo systemctl restart nix-daemon.service
 
-# Switch nix-darwin configuration
-[group('config')]
-darwin hostname='':
-    #!/usr/bin/env bash
-    set -euo pipefail
-    source <({{ self_just }} _emit_nix_env)
-    source <({{ self_just }} _emit_flake_ref)
-    {{ self_just }} _write_username
-    if [ -f /etc/nix/nix.custom.conf ] && [ ! -L /etc/nix/nix.custom.conf ]; then
-        backup="/etc/nix/nix.custom.conf.before-nix-darwin.$(date +%Y%m%d-%H%M%S)"
-        echo "Moving the existing Determinate Nix custom configuration to $backup..."
-        sudo mv /etc/nix/nix.custom.conf "$backup"
-    fi
-    hostname_args=()
-    if [ -n "{{ hostname }}" ]; then
-        hostname_args+=(--hostname "{{ hostname }}")
-    fi
-    if command -v nh >/dev/null 2>&1; then
-        nh darwin switch --accept-flake-config "${hostname_args[@]}" "$FLAKE_REF" -- --option eval-cache false
-    else
-        nix run --accept-flake-config nixpkgs#nh -- darwin switch --accept-flake-config "${hostname_args[@]}" "$FLAKE_REF" -- --option eval-cache false
-    fi
-    sudo launchctl kickstart -k system/systems.determinate.nix-daemon
-
-# Edit an agenix secret relative to the invocation directory
-[group('dev')]
-[working-directory(justfile_directory() + "/secrets/files")]
-edit-secret path:
-    RULES=./secrets.nix agenix -e "{{ trim_start_match(clean(invocation_directory() / path), justfile_directory() / 'secrets/files/') }}"
-
-# Re-encrypt all agenix secrets with the current recipient rules
-[group('dev')]
-[working-directory(justfile_directory() + "/secrets/files")]
-rekey:
-    RULES=./secrets.nix agenix --rekey
-
-# Format all supported files
-[group('dev')]
-fmt:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    source <({{ self_just }} _emit_nix_env)
-    nix fmt --accept-flake-config
-
-# Check formatting without changing files
-[group('dev')]
-fmt-check:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    source <({{ self_just }} _emit_nix_env)
-    system="$(nix eval --impure --raw --expr builtins.currentSystem)"
-    nix build --accept-flake-config --no-link ".#checks.$system.formatting"
-
-# Push this repository and any submodule commits it references
-[group('dev')]
-push:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    git push --recurse-submodules=on-demand
-
-# Check the configuration used by this machine
+# Evaluate this machine's configuration
 [group('dev')]
 check:
     #!/usr/bin/env bash
@@ -267,7 +229,7 @@ check:
         nix eval --accept-flake-config --raw ".#systemConfigs.$system.default.drvPath" >/dev/null
     fi
 
-# Check every flake output across all supported platforms
+# Evaluate every flake output across all supported platforms
 [group('dev')]
 check-all:
     #!/usr/bin/env bash
@@ -284,8 +246,44 @@ check-all:
         nix flake check --accept-flake-config --all-systems --no-build
     fi
 
-# Build a NixOS disk image
-[group('config')]
+# Format all supported files
+[group('dev')]
+fmt:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source <({{ self_just }} _emit_nix_env)
+    nix fmt --accept-flake-config
+
+# Check formatting without modifying files
+[group('dev')]
+fmt-check:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source <({{ self_just }} _emit_nix_env)
+    system="$(nix eval --impure --raw --expr builtins.currentSystem)"
+    nix build --accept-flake-config --no-link ".#checks.$system.formatting"
+
+# Push this repository and referenced submodule commits
+[group('dev')]
+push:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    git push --recurse-submodules=on-demand
+
+# Edit an agenix secret relative to the current directory
+[group('secrets')]
+[working-directory(justfile_directory() + "/secrets/files")]
+edit-secret path:
+    RULES=./secrets.nix agenix -e "{{ trim_start_match(clean(invocation_directory() / path), justfile_directory() / 'secrets/files/') }}"
+
+# Re-encrypt all agenix secrets for the current recipients
+[group('secrets')]
+[working-directory(justfile_directory() + "/secrets/files")]
+rekey:
+    RULES=./secrets.nix agenix --rekey
+
+# Build a NixOS disk image for a target
+[group('build')]
 build-disk-image target:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -296,7 +294,7 @@ build-disk-image target:
         "$FLAKE_REF#nixosConfigurations.$target.diskImage"
 
 # Build the universal NanoPi R4S bootstrap SD image
-[group('config')]
+[group('build')]
 build-nanopi-bootstrap-image:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -307,8 +305,19 @@ build-nanopi-bootstrap-image:
         --accept-flake-config \
         "$FLAKE_REF#packages.aarch64-linux.nanopi-r4s-bootstrap-image"
 
-# Install a NanoPi R4S target profile without activating it until reboot
-[group('config')]
+# Deploy a NixOS configuration with deploy-rs
+[group('deploy')]
+deploy target:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source <({{ self_just }} _emit_nix_env)
+    source <({{ self_just }} _emit_flake_ref)
+    nix develop --accept-flake-config "$FLAKE_REF" \
+        -c deploy "$FLAKE_REF#{{ target }}" --skip-checks -- \
+        --accept-flake-config
+
+# Install a NanoPi R4S target profile and activate it on reboot
+[group('deploy')]
 deploy-nanopi-from-bootstrap target address="198.51.100.254":
     #!/usr/bin/env bash
     set -euo pipefail
@@ -323,19 +332,8 @@ deploy-nanopi-from-bootstrap target address="198.51.100.254":
         "$FLAKE_REF#{{ target }}" \
         -- --accept-flake-config
 
-# Deploy NixOS configuration to remote host
-[group('config')]
-deploy target:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    source <({{ self_just }} _emit_nix_env)
-    source <({{ self_just }} _emit_flake_ref)
-    nix develop --accept-flake-config "$FLAKE_REF" \
-        -c deploy "$FLAKE_REF#{{ target }}" --skip-checks -- \
-        --accept-flake-config
-
-# Sync the flake and rebuild NixOS on the target.
-[group('config')]
+# Sync the repository and rebuild NixOS on a target
+[group('deploy')]
 sync-and-rebuild target:
     #!/usr/bin/env bash
     set -euo pipefail
