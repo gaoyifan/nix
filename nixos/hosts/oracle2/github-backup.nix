@@ -2,7 +2,6 @@
   config,
   inputs,
   lib,
-  pkgs,
   username,
   ...
 }: let
@@ -16,20 +15,14 @@ in {
       oracle2-github-backup-token = {
         file = config.services.secrets.filesDir + "/nixos/oracle2/github-backup-token.age";
         owner = username;
-        group = "users";
-        mode = "0400";
       };
       oracle2-github-backup-ssh-key = {
         file = config.services.secrets.filesDir + "/nixos/oracle2/github-backup-ssh-key.age";
         owner = username;
-        group = "users";
-        mode = "0400";
       };
       oracle2-github-backup-webhook-secret = {
         file = config.services.secrets.filesDir + "/nixos/oracle2/github-backup-webhook-secret.age";
         owner = username;
-        group = "users";
-        mode = "0400";
       };
     };
 
@@ -48,14 +41,8 @@ in {
     systemd.services.github-backup-tailscaled = {
       description = "Dedicated Tailscale node for the GitHub backup webhook";
       wantedBy = ["multi-user.target"];
-      wants = [
-        "github-backup-webhook.service"
-        "network-online.target"
-      ];
-      after = [
-        "github-backup-webhook.service"
-        "network-online.target"
-      ];
+      wants = ["network-online.target"];
+      after = ["network-online.target"];
       serviceConfig = {
         Type = "notify";
         StateDirectory = stateDirectory;
@@ -63,7 +50,7 @@ in {
         RuntimeDirectory = stateDirectory;
         RuntimeDirectoryMode = "0755";
         ExecStart = lib.escapeShellArgs [
-          "${pkgs.tailscale}/bin/tailscaled"
+          "${config.services.tailscale.package}/bin/tailscaled"
           "--statedir=/var/lib/${stateDirectory}"
           "--socket=${socket}"
           "--tun=userspace-networking"
@@ -72,13 +59,13 @@ in {
         ];
         ExecStartPost = [
           (lib.escapeShellArgs [
-            "${pkgs.tailscale}/bin/tailscale"
+            "${config.services.tailscale.package}/bin/tailscale"
             "--socket=${socket}"
             "wait"
             "--timeout=30s"
           ])
           (lib.escapeShellArgs [
-            "${pkgs.tailscale}/bin/tailscale"
+            "${config.services.tailscale.package}/bin/tailscale"
             "--socket=${socket}"
             "funnel"
             "--bg"
