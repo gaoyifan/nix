@@ -130,7 +130,7 @@ in {
   mkHomeManager = pkgs: let
     relBinDir = ".local/share/nix-lazy-apps/bin";
     availableAppSpecs = availableSpecs pkgs.stdenv.hostPlatform pkgs;
-    nixRunCacheOptions = [
+    nixCacheOptions = [
       "--option"
       "extra-substituters"
       "https://nix-cache.yfgao.net?priority=50"
@@ -150,9 +150,38 @@ in {
     '';
     mkWrapper = name: app: args: let
       appArgs = lib.optionalString (args != []) " ${lib.escapeShellArgs args}";
+      flakeApp = "git+https://github.com/gaoyifan/nix.git?ref=main&shallow=1#apps.${pkgs.stdenv.hostPlatform.system}.${app}";
+      resolveProgram = ''
+        program: let
+          context = builtins.getContext program;
+          drvPath = builtins.head (builtins.attrNames context);
+        in
+          "''${builtins.unsafeDiscardStringContext program} ''${drvPath}^''${builtins.head context.''${drvPath}.outputs}"
+      '';
     in
       pkgs.writeShellScript name ''
-        exec nix run ${lib.escapeShellArgs nixRunCacheOptions} "git+https://github.com/gaoyifan/nix.git?ref=main&shallow=1#${app}" --${appArgs} "$@"
+        cache_dir="''${XDG_CACHE_HOME:-$HOME/.cache}/nix-lazy-apps"
+        cache_file="$cache_dir/${app}"
+        printf -v now '%(%s)T' -1
+
+        if [[ -r "$cache_file" ]] \
+          && read -r cached_at program < "$cache_file" \
+          && [[ $cached_at =~ ^[0-9]+$ ]] \
+          && ((now >= cached_at && now - cached_at < 3600)) \
+          && [[ -x $program ]]; then
+          exec "$program"${appArgs} "$@"
+        fi
+
+        resolution="$(nix eval ${lib.escapeShellArgs nixCacheOptions} --raw ${lib.escapeShellArg "${flakeApp}.program"} --apply ${lib.escapeShellArg resolveProgram})" || exit $?
+        read -r program installable <<< "$resolution"
+
+        if [[ ! -x "$program" ]]; then
+          nix build ${lib.escapeShellArgs nixCacheOptions} --no-link "$installable" || exit $?
+        fi
+
+        mkdir -p "$cache_dir"
+        printf '%s %s\n' "$now" "$program" > "$cache_file"
+        exec "$program"${appArgs} "$@"
       '';
     wrapperFiles = lib.mapAttrs' (
       app: spec: let
