@@ -37,7 +37,9 @@
       hexdump = {};
       herdr = {};
       iostat = from "sysstat";
-      mcat = {};
+      mcat = {
+        preferWrapper = true;
+      };
       ncdu = {};
       node = from "nodejs-slim";
       npm = from ["nodejs-slim" "npm"];
@@ -155,8 +157,12 @@ in {
     wrapperFiles = lib.mapAttrs' (
       app: spec: let
         name = spec.wrapperName or app;
+        binDir =
+          if spec.preferWrapper or false
+          then ".local/bin"
+          else relBinDir;
       in
-        lib.nameValuePair "${relBinDir}/${name}" {
+        lib.nameValuePair "${binDir}/${name}" {
           source = mkWrapper name app (spec.wrapperArgs or []);
         }
     ) (lib.filterAttrs (_name: spec: spec.enableWrapper or true) availableAppSpecs);

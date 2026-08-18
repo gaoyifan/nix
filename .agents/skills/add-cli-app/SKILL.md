@@ -29,7 +29,7 @@ description: Add a command to this repository's dynamic CLI apps, lazy Home Mana
    };
    ```
 
-   The executable defaults to the app name. Set `program`, `wrapperName`, `wrapperArgs`, or `enableWrapper = false` only when their defaults are wrong. Keep simple and aliased specs on one line, but allow Alejandra to expand multi-setting specs; do not merge attribute sets solely to force a one-line definition.
+   The executable defaults to the app name. Set `program`, `wrapperName`, `wrapperArgs`, or `enableWrapper = false` only when their defaults are wrong. Set `preferWrapper = true` when the lazy wrapper must take precedence over an existing same-name command; this places it in `~/.local/bin` instead of the low-priority lazy-app directory. Keep simple and aliased specs on one line, but allow Alejandra to expand multi-setting specs; do not merge attribute sets solely to force a one-line definition.
 
 4. Do not configure CI separately. `cli-apps.nix` automatically includes apps backed by `customPackages` in the `cli-apps-cache` aggregate and excludes apps backed by official Nixpkgs packages. For a custom package restricted to particular systems, expose it conditionally in `pkgs/default.nix` and set accurate `meta.platforms`; apps and the aggregate follow the attributes available on each system.
 
