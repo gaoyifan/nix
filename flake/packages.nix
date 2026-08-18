@@ -15,21 +15,6 @@
     nixosProfiles = nixpkgs.lib.attrValues (
       nixpkgs.lib.filterAttrs (_: node: node.profiles.system.path.system == system) self.deploy.nodes
     );
-    nixosDiskImages =
-      nixpkgs.lib.mapAttrs' (
-        name: host:
-          nixpkgs.lib.nameValuePair
-          "nixos-disk-image-${name}"
-          (self.lib.mkNixosDiskImage {inherit host;})
-      ) (
-        nixpkgs.lib.filterAttrs (
-          _: host:
-            host.pkgs.stdenv.hostPlatform.system
-            == system
-            && (host.config.disko.devices.disk or {}) != {}
-        )
-        self.nixosConfigurations
-      );
   in
     (cliApps.mkPackages {
       inherit pkgs;
@@ -52,7 +37,6 @@
           ];
         }).config.system.build.kexecInstallerTarball;
     }
-    // nixosDiskImages
     // nixpkgs.lib.optionalAttrs (system == "aarch64-linux") {
       nanopi-r4s-bootstrap-image = self.nixosConfigurations.nanopi-r4s-bootstrap.config.system.build.sdImage;
     });

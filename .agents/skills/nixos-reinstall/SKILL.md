@@ -27,13 +27,13 @@ Use nixos-anywhere when the target has enough memory for its upstream kexec imag
 
 ## Low-memory path: raw image and rsync
 
-The repository exposes one package per NixOS host that has a disko disk configuration. Build the intended host image and the disk-writer kexec image for its architecture:
+Each NixOS configuration exposes its disk image lazily. Build the intended host image directly, then build the disk-writer kexec image for its architecture:
 
 ```bash
 target_system=$(nix eval --raw \
   .#nixosConfigurations.<host>.pkgs.stdenv.hostPlatform.system)
 image_dir=$(nix build --accept-flake-config --no-link --print-out-paths \
-  ".#packages.${target_system}.nixos-disk-image-<host>")
+  ".#nixosConfigurations.<host>.diskImage")
 raw_image=$(find "$image_dir" -maxdepth 1 -type f \
   \( -name '*.raw' -o -name '*.img' \) -print -quit)
 kexec_dir=$(nix build --accept-flake-config --no-link --print-out-paths \

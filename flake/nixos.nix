@@ -66,7 +66,7 @@
     xtom-syd = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/xtom-syd];
   };
   mkNixosDiskImage = {host}: let
-    diskNames = builtins.attrNames host.config.disko.devices.disk;
+    diskNames = builtins.attrNames (host.config.disko.devices.disk or {});
     diskName = builtins.head diskNames;
     disk = host.config.disko.devices.disk.${diskName};
     imageName = "${host.config.networking.hostName}-disk-image";
@@ -105,7 +105,12 @@
         }).config.system.build.diskoImages
     else throw "mkNixosDiskImage requires exactly one disko disk for ${host.config.networking.hostName}";
 in {
-  nixosConfigurations = configs;
+  nixosConfigurations = nixpkgs.lib.mapAttrs (_: host:
+    host
+    // {
+      diskImage = mkNixosDiskImage {inherit host;};
+    })
+  configs;
   lib = {inherit mkNixosDiskImage;};
 
   deploy.nodes = {

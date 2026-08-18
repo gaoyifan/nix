@@ -292,10 +292,8 @@ build-disk-image target:
     source <({{ self_just }} _emit_nix_env)
     source <({{ self_just }} _emit_flake_ref)
     target="{{ target }}"
-    target_system=$(nix eval --raw \
-        "$FLAKE_REF#nixosConfigurations.$target.pkgs.stdenv.hostPlatform.system")
     nix build --accept-flake-config \
-        "$FLAKE_REF#packages.$target_system.nixos-disk-image-$target"
+        "$FLAKE_REF#nixosConfigurations.$target.diskImage"
 
 # Build the universal NanoPi R4S bootstrap SD image
 [group('config')]

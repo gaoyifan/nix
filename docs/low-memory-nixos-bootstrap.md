@@ -18,14 +18,15 @@ Google 主机只作为现有 NixOS 配置的测试样本，不是本方案的目
 
 ## 构建
 
-每个带有 disko 磁盘配置的 NixOS host 都会自动得到一个 package：
+每个 NixOS configuration 都会惰性暴露对应的 `diskImage`；只有构建指定目标时才会
+求值该主机配置：
 
 ```sh
 just build-disk-image target
 ```
 
-该入口读取目标 NixOS configuration 的架构，再构建对应的
-`nixos-disk-image-<target>` package。NanoPi bootstrap SD image 使用独立的
+该入口直接构建 `nixosConfigurations.<target>.diskImage`。不含单系统盘 disko 配置的
+目标会在被请求时失败。NanoPi bootstrap SD image 使用独立的
 `just build-nanopi-bootstrap-image` 入口。
 
 为目标架构构建写盘环境：
