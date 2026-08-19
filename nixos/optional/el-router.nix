@@ -86,6 +86,7 @@ in {
     ];
 
     networking.homeRouter.wgIplc.enable = true;
+    networking.wireguard.interfaces.wg-iplc.fwMark = lib.mkForce chinanetMark;
 
     services.nylon = {
       enable = true;
