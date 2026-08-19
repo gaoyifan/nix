@@ -60,6 +60,12 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    loft = {
+      url = "github:gaoyifan/loft/a41f84683ec33b88c333b65e877536ec92efa155";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.rust-overlay.follows = "rust-overlay";
+    };
+
     codex-api = {
       url = "github:gaoyifan/codex-api";
       inputs.nixpkgs.follows = "nixpkgs";

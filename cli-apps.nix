@@ -37,6 +37,7 @@
       hexdump = {};
       herdr = {};
       iostat = from "sysstat";
+      loft = {};
       mcat = {
         preferWrapper = true;
       };
