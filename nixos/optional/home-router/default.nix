@@ -18,6 +18,13 @@ in {
   ];
 
   config = lib.mkIf cfg.enable {
+    boot.kernelModules = ["br_netfilter"];
+    boot.kernel.sysctl = {
+      "net.bridge.bridge-nf-call-arptables" = 0;
+      "net.bridge.bridge-nf-call-iptables" = 0;
+      "net.bridge.bridge-nf-call-ip6tables" = 0;
+    };
+
     assertions = [
       {
         assertion =
