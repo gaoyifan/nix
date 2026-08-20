@@ -117,12 +117,6 @@ in {
     };
     root.openssh.authorizedKeys.keys = sshKeys;
   };
-  programs.bash.loginShellInit = ''
-    if [[ $USER == agent ]]; then
-      export XDG_RUNTIME_DIR=/run/user/1000
-      export TMPDIR=/var/lib/hermes/podman-tmp
-    fi
-  '';
   virtualisation = {
     podman.enable = true;
     containers.containersConf.settings = {
@@ -149,9 +143,7 @@ in {
   };
 
   systemd.tmpfiles.rules = [
-    "d /var/lib/containers/tmp 0700 root root - -"
     "d /var/lib/hermes 0750 agent agent - -"
-    "d /var/lib/hermes/podman 0700 agent agent - -"
     "d /var/lib/hermes/podman-tmp 0700 agent agent - -"
     # Rootless Podman persists its first RunRoot in the storage database.
     "d /run/hermes-podman 0700 agent agent - -"
@@ -167,12 +159,6 @@ in {
     "L+ /home/agent - - - - /workspace"
     "L+ /var/lib/hermes/.hermes/honcho.json - agent agent - /etc/hermes/honcho.json"
   ];
-
-  systemd.services.podman = {
-    unitConfig.RequiresMountsFor = "/etc/hermes";
-    environment.TMPDIR = "/var/lib/containers/tmp";
-    serviceConfig.EnvironmentFile = "/etc/hermes/.env";
-  };
 
   services.openssh = {
     enable = true;
@@ -392,9 +378,6 @@ in {
     path = [config.virtualisation.podman.package];
     environment = {
       AGENT_BROWSER_EXECUTABLE_PATH = lib.getExe pkgs.chromium;
-      CONTAINER_HOST = lib.mkForce null;
-      MESSAGING_CWD = lib.mkForce null;
-      TMPDIR = "/var/lib/hermes/podman-tmp";
       XDG_RUNTIME_DIR = "/run/user/1000";
     };
     serviceConfig = {
