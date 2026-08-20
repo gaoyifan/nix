@@ -24,7 +24,6 @@ in {
 
   # Add homebrew bins to PATH for global tools
   environment.systemPath = [
-    "/opt/homebrew/opt/rustup/bin"
     "/opt/homebrew/opt/node/bin"
     "/Users/${username}/.lmstudio/bin"
   ];

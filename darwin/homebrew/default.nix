@@ -52,46 +52,25 @@
     "wireshark" # Network packet analyzer (CLI)
 
     # Development
-    "cargo-binstall" # Install prebuilt Rust binaries
     "cloudflare-wrangler" # Cloudflare Workers CLI
-    "doctl" # DigitalOcean CLI
-    "eget" # Download binaries from GitHub releases
     "fnm" # Fast Node.js version manager
-    "gh" # GitHub CLI
-    "git"
     "git-lfs" # Git large file storage
-    "go"
-    "rustup" # Rust toolchain manager
-    "step" # Smallstep CLI for certificates/PKI
-    "yarn" # JavaScript package manager
 
     # Shell & terminal
-    "asciinema" # Record and share terminal sessions
-    "tmate" # Instant terminal sharing
     "tuios" # Terminal multiplexer (alternative to tmux)
     "watch" # Execute command periodically
     "zsh"
     "lucasgelfond/zerobrew/zerobrew" # Run Homebrew formulae in isolated environments
 
-    # File & disk utilities
-    "fd" # Fast 'find' alternative
-    "ncdu" # NCurses disk usage analyzer
-    "pv" # Monitor pipe data progress
-    "renameutils" # Batch file renaming tools
-    "rsync" # Fast incremental file transfer
-
     # Text & data processing
-    "exiftool" # EXIF metadata reader/writer
     "gawk" # GNU awk
     "gnu-sed" # GNU sed
     "grep" # GNU grep
-    "jq" # JSON processor
     "pandoc" # Document format converter
     "restic" # Backup program with deduplication and encryption
 
     # System monitoring
     "mactop" # Apple Silicon Monitor Top written in Go Lang
-    "nvtop" # GPU process monitor
 
     # Editors (neovim via Homebrew to avoid large nix closure on macOS)
     "neovim"
@@ -103,7 +82,6 @@
     "gemini-cli" # Google Gemini AI CLI
     "huggingface-cli" # Hugging Face CLI
     "parallel" # Shell command parallelization
-    "tokei" # Fast code statistics
     "ffmpeg" # Audio/video processing toolkit
     "yt-dlp" # Video downloader (YouTube, etc.)
   ];

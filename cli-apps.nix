@@ -6,7 +6,9 @@
     {
       agy = {};
       agenix = {};
+      asciinema = {};
       bmon = {};
+      cargo-binstall = {};
       codex = {};
       codex-reindex = {};
       copilot = {
@@ -29,6 +31,9 @@
         program = "difft";
         wrapperName = "difft";
       };
+      doctl = {};
+      eget = {};
+      exiftool = {};
       fd = {};
       file = {};
       gh = {};
@@ -45,21 +50,26 @@
       node = from "nodejs-slim";
       npm = from ["nodejs-slim" "npm"];
       npx = from ["nodejs-slim" "npm"];
+      nvtop = from ["nvtopPackages" "full"];
       pi = from "pi-coding-agent";
       pi-baseline = {
         packagePath = ["pi-coding-agent-baseline"];
         program = "pi";
       };
       playwright-cli = {};
+      pv = {};
       redis-cli = from "redis";
       rsync = {};
       ruby = {};
       smartctl = from "smartmontools";
       sqlite3 = from "sqlite";
+      step = from "step-cli";
       telnet = from "inetutils";
       tig = {};
+      tmate = {};
       tokei = {};
       yazi = from "yazi-unwrapped";
+      yarn = {};
     }
     // fromMany "ansible" [
       "ansible"
@@ -72,6 +82,15 @@
       "ansible-pull"
       "ansible-test"
       "ansible-vault"
+    ]
+    // fromMany "renameutils" [
+      "deurlname"
+      "icmd"
+      "icp"
+      "imv"
+      "qcmd"
+      "qcp"
+      "qmv"
     ]
     // fromMany "rustup" [
       "cargo"
