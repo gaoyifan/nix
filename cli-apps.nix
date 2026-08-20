@@ -68,6 +68,7 @@
       tig = {};
       tmate = {};
       tokei = {};
+      wrangler = {};
       yazi = from "yazi-unwrapped";
       yarn = {};
     }
