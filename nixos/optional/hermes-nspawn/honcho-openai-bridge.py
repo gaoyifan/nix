@@ -7,7 +7,7 @@ import litellm
 from fastapi import Body, FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from litellm import stream_chunk_builder
-from litellm.exceptions import OpenAIError
+from openai import OpenAIError
 
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
