@@ -18,12 +18,15 @@
       pdfplumber
       pillow
       pypdf
+      python-pptx
+      pyyaml
       ((pytesseract.override {tesseract = tesseractWithLanguages;}).overridePythonAttrs {
         # Upstream tests require French and OSD data, which this
         # English/Chinese-only Tesseract intentionally omits.
         doCheck = false;
       })
       reportlab
+      websocket-client
     ]);
   nixConfig = pkgs.writeTextDir "etc/nix/nix.conf" ''
     build-users-group =
@@ -54,12 +57,14 @@
   '';
   packages = [
     audioTranscription
+    pkgs.agent-browser
     pkgs.bashInteractive
     pkgs.bind.dnsutils
     pkgs.cacert
     codexCli
     pkgs.coreutils
     pkgs.curl
+    pkgs.chromium
     pkgs.deno
     documentPython
     pkgs.ffmpeg
@@ -124,6 +129,7 @@
       Env = [
         "LANG=C.UTF-8"
         "LC_ALL=C.UTF-8"
+        "AGENT_BROWSER_EXECUTABLE_PATH=${lib.getExe pkgs.chromium}"
         "FONTCONFIG_FILE=/etc/fonts/fonts.conf"
         "HERMES_HOME=/root/.hermes"
         "LARKSUITE_CLI_NO_SKILLS_NOTIFIER=1"

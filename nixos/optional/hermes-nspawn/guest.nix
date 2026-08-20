@@ -68,6 +68,7 @@
     cp -rL ${inputs.anthropic-skills}/skills/{docx,xlsx,pdf,pptx} $out/
     cp -rL ${inputs.lark-cli-src}/skills/lark-* $out/
     cp -rL ${./skills/audio-transcription} $out/audio-transcription
+    cp -rL ${inputs.open-kimi-ppt-skill}/skills/open-kimi-ppt $out/open-kimi-ppt
   '';
   guestTools = [
     pkgs.agent-browser

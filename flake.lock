@@ -866,6 +866,22 @@
         "type": "github"
       }
     },
+    "open-kimi-ppt-skill": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1787198809,
+        "narHash": "sha256-ts8WC6Y+PZykiupSEidq2xj0x9mIdo9x2go7ITXfkoA=",
+        "owner": "gaoyifan",
+        "repo": "open-kimi-ppt-skill",
+        "rev": "faf153b7fa6a027c324a28e6400efa98948c651f",
+        "type": "github"
+      },
+      "original": {
+        "owner": "gaoyifan",
+        "repo": "open-kimi-ppt-skill",
+        "type": "github"
+      }
+    },
     "pre-commit-hooks-nix": {
       "inputs": {
         "flake-compat": [
@@ -1025,6 +1041,7 @@
         "nixos-images": "nixos-images",
         "nixpkgs": "nixpkgs",
         "nixpkgs-darwin": "nixpkgs-darwin",
+        "open-kimi-ppt-skill": "open-kimi-ppt-skill",
         "restic-115": "restic-115",
         "restic-123pan": "restic-123pan",
         "restic-sync": "restic-sync",

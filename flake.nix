@@ -175,6 +175,11 @@
       url = "github:anthropics/skills";
       flake = false;
     };
+
+    open-kimi-ppt-skill = {
+      url = "github:gaoyifan/open-kimi-ppt-skill";
+      flake = false;
+    };
   };
 
   outputs = {
