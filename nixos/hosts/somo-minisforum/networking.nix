@@ -13,6 +13,12 @@
   ];
 
   networking.hostName = "somo-minisforum";
+  boot.kernel.sysctl = {
+    "net.bridge.bridge-nf-call-arptables" = 0;
+    "net.bridge.bridge-nf-call-iptables" = 0;
+    "net.bridge.bridge-nf-call-ip6tables" = 0;
+  };
+
   networking.homeRouter.wgIplc = {
     ip = "11.13.112.80/24";
     privateKeyFile = config.services.secrets.filesDir + "/nixos/somo-minisforum/wg-iplc-private-key.age";
