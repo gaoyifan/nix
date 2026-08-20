@@ -101,8 +101,17 @@ in {
       home = "/var/lib/hermes";
       createHome = true;
       shell = pkgs.bashInteractive;
-      extraGroups = [
-        "podman"
+      subUidRanges = [
+        {
+          startUid = 100000;
+          count = 65536;
+        }
+      ];
+      subGidRanges = [
+        {
+          startGid = 100000;
+          count = 65536;
+        }
       ];
       openssh.authorizedKeys.keys = sshKeys;
     };
@@ -110,13 +119,15 @@ in {
   };
   programs.bash.loginShellInit = ''
     if [[ $USER == agent ]]; then
-      export CONTAINER_HOST=unix:///run/podman/podman.sock
+      export XDG_RUNTIME_DIR=/run/user/1000
+      export TMPDIR=/var/lib/hermes/podman-tmp
     fi
   '';
   virtualisation = {
     podman.enable = true;
     containers.containersConf.settings = {
       engine = {
+        cgroup_manager = "cgroupfs";
         runtime = "runsc";
         runtimes.runsc = ["${pkgs.gvisor}/bin/runsc"];
         runtimes_flags.runsc = [
@@ -126,6 +137,8 @@ in {
           "oci-seccomp=true"
           "watchdog-action=panic"
           "kvm-use-cpu-nums=true"
+          "directfs=false"
+          "ignore-cgroups=true"
         ];
       };
       containers = {
@@ -138,6 +151,11 @@ in {
   systemd.tmpfiles.rules = [
     "d /var/lib/containers/tmp 0700 root root - -"
     "d /var/lib/hermes 0750 agent agent - -"
+    "d /var/lib/hermes/podman 0700 agent agent - -"
+    "d /var/lib/hermes/podman-tmp 0700 agent agent - -"
+    # Rootless Podman persists its first RunRoot in the storage database.
+    "d /run/hermes-podman 0700 agent agent - -"
+    "d /run/user/1000 0700 agent agent - -"
     "d /var/lib/hermes/.ssh 0700 agent agent - -"
     "d /var/lib/hermes/ssh 0700 root root - -"
     "d /var/lib/hermes/.hermes/skills 2770 agent agent - -"
@@ -310,13 +328,12 @@ in {
 
   systemd.services.hermes-terminal-image = {
     description = "Load the Hermes terminal image into Podman";
-    after = ["podman.socket"];
-    requires = ["podman.socket"];
     before = ["hermes-agent.service"];
-    unitConfig.RequiresMountsFor = "/var/lib/containers /var/lib/hermes";
+    unitConfig.RequiresMountsFor = "/var/lib/hermes";
     environment = {
-      CONTAINER_HOST = "unix:///run/podman/podman.sock";
-      TMPDIR = "/var/lib/containers/tmp";
+      HOME = "/var/lib/hermes";
+      TMPDIR = "/var/lib/hermes/podman-tmp";
+      XDG_RUNTIME_DIR = "/run/user/1000";
     };
     path = [
       pkgs.coreutils
@@ -325,6 +342,8 @@ in {
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
+      User = "agent";
+      Group = "agent";
     };
     script = ''
       set -euo pipefail
@@ -338,7 +357,7 @@ in {
         podman load --input ${terminal.image}
       fi
 
-      install -d -o root -g root -m 0755 "$state_dir"
+      install -d -m 0700 "$state_dir"
       deployed_ref=""
       if [[ -f "$tag_file" ]]; then
         read -r deployed_ref < "$tag_file"
@@ -373,10 +392,16 @@ in {
     path = [config.virtualisation.podman.package];
     environment = {
       AGENT_BROWSER_EXECUTABLE_PATH = lib.getExe pkgs.chromium;
-      CONTAINER_HOST = "unix:///run/podman/podman.sock";
+      CONTAINER_HOST = lib.mkForce null;
       MESSAGING_CWD = lib.mkForce null;
+      TMPDIR = "/var/lib/hermes/podman-tmp";
+      XDG_RUNTIME_DIR = "/run/user/1000";
     };
-    serviceConfig.EnvironmentFile = "/etc/hermes/.env";
+    serviceConfig = {
+      Delegate = true;
+      EnvironmentFile = "/etc/hermes/.env";
+      NoNewPrivileges = lib.mkForce false;
+    };
   };
 
   systemd.services.hermes-dashboard = {
@@ -395,7 +420,6 @@ in {
     unitConfig.RequiresMountsFor = "/etc/hermes /var/lib/hermes";
     environment = {
       AGENT_BROWSER_EXECUTABLE_PATH = lib.getExe pkgs.chromium;
-      CONTAINER_HOST = "unix:///run/podman/podman.sock";
       HERMES_HOME = "/var/lib/hermes/.hermes";
       HERMES_MANAGED = "true";
       HOME = "/var/lib/hermes";
