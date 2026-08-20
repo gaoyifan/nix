@@ -117,19 +117,27 @@
         package != null && lib.meta.availableOn platform package
     )
     appSpecs;
-  resolvePackages = platform: packages:
+  resolvePackages = specs: packages:
     lib.mapAttrs (
       name: spec: lib.getAttrFromPath (packagePathOf name spec) packages
     )
-    (availableSpecs platform packages);
+    specs;
+  mkApps = packages:
+    lib.mapAttrs (name: spec: {
+      type = "app";
+      program = lib.getExe' packages.${name} (spec.program or name);
+      meta = packages.${name}.meta;
+    })
+    (lib.intersectAttrs packages appSpecs);
 in {
   mkPackages = {
     pkgs,
     customPackages,
   }: let
     platform = pkgs.stdenv.hostPlatform;
-    appPackages = resolvePackages platform (pkgs // customPackages);
-    customAppPackages = resolvePackages platform customPackages;
+    availablePackages = pkgs // customPackages;
+    appPackages = resolvePackages (availableSpecs platform availablePackages) availablePackages;
+    customAppPackages = resolvePackages (availableSpecs platform customPackages) customPackages;
   in
     customPackages
     // appPackages
@@ -139,13 +147,8 @@ in {
       );
     };
 
-  mkApps = packages:
-    lib.mapAttrs (name: spec: {
-      type = "app";
-      program = lib.getExe' packages.${name} (spec.program or name);
-      meta = packages.${name}.meta;
-    })
-    (lib.intersectAttrs packages appSpecs);
+  inherit mkApps;
+  mkLazyApps = packages: mkApps (resolvePackages appSpecs packages);
 
   mkHomeManager = pkgs: let
     relBinDir = ".local/share/nix-lazy-apps/bin";
@@ -170,9 +173,24 @@ in {
     '';
     mkWrapper = name: app: args: let
       appArgs = lib.optionalString (args != []) " ${lib.escapeShellArgs args}";
-      flakeApp = "git+https://github.com/gaoyifan/nix.git?ref=main&shallow=1#apps.${pkgs.stdenv.hostPlatform.system}.${app}";
-      resolveProgram = ''
-        program: let
+      nixpkgsInput =
+        if pkgs.stdenv.isDarwin
+        then "nixpkgs-darwin"
+        else "nixpkgs";
+      resolveExpression = ''
+        let
+          flake = builtins.getFlake "git+https://github.com/gaoyifan/nix.git?ref=main&shallow=1";
+          system = ${builtins.toJSON pkgs.stdenv.hostPlatform.system};
+          pkgs = import flake.inputs.${nixpkgsInput} {
+            inherit system;
+            config.allowUnfree = true;
+          };
+          customPackages = import (flake.outPath + "/pkgs") {
+            inputs = flake.inputs;
+            inherit pkgs;
+          };
+          cliApps = import (flake.outPath + "/cli-apps.nix") {inherit (pkgs) lib;};
+          program = (builtins.getAttr ${builtins.toJSON app} (cliApps.mkLazyApps (pkgs // customPackages))).program;
           context = builtins.getContext program;
           drvPath = builtins.head (builtins.attrNames context);
         in
@@ -192,7 +210,7 @@ in {
           exec "$program"${appArgs} "$@"
         fi
 
-        resolution="$(nix eval ${lib.escapeShellArgs nixCacheOptions} --raw ${lib.escapeShellArg "${flakeApp}.program"} --apply ${lib.escapeShellArg resolveProgram})" || exit $?
+        resolution="$(nix eval ${lib.escapeShellArgs nixCacheOptions} --impure --raw --expr ${lib.escapeShellArg resolveExpression})" || exit $?
         read -r program installable <<< "$resolution"
 
         if [[ ! -x "$program" ]]; then
