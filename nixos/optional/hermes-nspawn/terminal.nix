@@ -148,5 +148,18 @@ in {
     "/var/lib/hermes/workspace:/workspace"
     "/var/lib/hermes/.lark-cli:/root/.lark-cli:idmap=uids=1000-0-1;gids=1000-0-1"
     "/var/lib/hermes/.local/share/lark-cli:/root/.local/share/lark-cli:idmap=uids=1000-0-1;gids=1000-0-1"
+    # Work around hermes-agent#81717 staging uploads under the host HERMES_HOME
+    # while context-reference validation still exposes that host path to the
+    # sandbox. Keep these in sync with tools.credential_files._CACHE_DIRS until
+    # upstream accepts the staged attachment roots during @file validation.
+    "/var/lib/hermes/.hermes/cache/documents:/var/lib/hermes/.hermes/cache/documents:ro"
+    "/var/lib/hermes/.hermes/cache/images:/var/lib/hermes/.hermes/cache/images:ro"
+    "/var/lib/hermes/.hermes/cache/audio:/var/lib/hermes/.hermes/cache/audio:ro"
+    "/var/lib/hermes/.hermes/cache/videos:/var/lib/hermes/.hermes/cache/videos:ro"
+    "/var/lib/hermes/.hermes/cache/screenshots:/var/lib/hermes/.hermes/cache/screenshots:ro"
+    "/var/lib/hermes/.hermes/cache/web:/var/lib/hermes/.hermes/cache/web:ro"
+    "/var/lib/hermes/.hermes/cache/delegation:/var/lib/hermes/.hermes/cache/delegation:ro"
+    "/var/lib/hermes/.hermes/images:/var/lib/hermes/.hermes/images:ro"
+    "/var/lib/hermes/.hermes/attachments:/var/lib/hermes/.hermes/attachments:ro"
   ];
 }
