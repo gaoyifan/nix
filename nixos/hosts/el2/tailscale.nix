@@ -11,6 +11,8 @@
   containerTransitIpv4 = "10.255.124.2";
   hostTransitIpv6 = "fd00:124::1";
   containerTransitIpv6 = "fd00:124::2";
+  headscalePort = 41641;
+  chinanetMark = toString config.networking.homeRouter.wans.chinanet.routingTable;
 
   headscaleAdvertisedIpv4Routes = [
     "100.64.0.0/11"
@@ -100,6 +102,12 @@ in {
     localAddress = containerTransitIpv4;
     hostAddress6 = hostTransitIpv6;
     localAddress6 = containerTransitIpv6;
+    forwardPorts = [
+      {
+        protocol = "udp";
+        hostPort = headscalePort;
+      }
+    ];
     allowedDevices = [
       {
         node = "/dev/net/tun";
@@ -120,6 +128,19 @@ in {
         useHostResolvConf = false;
         nameservers = ["223.5.5.5"];
         firewall.enable = false;
+        nftables = {
+          enable = true;
+          tables.hs-router = {
+            family = "inet";
+            content = ''
+              chain postrouting {
+                type nat hook postrouting priority srcnat;
+                ip saddr ${hostTransitIpv4} ip daddr ${headscaleIpv4Route} oifname "tailscale0" masquerade
+                ip6 saddr ${hostTransitIpv6} ip6 daddr ${headscaleIpv6Route} oifname "tailscale0" masquerade
+              }
+            '';
+          };
+        };
         interfaces.eth0 = {
           ipv4.routes =
             [
@@ -177,6 +198,7 @@ in {
 
       services.tailscale = {
         enable = true;
+        port = headscalePort;
         authKeyFile = "/run/headscale-router-auth-key";
         useRoutingFeatures = "server";
         extraUpFlags = ["--login-server=https://headscale.auramont.cn"] ++ headscaleSetFlags;
@@ -229,4 +251,14 @@ in {
   networking.edgeFirewall.extraForwardRules = [
     ''iifname "ve-hs-router" ip saddr ${containerTransitIpv4} accept''
   ];
+
+  networking.nftables.tables.hs-router-egress = {
+    family = "inet";
+    content = ''
+      chain prerouting {
+        type filter hook prerouting priority mangle;
+        iifname "ve-hs-router" ip saddr ${containerTransitIpv4} meta mark set ${chinanetMark}
+      }
+    '';
+  };
 }
