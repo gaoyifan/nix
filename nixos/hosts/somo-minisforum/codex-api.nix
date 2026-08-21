@@ -5,6 +5,7 @@
   ...
 }: let
   hermesUsers = builtins.attrNames config.services.hermes-nspawn.containers;
+  apiKeyIds = ["honcho"] ++ map (user: "hermes-${user}") hermesUsers;
 in {
   imports = [inputs.codex-api.nixosModules.default];
 
@@ -23,14 +24,14 @@ in {
           };
         }
         // builtins.listToAttrs (
-          map (user: {
-            name = "new-api-tokens/hermes-${user}";
+          map (id: {
+            name = "new-api-tokens/${id}";
             value = {
               group = "codex-api";
               mode = "0440";
             };
           })
-          hermesUsers
+          apiKeyIds
         );
 
       services.codex-api = {
@@ -40,12 +41,12 @@ in {
           state.path = "/var/lib/codex-api/state.sqlite3";
           upstream.auth_file = config.age.secrets.somo-minisforum-codex-api-auth.path;
           api_keys =
-            map (user: {
-              id = "hermes-${user}";
-              secret_file = config.age.secrets."new-api-tokens/hermes-${user}".path;
+            map (id: {
+              inherit id;
+              secret_file = config.age.secrets."new-api-tokens/${id}".path;
               weekly_limit_usd = "500.00";
             })
-            hermesUsers;
+            apiKeyIds;
         };
       };
 

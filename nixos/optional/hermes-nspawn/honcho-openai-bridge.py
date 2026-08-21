@@ -11,7 +11,7 @@ from openai import OpenAIError
 
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
-new_api_base_url = os.environ["NEWAPI_BASE_URL"]
+codex_api_base_url = os.environ["CODEX_API_BASE_URL"]
 litellm.register_model(
     {
         "gpt-5.3-codex-spark": {
@@ -109,7 +109,7 @@ async def chat_completions(
         chunks = await litellm.acompletion(
             model=f"openai/responses/{model}",
             messages=messages,
-            api_base=new_api_base_url,
+            api_base=codex_api_base_url,
             api_key=api_key,
             stream=True,
             num_retries=0,
@@ -131,7 +131,7 @@ async def chat_completions(
                 status_code=502,
                 content={
                     "error": {
-                        "message": "NewAPI returned no completion chunks",
+                        "message": "Codex API returned no completion chunks",
                         "type": "upstream_error",
                         "param": None,
                         "code": None,

@@ -250,8 +250,8 @@ in {
           "${healthCheck}:/etc/honcho/healthcheck.py:ro"
         ];
         environment = {
+          CODEX_API_BASE_URL = "http://${listenAddress}:3002/v1";
           LITELLM_LOCAL_MODEL_COST_MAP = "true";
-          NEWAPI_BASE_URL = "http://127.0.0.1:3000/v1";
           PYTHONUNBUFFERED = "1";
         };
         extraOptions =
