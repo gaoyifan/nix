@@ -21,16 +21,18 @@
   remoteEndpoint = "${cfg.user}@${cfg.host}:${toString cfg.port}:/data/syncd-dotfiles";
   remoteRsyncRoot = "${cfg.user}@${cfg.host}:/data/syncd-dotfiles/";
   rsyncSshCommand = "${sshWrapper}/bin/ssh -F /dev/null -p ${toString cfg.port}";
+  ignoredPaths = [
+    ".codex/archived_sessions"
+    ".codex/cache"
+    ".codex/history.jsonl"
+    ".codex/models_cache.json"
+    ".codex/tmp"
+    ".codex/version.json"
+  ];
+  rsyncExcludeArguments = map (path: "--exclude=/${path}") ignoredPaths;
   sessionCreateArguments = lib.cli.toCommandLineGNU {} {
     compression = "deflate";
-    ignore = [
-      ".codex/archived_sessions"
-      ".codex/cache"
-      ".codex/history.jsonl"
-      ".codex/models_cache.json"
-      ".codex/tmp"
-      ".codex/version.json"
-    ];
+    ignore = ignoredPaths;
     label = lib.mapAttrsToList (name: value: "${name}=${value}") sessionLabels;
     mode = "two-way-safe";
     name = sessionName;
@@ -295,6 +297,7 @@
 
       mkdir -p ${lib.escapeShellArg localPath}
       rsync -a --delete \
+        ${lib.escapeShellArgs rsyncExcludeArguments} \
         -e ${lib.escapeShellArg rsyncSshCommand} \
         ${lib.escapeShellArg remoteRsyncRoot} \
         ${lib.escapeShellArg "${localPath}/"}
