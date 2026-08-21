@@ -15,6 +15,7 @@
   containerLan = container: homeRouter.lans.${containerLanName container};
   hostPkgs = pkgs;
   listenAddress = homeRouter.serviceAddresses.ipv4;
+  codexApiBaseUrl = "http://${listenAddress}:3002/v1";
   newApiBaseUrl = "http://${listenAddress}:3000/v1";
   containerNameFor = userName: "hermes-nix-${userName}";
   newApiTokenFile = userName: "${cfg.newApiTokenDirectory}/hermes-${userName}";
@@ -203,7 +204,7 @@ in {
           };
         };
         specialArgs = {
-          inherit containerName dashboardPublicUrl hostPkgs inputs newApiBaseUrl telegramBotApi telegramBotApiBaseUrl;
+          inherit codexApiBaseUrl containerName dashboardPublicUrl hostPkgs inputs newApiBaseUrl telegramBotApi telegramBotApiBaseUrl;
           aptProxyAddress = listenAddress;
         };
         config =

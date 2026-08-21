@@ -1,5 +1,6 @@
 {
   aptProxyAddress,
+  codexApiBaseUrl,
   config,
   containerName,
   dashboardPublicUrl,
@@ -219,6 +220,17 @@ in {
           "gpt-5.4".context_length = 272000;
           "gpt-5.4-mini".context_length = 272000;
           "gpt-5.5".context_length = 272000;
+          "gpt-5.6-sol".context_length = 272000;
+          "gpt-5.6-terra".context_length = 272000;
+          "gpt-5.6-luna".context_length = 272000;
+        };
+      };
+      providers.codex-api = {
+        api = codexApiBaseUrl;
+        key_env = "NEWAPI_API_KEY";
+        default_model = "gpt-5.6-sol";
+        transport = "codex_responses";
+        models = {
           "gpt-5.6-sol".context_length = 272000;
           "gpt-5.6-terra".context_length = 272000;
           "gpt-5.6-luna".context_length = 272000;
