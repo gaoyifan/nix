@@ -42,11 +42,8 @@ in {
   );
   home.stateVersion = "26.05";
   home.extraDependencies = [
-    (
-      if isDarwin
-      then inputs.nixpkgs-darwin.outPath
-      else inputs.nixpkgs.outPath
-    )
+    inputs.nixpkgs.outPath
+    inputs.nixpkgs-darwin.outPath
   ];
 
   i18n.glibcLocales = lib.mkIf isLinux (pkgs.glibcLocales.override {
