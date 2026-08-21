@@ -174,7 +174,7 @@ in {
             }
             {
               source_labels = ["__name__"];
-              regex = "node_network_(up|receive_errs_total|transmit_errs_total|receive_drop_total|transmit_drop_total)";
+              regex = "node_network_(up|carrier|receive_errs_total|transmit_errs_total|receive_drop_total|transmit_drop_total)";
               action = "keep";
             }
           ];
