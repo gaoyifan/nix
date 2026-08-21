@@ -68,6 +68,7 @@ in {
 
   virtualisation.incusVms = {
     enable = true;
+    metricsPort = 8444;
     pools = {
       default = {
         driver = "zfs";
