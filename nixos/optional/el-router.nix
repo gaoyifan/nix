@@ -34,9 +34,7 @@
 
   nftSet = values: lib.concatMapStringsSep ", " toString values;
   routingBypassRules = lib.concatStringsSep "\n" (
-    map (subnet: "ip saddr ${subnet} return") cfg.routingBypass.ipv4Subnets
-    ++ map (subnet: "ip daddr ${subnet} return") cfg.routingBypass.ipv4Subnets
-    ++ map (subnet: "ip6 saddr ${subnet} return") cfg.routingBypass.ipv6Subnets
+    map (subnet: "ip daddr ${subnet} return") cfg.routingBypass.ipv4Subnets
     ++ map (subnet: "ip6 daddr ${subnet} return") cfg.routingBypass.ipv6Subnets
   );
   returnSourceRules = lib.concatMapStringsSep "\n" (address: "ip saddr ${address} return") cfg.unclassifiedIpv4Sources;
@@ -66,12 +64,12 @@ in {
       ipv4Subnets = lib.mkOption {
         type = types.listOf types.str;
         default = ["100.64.0.0/10"];
-        description = "IPv4 Tailnet subnets excluded from WAN classification.";
+        description = "IPv4 Tailnet destinations excluded from WAN classification.";
       };
       ipv6Subnets = lib.mkOption {
         type = types.listOf types.str;
         default = ["fd7a:115c:a1e0::/48"];
-        description = "IPv6 Tailnet subnets excluded from WAN classification.";
+        description = "IPv6 Tailnet destinations excluded from WAN classification.";
       };
     };
   };
