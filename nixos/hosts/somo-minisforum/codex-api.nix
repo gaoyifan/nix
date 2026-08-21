@@ -5,7 +5,7 @@
   ...
 }: let
   hermesUsers = builtins.attrNames config.services.hermes-nspawn.containers;
-  apiKeyIds = ["honcho"] ++ map (user: "hermes-${user}") hermesUsers;
+  apiKeyIds = ["honcho" "immersive-translation"] ++ map (user: "hermes-${user}") hermesUsers;
 in {
   imports = [inputs.codex-api.nixosModules.default];
 
