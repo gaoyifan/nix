@@ -52,10 +52,6 @@ in {
     inherit newApiTokenDirectory;
     newApiTokenRestartTriggers = lib.mapAttrs (_: secret: secret.file) newApiTokens;
     dashboardDomain = "hermes.dengdengli.com";
-    honcho = {
-      newApiTokenFile = "${newApiTokenDirectory}/honcho";
-      newApiTokenFileSource = lib.attrByPath ["honcho" "file"] null newApiTokens;
-    };
     telegramBotApi = {
       enable = true;
       inherit (import (filesDir + "/nixos/somo-minisforum/telegram-bot-api.nix")) apiId;

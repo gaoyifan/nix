@@ -7,9 +7,9 @@
   cfg = config.services.hermes-nspawn;
   honcho = cfg.honcho;
   listenAddress = config.networking.homeRouter.serviceAddresses.ipv4;
-  newApiTokenRestartTriggers = lib.optional (honcho.newApiTokenFileSource != null) honcho.newApiTokenFileSource;
+  apiTokenFile = "${cfg.newApiTokenDirectory}/honcho";
+  apiTokenRestartTriggers = lib.optional (cfg.newApiTokenRestartTriggers ? honcho) cfg.newApiTokenRestartTriggers.honcho;
   honchoImage = "ghcr.io/plastic-labs/honcho:v3.0.12@sha256:1e9dbc40136d3f9213ce7482b0eecac914b630ee3e714ea961bd763945f94be5";
-  litellmImage = "docker.litellm.ai/berriai/litellm:v1.93.0@sha256:a1745e629abfb17d434426ff48b115f54f4f4c4a0f5af241de569e93c63c411e";
   runtimeEnvironmentFile = "/run/honcho/env";
   postgresqlSocket = "/run/postgresql";
   model = "gpt-5.6-luna";
@@ -54,16 +54,6 @@
   ];
 in {
   options.services.hermes-nspawn.honcho = {
-    newApiTokenFile = lib.mkOption {
-      type = lib.types.path;
-      description = "NewAPI token used by the shared Honcho backend.";
-    };
-    newApiTokenFileSource = lib.mkOption {
-      type = lib.types.nullOr lib.types.path;
-      default = null;
-      description = "Encrypted source file used to restart Honcho after token changes.";
-    };
-
     apiPort = lib.mkOption {
       type = lib.types.port;
       default = 8000;
@@ -104,7 +94,7 @@ in {
 
       honcho-runtime-env = {
         description = "Prepare the Honcho runtime environment";
-        restartTriggers = newApiTokenRestartTriggers;
+        restartTriggers = apiTokenRestartTriggers;
         path = [
           pkgs.coreutils
           pkgs.openssl
@@ -128,9 +118,9 @@ in {
           fi
 
           jwt_secret="$(tr -d '\r\n' < "$jwt_secret_file")"
-          newapi_token="$(tr -d '\r\n' < ${honcho.newApiTokenFile})"
-          if [[ -z "$newapi_token" ]]; then
-            echo "Honcho NewAPI token is empty" >&2
+          api_token="$(tr -d '\r\n' < ${apiTokenFile})"
+          if [[ -z "$api_token" ]]; then
+            echo "Honcho codex-api token is empty" >&2
             exit 1
           fi
 
@@ -142,8 +132,8 @@ in {
             'CACHE_URL=redis://127.0.0.1:6379/0?suppress=true' \
             'AUTH_USE_AUTH=true' \
             "AUTH_JWT_SECRET=$jwt_secret" \
-            "LLM_OPENAI_API_KEY=$newapi_token" \
-            'LLM_OPENAI_BASE_URL=http://127.0.0.1:4000/v1' \
+            "LLM_OPENAI_API_KEY=$api_token" \
+            'LLM_OPENAI_BASE_URL=http://${listenAddress}:3002/v1' \
             'DERIVER_MODEL_CONFIG__TRANSPORT=openai' \
             'DERIVER_MODEL_CONFIG__MODEL=${model}' \
             'DIALECTIC_LEVELS__minimal__MODEL_CONFIG__TRANSPORT=openai' \
@@ -216,50 +206,21 @@ in {
       podman-honcho-api = {
         after = [
           "honcho-database-init.service"
-          "podman-honcho-openai-bridge.service"
           "redis-honcho.service"
         ];
-        wants = ["podman-honcho-openai-bridge.service"];
         requires = [
           "honcho-database-init.service"
           "redis-honcho.service"
         ];
-        restartTriggers = newApiTokenRestartTriggers;
+        restartTriggers = apiTokenRestartTriggers;
       };
 
       podman-honcho-deriver = {
-        restartTriggers = newApiTokenRestartTriggers;
+        restartTriggers = apiTokenRestartTriggers;
       };
     };
 
     virtualisation.oci-containers.containers = {
-      honcho-openai-bridge = {
-        image = litellmImage;
-        entrypoint = "/app/.venv/bin/python";
-        cmd = [
-          "-m"
-          "uvicorn"
-          "honcho_openai_bridge:app"
-          "--host"
-          "0.0.0.0"
-          "--port"
-          "4000"
-        ];
-        volumes = [
-          "${./honcho-openai-bridge.py}:/app/honcho_openai_bridge.py:ro"
-          "${healthCheck}:/etc/honcho/healthcheck.py:ro"
-        ];
-        environment = {
-          CODEX_API_BASE_URL = "http://${listenAddress}:3002/v1";
-          LITELLM_LOCAL_MODEL_COST_MAP = "true";
-          PYTHONUNBUFFERED = "1";
-        };
-        extraOptions =
-          ["--network=host"]
-          ++ healthOptions "127.0.0.1" 4000 [];
-        podman.sdnotify = "healthy";
-      };
-
       honcho-api = {
         image = honchoImage;
         entrypoint = "/app/.venv/bin/fastapi";

@@ -37,7 +37,7 @@ in {
       services.codex-api = {
         enable = true;
         settings = {
-          server.listen = "198.18.255.254:3002";
+          server.listen = "0.0.0.0:3002";
           state.path = "/var/lib/codex-api/state.sqlite3";
           upstream.auth_file = config.age.secrets.somo-minisforum-codex-api-auth.path;
           api_keys =
