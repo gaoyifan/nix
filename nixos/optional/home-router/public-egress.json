@@ -298,7 +298,7 @@
           },
           "custom": {
             "drawStyle": "line",
-            "fillOpacity": 10,
+            "fillOpacity": 0,
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "showPoints": "never",
@@ -352,7 +352,7 @@
           },
           "custom": {
             "drawStyle": "line",
-            "fillOpacity": 10,
+            "fillOpacity": 0,
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "showPoints": "never",
@@ -406,7 +406,7 @@
           },
           "custom": {
             "drawStyle": "line",
-            "fillOpacity": 5,
+            "fillOpacity": 0,
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "showPoints": "never",
@@ -467,7 +467,7 @@
           },
           "custom": {
             "drawStyle": "line",
-            "fillOpacity": 10,
+            "fillOpacity": 0,
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "showPoints": "never",
@@ -521,7 +521,7 @@
           },
           "custom": {
             "drawStyle": "line",
-            "fillOpacity": 10,
+            "fillOpacity": 0,
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "showPoints": "never",
