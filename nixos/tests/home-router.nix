@@ -25,6 +25,11 @@
         exit 1
       }
 
+      counter_bytes() {
+        nft --json list counter inet home-router "$1" |
+          ${pkgs.jq}/bin/jq --exit-status --raw-output '.nftables[] | select(.counter != null) | .counter.bytes'
+      }
+
       ip netns add upstream
       ip link add uplink0 type veth peer name upstream0
       ip link set upstream0 netns upstream
@@ -105,6 +110,37 @@
       ip netns exec guest ping -c 1 -W 2 203.0.113.10
       wait "$capture_pid"
       grep -F '192.0.2.2 > 203.0.113.10' /tmp/wlt-chinanet-capture
+
+      systemctl stop \
+        prometheus-ping-cernet-exporter.service \
+        prometheus-ping-chinanet-exporter.service \
+        prometheus-ping-cmcc-exporter.service
+
+      chinanet_receive_before="$(counter_bytes home_router_wan_1_receive)"
+      chinanet_transmit_before="$(counter_bytes home_router_wan_1_transmit)"
+      cmcc_receive_before="$(counter_bytes home_router_wan_2_receive)"
+      cmcc_transmit_before="$(counter_bytes home_router_wan_2_transmit)"
+
+      ip netns exec upstream ping -c 1 -W 2 192.0.2.2
+
+      test "$(counter_bytes home_router_wan_1_receive)" -gt "$chinanet_receive_before"
+      test "$(counter_bytes home_router_wan_1_transmit)" -gt "$chinanet_transmit_before"
+      test "$(counter_bytes home_router_wan_2_receive)" -eq "$cmcc_receive_before"
+      test "$(counter_bytes home_router_wan_2_transmit)" -eq "$cmcc_transmit_before"
+
+      ip netns exec upstream ping -c 1 -W 2 192.0.2.3
+
+      test "$(counter_bytes home_router_wan_2_receive)" -gt "$cmcc_receive_before"
+      test "$(counter_bytes home_router_wan_2_transmit)" -gt "$cmcc_transmit_before"
+      test "$(counter_bytes home_router_wan_0_receive)" -gt 0
+      test "$(counter_bytes home_router_wan_0_transmit)" -gt 0
+
+      systemctl start home-router-wan-metrics.service
+      grep -F 'home_router_wan_receive_bytes_total{wan="cernet"}' /run/prometheus-node-exporter/home-router-wan.prom
+      grep -F 'home_router_wan_transmit_bytes_total{wan="chinanet"}' /run/prometheus-node-exporter/home-router-wan.prom
+      grep -F 'home_router_wan_transmit_bytes_total{wan="cmcc"}' /run/prometheus-node-exporter/home-router-wan.prom
+      ${pkgs.curl}/bin/curl --fail --silent http://127.0.0.1:9100/metrics |
+        grep -F 'home_router_wan_receive_bytes_total{wan="chinanet"}'
     '';
   in {
     imports = [

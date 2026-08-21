@@ -270,14 +270,14 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "rate(node_network_receive_bytes_total{wan=~\"$wan\"}[$__rate_interval]) * 8",
+          "expr": "rate(home_router_wan_receive_bytes_total{wan=~\"$wan\"}[$__rate_interval]) * 8",
           "legendFormat": "{{wan}} RX",
           "range": true,
           "refId": "A"
         },
         {
           "editorMode": "code",
-          "expr": "rate(node_network_transmit_bytes_total{wan=~\"$wan\"}[$__rate_interval]) * 8",
+          "expr": "rate(home_router_wan_transmit_bytes_total{wan=~\"$wan\"}[$__rate_interval]) * 8",
           "legendFormat": "{{wan}} TX",
           "range": true,
           "refId": "B"
