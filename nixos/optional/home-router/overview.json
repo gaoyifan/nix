@@ -609,7 +609,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "node_network_speed_bytes{device=~\"$interface\"} * 8",
+          "expr": "node_network_speed_bytes{job=\"node\", device=~\"$interface\"} * 8",
           "instant": true,
           "legendFormat": "{{device}}",
           "range": false,
@@ -669,7 +669,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "increase(node_network_carrier_changes_total{device=~\"$interface\"}[$__range])",
+          "expr": "increase(node_network_carrier_changes_total{job=\"node\", device=~\"$interface\"}[$__range])",
           "instant": true,
           "legendFormat": "{{device}}",
           "range": false,
@@ -723,14 +723,14 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "rate(node_network_receive_bytes_total{device=~\"$interface\"}[$__rate_interval]) * 8",
+          "expr": "rate(node_network_receive_bytes_total{job=\"node\", device=~\"$interface\"}[$__rate_interval]) * 8",
           "legendFormat": "{{device}} RX",
           "range": true,
           "refId": "A"
         },
         {
           "editorMode": "code",
-          "expr": "rate(node_network_transmit_bytes_total{device=~\"$interface\"}[$__rate_interval]) * 8",
+          "expr": "rate(node_network_transmit_bytes_total{job=\"node\", device=~\"$interface\"}[$__rate_interval]) * 8",
           "legendFormat": "{{device}} TX",
           "range": true,
           "refId": "B"
@@ -783,14 +783,14 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "rate(node_network_receive_packets_total{device=~\"$interface\"}[$__rate_interval])",
+          "expr": "rate(node_network_receive_packets_total{job=\"node\", device=~\"$interface\"}[$__rate_interval])",
           "legendFormat": "{{device}} RX",
           "range": true,
           "refId": "A"
         },
         {
           "editorMode": "code",
-          "expr": "rate(node_network_transmit_packets_total{device=~\"$interface\"}[$__rate_interval])",
+          "expr": "rate(node_network_transmit_packets_total{job=\"node\", device=~\"$interface\"}[$__rate_interval])",
           "legendFormat": "{{device}} TX",
           "range": true,
           "refId": "B"
@@ -844,28 +844,28 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "rate(node_network_receive_errs_total{device=~\"$interface\"}[$__rate_interval])",
+          "expr": "rate(node_network_receive_errs_total{job=\"node\", device=~\"$interface\"}[$__rate_interval])",
           "legendFormat": "{{device}} RX errors",
           "range": true,
           "refId": "A"
         },
         {
           "editorMode": "code",
-          "expr": "rate(node_network_transmit_errs_total{device=~\"$interface\"}[$__rate_interval])",
+          "expr": "rate(node_network_transmit_errs_total{job=\"node\", device=~\"$interface\"}[$__rate_interval])",
           "legendFormat": "{{device}} TX errors",
           "range": true,
           "refId": "B"
         },
         {
           "editorMode": "code",
-          "expr": "rate(node_network_receive_drop_total{device=~\"$interface\"}[$__rate_interval])",
+          "expr": "rate(node_network_receive_drop_total{job=\"node\", device=~\"$interface\"}[$__rate_interval])",
           "legendFormat": "{{device}} RX drops",
           "range": true,
           "refId": "C"
         },
         {
           "editorMode": "code",
-          "expr": "rate(node_network_transmit_drop_total{device=~\"$interface\"}[$__rate_interval])",
+          "expr": "rate(node_network_transmit_drop_total{job=\"node\", device=~\"$interface\"}[$__rate_interval])",
           "legendFormat": "{{device}} TX drops",
           "range": true,
           "refId": "D"
