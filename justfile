@@ -169,7 +169,7 @@ nixos:
     source <({{ self_just }} _emit_nix_env)
     source <({{ self_just }} _emit_flake_ref)
     {{ self_just }} _write_username
-    sudo nixos-rebuild switch --accept-flake-config --flake "$FLAKE_REF" --option eval-cache false
+    sudo --preserve-env=SSH_AUTH_SOCK nixos-rebuild switch --accept-flake-config --flake "$FLAKE_REF" --option eval-cache false
 
 # Switch this machine's system-manager configuration
 system:
