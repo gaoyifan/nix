@@ -562,7 +562,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "node_network_up{device=~\"$interface\"}",
+          "expr": "node_network_carrier{job=\"node\", device=~\"$interface\"}",
           "instant": true,
           "legendFormat": "{{device}}",
           "range": false,
