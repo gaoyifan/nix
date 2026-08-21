@@ -95,6 +95,10 @@ in {
         "security.csm" = "true";
         "security.secureboot" = "false";
       };
+      extraDevices.agent = {
+        type = "disk";
+        source = "agent:config";
+      };
     };
 
     instances.debian23-openclaw = {
@@ -241,6 +245,10 @@ in {
         '';
       };
       extraDevices = {
+        agent = {
+          type = "disk";
+          source = "agent:config";
+        };
         downloads = {
           type = "disk";
           source = "/pool0/media1/downloads";

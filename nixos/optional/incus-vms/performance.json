@@ -252,7 +252,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "100 * (1 - sum(incus_filesystem_avail_bytes{job=\"incus\",type=\"virtual-machine\",name=~\"$vm\",mountpoint=\"/\"}) / sum(incus_filesystem_size_bytes{job=\"incus\",type=\"virtual-machine\",name=~\"$vm\",mountpoint=\"/\"}))",
+          "expr": "100 * (1 - sum(incus_filesystem_avail_bytes{job=\"incus\",type=\"virtual-machine\",name=~\"$vm\",mountpoint=~\"/|C:\"}) / sum(incus_filesystem_size_bytes{job=\"incus\",type=\"virtual-machine\",name=~\"$vm\",mountpoint=~\"/|C:\"}))",
           "instant": true,
           "legendFormat": "Root filesystem",
           "range": false,
@@ -419,17 +419,17 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "rate(incus_disk_read_bytes_total{job=\"incus\",type=\"virtual-machine\",name=~\"$vm\",device=\"sda\"}[$__rate_interval])",
+          "expr": "rate(incus_disk_read_bytes_total{job=\"incus\",type=\"virtual-machine\",name=~\"$vm\"}[$__rate_interval])",
           "instant": false,
-          "legendFormat": "{{name}} read",
+          "legendFormat": "{{name}} {{device}} read",
           "range": true,
           "refId": "A"
         },
         {
           "editorMode": "code",
-          "expr": "rate(incus_disk_written_bytes_total{job=\"incus\",type=\"virtual-machine\",name=~\"$vm\",device=\"sda\"}[$__rate_interval])",
+          "expr": "rate(incus_disk_written_bytes_total{job=\"incus\",type=\"virtual-machine\",name=~\"$vm\"}[$__rate_interval])",
           "instant": false,
-          "legendFormat": "{{name}} write",
+          "legendFormat": "{{name}} {{device}} write",
           "range": true,
           "refId": "B"
         }
@@ -482,17 +482,17 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "rate(incus_network_receive_bytes_total{job=\"incus\",type=\"virtual-machine\",name=~\"$vm\",device=\"enp5s0\"}[$__rate_interval])",
+          "expr": "rate(incus_network_receive_bytes_total{job=\"incus\",type=\"virtual-machine\",name=~\"$vm\"}[$__rate_interval])",
           "instant": false,
-          "legendFormat": "{{name}} receive",
+          "legendFormat": "{{name}} {{device}} receive",
           "range": true,
           "refId": "A"
         },
         {
           "editorMode": "code",
-          "expr": "rate(incus_network_transmit_bytes_total{job=\"incus\",type=\"virtual-machine\",name=~\"$vm\",device=\"enp5s0\"}[$__rate_interval])",
+          "expr": "rate(incus_network_transmit_bytes_total{job=\"incus\",type=\"virtual-machine\",name=~\"$vm\"}[$__rate_interval])",
           "instant": false,
-          "legendFormat": "{{name}} transmit",
+          "legendFormat": "{{name}} {{device}} transmit",
           "range": true,
           "refId": "B"
         }
