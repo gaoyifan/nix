@@ -23,7 +23,6 @@
   };
 
   users.users.root.openssh.authorizedKeys.keys = [
-    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIKB07e9NGMc9k4soiOCpRdiRySfiUqu1BaRYb1wtBMu root@nfs2"
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICvHyQJ4IcT/2+yIOkogklx/qCd3HfRcwN2RLgjzlXmq root@nfs3"
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKy9koomKIJUK+x2SN8gZkurFngrjHLZnRroG00EyTv4 root@el2"
   ];
