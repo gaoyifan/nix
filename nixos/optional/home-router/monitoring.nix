@@ -18,8 +18,10 @@
     "2606:4700:4700::1111"
     "2001:4860:4860::8888"
   ];
-  ipv4Targets = lib.filter (target: !lib.hasInfix ":" target) probeTargets;
-  ipv6Targets = lib.filter (target: lib.hasInfix ":" target) probeTargets;
+  isIpv6 = address: lib.hasInfix ":" address;
+  isIpv4 = address: !isIpv6 address;
+  ipv4Targets = lib.filter isIpv4 probeTargets;
+  ipv6Targets = lib.filter isIpv6 probeTargets;
   addressWithoutPrefix = address: lib.head (lib.splitString "/" address);
   allInterfaceNames = lib.unique (
     map (lan: lan.interface) (lib.attrValues cfg.lans)
@@ -43,15 +45,13 @@
         > 1;
       targets = let
         wan = cfg.wans.${name};
-        staticAddressFamilies =
-          lib.optionals (wan.gateway4 != null) ipv4Targets
-          ++ lib.optionals (wan.gateway6 != null) ipv6Targets;
+        hasRoute = family: route: route ? Destination && family route.Destination;
       in
-        if staticAddressFamilies == []
-        then ipv4Targets ++ ipv6Targets
-        else staticAddressFamilies;
+        lib.optionals (wan.dhcp || wan.gateway4 != null || lib.any isIpv4 wan.addresses || lib.any (hasRoute isIpv4) wan.routes) ipv4Targets
+        ++ lib.optionals (wan.dhcp || wan.gateway6 != null || lib.any isIpv6 wan.addresses || lib.any (hasRoute isIpv6) wan.routes) ipv6Targets;
     })
     monitoringCfg.wans;
+  monitoredTargets = lib.unique (lib.concatMap (wan: wan.targets) monitoredWans);
   wanCounterName = wan: direction: "home_router_wan_${wan.counterId}_${direction}";
   wanCounterDefinitions =
     lib.concatMapStringsSep "\n" (wan: ''
@@ -146,10 +146,10 @@
       })
       (grafanaDashboard.customVariable {
         name = "target";
-        query = lib.concatStringsSep "," probeTargets;
+        query = lib.concatStringsSep "," monitoredTargets;
         current = {
-          text = lib.take 4 probeTargets;
-          value = lib.take 4 probeTargets;
+          text = lib.take 4 monitoredTargets;
+          value = lib.take 4 monitoredTargets;
         };
         label = "Probe Targets";
       })
