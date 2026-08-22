@@ -42,6 +42,5 @@
       ipv6Address = "2606:4700:110:8e8b:797f:40b6:888f:acfb";
       reserved = "0x1b0ed6";
     };
-    tailscale.port = 6627;
   };
 }

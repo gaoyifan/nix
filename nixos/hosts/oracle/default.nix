@@ -76,7 +76,6 @@
 
   services = {
     journald.extraConfig = "SystemMaxUse=256M";
-    tailscale.port = 6627;
   };
 
   services.resticBackup.extraPaths = ["/var/lib/bitmagnet-crawler"];

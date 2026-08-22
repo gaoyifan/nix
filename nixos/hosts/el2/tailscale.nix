@@ -83,7 +83,6 @@ in {
       "--advertise-connector"
       "--advertise-routes=${lib.concatStringsSep "," primaryAdvertisedRoutes}"
     ];
-    port = 6627;
     serve = {
       enable = true;
       services = {

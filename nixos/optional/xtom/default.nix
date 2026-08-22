@@ -45,7 +45,6 @@
         SaveIntervalSec=15min
       '';
     };
-    tailscale.port = 6627;
   };
 
   nix.settings = {

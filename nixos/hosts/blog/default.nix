@@ -65,7 +65,6 @@ in {
         "podman-light-single"
       ];
     };
-    tailscale.port = 6627;
     tmate-ssh-server = {
       enable = true;
       host = "tmate.yfgao.com";

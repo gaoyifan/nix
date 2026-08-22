@@ -8,7 +8,6 @@ in {
 
   services.tailscale = {
     extraUpFlags = flags;
-    port = 6627;
   };
 
   systemd.tmpfiles.rules = ["Z /var/lib/tailscale 0700 root root -"];

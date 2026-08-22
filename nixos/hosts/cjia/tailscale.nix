@@ -4,7 +4,6 @@ in {
   imports = [../../optional/tailscale-gnet.nix];
 
   services.tailscale = {
-    port = 6627;
     extraUpFlags = routeFlags;
   };
 }

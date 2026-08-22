@@ -43,6 +43,4 @@
       };
     };
   };
-
-  services.tailscale.port = 6627;
 }
