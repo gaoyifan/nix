@@ -33,6 +33,7 @@ rec {
   jip = import ./jip.nix {inherit pkgs;};
   lightningstream = import ./lightningstream.nix {inherit pkgs;};
   nylon = import ./nylon.nix {inherit pkgs;};
+  znapzend = import ./znapzend.nix {inherit pkgs;};
 }
 // pkgs.lib.optionalAttrs (pkgs.stdenv.hostPlatform.system == "aarch64-linux") {
   nanopi-r4s-uboot = import ./nanopi-r4s-uboot.nix {inherit pkgs;};

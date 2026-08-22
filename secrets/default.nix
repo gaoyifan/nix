@@ -7,6 +7,7 @@
     if hasRealFiles
     then ./files
     else ./files-example;
+  mail = import (filesDir + "/nixos/mail.nix");
 in {
   options.services.secrets = {
     hasRealFiles = lib.mkOption {
@@ -22,6 +23,26 @@ in {
       default = filesDir;
       internal = true;
       description = "Directory containing private metadata and encrypted files.";
+    };
+
+    mail = lib.mkOption {
+      type = lib.types.submodule {
+        options = {
+          smtpUser = lib.mkOption {
+            type = lib.types.str;
+          };
+          senders = lib.mkOption {
+            type = lib.types.attrsOf lib.types.str;
+          };
+          znapzendErrorSummaryTo = lib.mkOption {
+            type = lib.types.str;
+          };
+        };
+      };
+      default = mail;
+      readOnly = true;
+      internal = true;
+      description = "Private mail addresses used by system services.";
     };
   };
 }

@@ -9,6 +9,7 @@
     inputs.restic-115.nixosModules.default
     inputs.restic-123pan.nixosModules.default
     inputs.restic-sync.nixosModules.default
+    ../../optional/znapzend-mail.nix
   ];
 
   age.secrets = lib.mkIf config.services.secrets.hasRealFiles {
@@ -181,7 +182,6 @@
   services.znapzend = {
     enable = true;
     logLevel = "warning";
-    mailErrorSummaryTo = "znapzend@yfgao.com";
     features = {
       sendRaw = true;
       zfsGetType = true;
