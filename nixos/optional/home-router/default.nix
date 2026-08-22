@@ -61,9 +61,6 @@ in {
       "net.ipv6.conf.all.forwarding" = true;
     };
 
-    systemd.network.config.networkConfig = {
-      ManageForeignRoutes = false;
-      ManageForeignRoutingPolicyRules = false;
-    };
+    systemd.network.config.networkConfig.ManageForeignRoutes = false;
   };
 }

@@ -96,6 +96,8 @@ in {
     # forms and runtime-generated fragments cannot be represented by networkd,
     # so splitting static rules into .network files would leave two competing
     # owners and make reconciliation less predictable.
+    systemd.network.config.networkConfig.ManageForeignRoutingPolicyRules = false;
+
     systemd.services.policy-routing = {
       description = "Declarative RPDB policy routing";
       wantedBy = ["multi-user.target"];
