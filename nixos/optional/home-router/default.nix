@@ -48,11 +48,7 @@ in {
         }
       '';
     };
-    networking.policyRouting = {
-      enable = true;
-      ipv4.routingPolicyRules.main = ["lookup main suppress_prefixlength 0"];
-      ipv6.routingPolicyRules.main = ["lookup main suppress_prefixlength 0"];
-    };
+    networking.policyRouting.enable = true;
 
     boot.kernel.sysctl = {
       "net.ipv4.conf.*.rp_filter" = 0;

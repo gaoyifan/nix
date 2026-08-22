@@ -81,6 +81,11 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
+    networking.policyRouting = {
+      ipv4.routingPolicyRules.main = lib.mkDefault ["lookup main suppress_prefixlength 0"];
+      ipv6.routingPolicyRules.main = lib.mkDefault ["lookup main suppress_prefixlength 0"];
+    };
+
     assertions = [
       {
         assertion = prioritiesAreUnique "ipv4";
