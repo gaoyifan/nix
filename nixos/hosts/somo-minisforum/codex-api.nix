@@ -40,6 +40,7 @@ in {
           server.listen = "0.0.0.0:3002";
           state.path = "/var/lib/codex-api/state.sqlite3";
           upstream.auth_file = config.age.secrets.somo-minisforum-codex-api-auth.path;
+          model_prices."gpt-5.6-sol".max_reasoning_effort = "high";
           api_keys =
             map (id: {
               inherit id;
