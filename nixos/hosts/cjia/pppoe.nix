@@ -5,7 +5,7 @@
   ...
 }: let
   pppIpUp = pkgs.writeShellScript "cjia-ppp-ip-up" ''
-    ${lib.getExe' pkgs.systemd "systemctl"} try-restart nylon.service
+    ${lib.getExe' pkgs.systemd "systemctl"} restart nylon.service
   '';
 in {
   age.secrets = lib.mkIf config.services.secrets.hasRealFiles {
