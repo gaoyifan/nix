@@ -85,6 +85,12 @@ jobs:
       - name: Build devshell
         run: nix build --accept-flake-config .#devShells.${{ matrix.system }}.default -o result-devshell
 
+      - name: Prefetch Hermes npm dependencies
+        if: matrix.system == 'x86_64-linux'
+        run: |
+          nix build --accept-flake-config --max-jobs 32 --no-link \
+            .#packages.${{ matrix.system }}.hermes-npm-deps
+
       - name: Build NixOS host configurations
         if: runner.os == 'Linux'
         run: |

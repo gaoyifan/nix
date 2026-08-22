@@ -43,6 +43,9 @@
     }
     // nixpkgs.lib.optionalAttrs (system == "aarch64-linux") {
       nanopi-r4s-bootstrap-image = self.nixosConfigurations.nanopi-r4s-bootstrap.config.system.build.sdImage;
+    }
+    // nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
+      hermes-npm-deps = inputs.hermes-agent.packages.${system}.web.npmDeps;
     });
 
   apps = forAllSystems (system: cliApps.mkApps self.packages.${system});
