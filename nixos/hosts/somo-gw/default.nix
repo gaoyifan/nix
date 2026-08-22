@@ -71,12 +71,5 @@ in {
     ];
   };
 
-  # nixos-anywhere restores migrated Caddy and Tailscale state as root-owned
-  # files. Normalize ownership before the services start.
-  systemd.tmpfiles.rules = [
-    "Z /var/lib/caddy 0750 caddy caddy -"
-    "Z /var/lib/tailscale 0700 root root -"
-  ];
-
   system.stateVersion = "26.05";
 }

@@ -9,6 +9,4 @@ in {
   services.tailscale = {
     extraUpFlags = flags;
   };
-
-  systemd.tmpfiles.rules = ["Z /var/lib/tailscale 0700 root root -"];
 }
