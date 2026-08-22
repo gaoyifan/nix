@@ -26,6 +26,10 @@
         name = "nixos-hosts-cache";
         constituents = map (node: node.profiles.system.path) nixosProfiles;
       };
+      system-manager-hosts-cache = pkgs.releaseTools.aggregate {
+        name = "system-manager-hosts-cache";
+        constituents = builtins.attrValues self.systemConfigs.${system};
+      };
       nixos-disk-writer-kexec =
         (nixpkgs.lib.nixosSystem {
           inherit system;

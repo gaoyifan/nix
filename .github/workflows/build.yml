@@ -116,13 +116,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          system_manager_configs=(
-            .#systemConfigs.${{ matrix.system }}.default
-            .#systemConfigs.${{ matrix.system }}.el2
-          )
-
           nix build --accept-flake-config --no-link --print-out-paths \
-            "${system_manager_configs[@]}" \
+            .#packages.${{ matrix.system }}.system-manager-hosts-cache \
             | tee -a cache-store-paths
 
       - name: Switch home-manager configuration
