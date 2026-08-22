@@ -26,15 +26,6 @@
         ''
       ];
     };
-    nftables.tables.tailscale-exit-nat = {
-      family = "inet";
-      content = ''
-        chain postrouting {
-          type nat hook postrouting priority srcnat; policy accept;
-          iifname "tailscale0" oifname "eno2" masquerade
-        }
-      '';
-    };
     policyRouting = {
       enable = true;
       ipv4.routingPolicyRules = {
