@@ -6,19 +6,20 @@
 }: let
   cfg = config.networking.homeRouter;
   monitoringCfg = cfg.monitoring;
+  grafanaDashboard = import ../grafana-dashboard.nix;
   pingPort = 9427;
-  ipv4Targets = [
+  probeTargets = [
     "223.5.5.5"
     "119.29.29.29"
     "180.76.76.76"
+    "2400:3200::1"
     "1.1.1.1"
     "8.8.8.8"
-  ];
-  ipv6Targets = [
-    "2400:3200::1"
     "2606:4700:4700::1111"
     "2001:4860:4860::8888"
   ];
+  ipv4Targets = lib.filter (target: !lib.hasInfix ":" target) probeTargets;
+  ipv6Targets = lib.filter (target: lib.hasInfix ":" target) probeTargets;
   addressWithoutPrefix = address: lib.head (lib.splitString "/" address);
   allInterfaceNames = lib.unique (
     map (lan: lan.interface) (lib.attrValues cfg.lans)
@@ -116,18 +117,44 @@
     ${pkgs.coreutils}/bin/chmod 0644 "$metrics_file"
     ${pkgs.coreutils}/bin/mv "$metrics_file" ${lib.escapeShellArg wanMetricsFile}
   '';
-  overviewDashboard = pkgs.writeTextDir "home-router-overview.json" (
-    builtins.replaceStrings
-    ["__HOME_ROUTER_INTERFACES__"]
-    [(lib.concatStringsSep "," allInterfaceNames)]
-    (builtins.readFile ./overview.json)
-  );
-  publicEgressDashboard = pkgs.writeTextDir "home-router-public-egress.json" (
-    builtins.replaceStrings
-    ["__MONITORED_WANS__"]
-    [(lib.concatMapStringsSep "," (wan: wan.name) monitoredWans)]
-    (builtins.readFile ./public-egress.json)
-  );
+  overviewDashboard = pkgs.writeTextDir "home-router-overview.json" (builtins.toJSON (grafanaDashboard.build {
+    source = import ./overview.nix;
+    variables = [
+      (grafanaDashboard.customVariable {
+        name = "interface";
+        query = lib.concatStringsSep "," allInterfaceNames;
+        current = {
+          text = "All";
+          value = "$__all";
+        };
+        label = "Interfaces";
+      })
+    ];
+  }));
+  publicEgressDashboard = pkgs.writeTextDir "home-router-public-egress.json" (builtins.toJSON (grafanaDashboard.build {
+    source = import ./public-egress.nix;
+    variables = [
+      (grafanaDashboard.customVariable {
+        name = "wan";
+        query = lib.concatMapStringsSep "," (wan: wan.name) monitoredWans;
+        current = {
+          text = "All";
+          value = "$__all";
+        };
+        allValue = ".+";
+        label = "WAN";
+      })
+      (grafanaDashboard.customVariable {
+        name = "target";
+        query = lib.concatStringsSep "," probeTargets;
+        current = {
+          text = lib.take 4 probeTargets;
+          value = lib.take 4 probeTargets;
+        };
+        label = "Probe Targets";
+      })
+    ];
+  }));
 in {
   config = lib.mkIf (cfg.enable && monitoringCfg.enable) {
     assertions = [

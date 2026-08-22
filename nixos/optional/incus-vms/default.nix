@@ -6,6 +6,7 @@
 }: let
   cfg = config.virtualisation.incusVms;
   incus = "${config.virtualisation.incus.package}/bin/incus";
+  grafanaDashboard = import ../grafana-dashboard.nix;
 
   nicHostName = vm: let
     mac = lib.replaceStrings [":"] [""] vm.macAddress;
@@ -324,7 +325,16 @@ in {
         {
           name = "incus-vm-performance";
           options.path = pkgs.writeTextDir "incus-vm-performance.json" (
-            builtins.readFile ./performance.json
+            builtins.toJSON (grafanaDashboard.build {
+              source = import ./performance.nix;
+              variables = [
+                (grafanaDashboard.queryVariable {
+                  name = "vm";
+                  label = "Virtual machines";
+                  query = ''label_values(incus_boot_time_seconds{job="incus",type="virtual-machine"}, name)'';
+                })
+              ];
+            })
           );
         }
       ];
