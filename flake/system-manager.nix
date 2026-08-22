@@ -7,26 +7,19 @@
   ...
 }: let
   resticBackupHosts = [
-    "CJIA-GW.gaof.net"
     "bitmagnet"
-    "debian21"
     "debian41"
     "docker"
     "docker22"
-    "el2"
-    "el2.gaof.net"
     "misc0-61"
     "misc0-sz"
     "misc1"
     "nfs"
-    "nfs2"
     "oracle"
   ];
   tailscaleUserspaceHosts = [
     "debian20"
-    "debian21"
     "debian22"
-    "debian23-hermes"
     "debian40"
     "debian41"
     "debian42"
