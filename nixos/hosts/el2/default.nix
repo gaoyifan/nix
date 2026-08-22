@@ -1,4 +1,8 @@
-{pkgs, ...}: {
+{
+  pkgs,
+  username,
+  ...
+}: {
   imports = [
     ./disk-config.nix
     ./hardware-configuration.nix
@@ -35,7 +39,17 @@
 
   environment.systemPackages = [pkgs.mbuffer];
 
-  services.resticBackup.extraPaths = ["/var/lib/wireguard"];
+  services.resticBackup = {
+    extraPaths = ["/var/lib/wireguard"];
+    # Restic evaluates re-inclusion rules in order.
+    extraExcludes = [
+      "!/home/${username}/.syncd-dotfiles"
+      "/home/${username}/.syncd-dotfiles/*"
+      "!/home/${username}/.syncd-dotfiles/.codex"
+      "/home/${username}/.syncd-dotfiles/.codex/*"
+      "!/home/${username}/.syncd-dotfiles/.codex/archived_sessions"
+    ];
+  };
 
   systemd.targets.el2-services = {
     description = "Services using manually unlocked datasets";
