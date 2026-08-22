@@ -14,7 +14,6 @@
     "misc0-61"
     "misc0-sz"
     "misc1"
-    "nfs"
     "oracle"
   ];
   tailscaleUserspaceHosts = [
