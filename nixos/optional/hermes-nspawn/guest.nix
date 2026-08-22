@@ -204,9 +204,9 @@ in {
     };
     settings = {
       model = {
-        provider = "newapi";
+        provider = "codex-api";
         default = "gpt-5.6-sol";
-        base_url = newApiBaseUrl;
+        base_url = codexApiBaseUrl;
         api_mode = "codex_responses";
       };
       providers.newapi = {
