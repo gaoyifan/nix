@@ -9,7 +9,6 @@
     ];
     useDHCP = false;
     useNetworkd = true;
-    firewall.enable = false;
     edgeFirewall = {
       enable = true;
       extraPublicTcpPorts = [

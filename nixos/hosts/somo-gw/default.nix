@@ -48,7 +48,6 @@ in {
     virtualHosts = caddySecrets.virtualHosts or {};
   };
 
-  networking.firewall.enable = false;
   networking.edgeFirewall = {
     enable = true;
     extraPublicTcpPorts = [

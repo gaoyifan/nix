@@ -8,7 +8,6 @@
       "202.38.64.17"
       "202.38.64.56"
     ];
-    firewall.enable = false;
     edgeFirewall = {
       enable = true;
       extraInputRules = [

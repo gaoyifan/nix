@@ -80,6 +80,7 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
+    networking.firewall.enable = false;
     networking.nftables.enable = true;
     networking.nftables.tables.edge-filter = {
       family = "inet";

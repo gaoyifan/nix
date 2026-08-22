@@ -12,7 +12,6 @@
     nameservers = ["169.254.169.254"];
     useDHCP = false;
     useNetworkd = true;
-    firewall.enable = false;
     edgeFirewall = {
       enable = true;
       extraPublicUdpPorts = [
