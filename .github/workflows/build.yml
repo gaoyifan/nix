@@ -64,7 +64,7 @@ jobs:
           nix_conf: |
             http-connections = 64
             keep-env-derivations = true
-            max-jobs = auto
+            max-jobs = 8
             max-substitution-jobs = 64
 
       - name: Restore and save Nix store
