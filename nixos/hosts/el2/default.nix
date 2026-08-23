@@ -41,14 +41,7 @@
 
   services.resticBackup = {
     extraPaths = ["/var/lib/wireguard"];
-    # Restic evaluates re-inclusion rules in order.
-    extraExcludes = [
-      "!/home/${username}/.syncd-dotfiles"
-      "/home/${username}/.syncd-dotfiles/*"
-      "!/home/${username}/.syncd-dotfiles/.codex"
-      "/home/${username}/.syncd-dotfiles/.codex/*"
-      "!/home/${username}/.syncd-dotfiles/.codex/archived_sessions"
-    ];
+    extraExcludes = ["!/home/${username}/.syncd-dotfiles"];
   };
 
   systemd.targets.el2-services = {
