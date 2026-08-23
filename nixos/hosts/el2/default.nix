@@ -53,8 +53,8 @@
 
   systemd.targets.el2-services = {
     description = "Services using manually unlocked datasets";
-    requires = ["mount-el2-encrypted-datasets.service"];
-    after = ["mount-el2-encrypted-datasets.service"];
+    requires = ["zfs-unlock-mount.service"];
+    after = ["zfs-unlock-mount.service"];
   };
 
   system.stateVersion = "26.05";

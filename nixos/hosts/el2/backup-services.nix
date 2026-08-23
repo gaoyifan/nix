@@ -114,13 +114,13 @@
 
   systemd.services.restic-115-pool0-restic = {
     wantedBy = ["el2-services.target"];
-    requires = ["mount-el2-encrypted-datasets.service"];
-    after = ["mount-el2-encrypted-datasets.service"];
+    requires = ["zfs-unlock-mount.service"];
+    after = ["zfs-unlock-mount.service"];
   };
   systemd.services.restic-123pan-pool0-restic = {
     wantedBy = ["el2-services.target"];
-    requires = ["mount-el2-encrypted-datasets.service"];
-    after = ["mount-el2-encrypted-datasets.service"];
+    requires = ["zfs-unlock-mount.service"];
+    after = ["zfs-unlock-mount.service"];
   };
 
   systemd.timers.restic-sync-115.wantedBy = lib.mkForce ["el2-services.target"];

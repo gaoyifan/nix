@@ -269,11 +269,11 @@ in {
     wantedBy = ["el2-services.target"];
     requires = [
       "incus.service"
-      "mount-el2-encrypted-datasets.service"
+      "zfs-unlock-mount.service"
     ];
     after = [
       "incus.service"
-      "mount-el2-encrypted-datasets.service"
+      "zfs-unlock-mount.service"
     ];
     serviceConfig.Type = "oneshot";
     script = ''

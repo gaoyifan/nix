@@ -1,9 +1,4 @@
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}: let
+{lib, ...}: let
   encryptedDatasets = [
     "pool0/backup"
     "pool0/docker_volume_maplebot_postgresql"
@@ -12,7 +7,10 @@
     "pool0/syncthing"
   ];
 in {
-  imports = [../../optional/znapzend-mail.nix];
+  imports = [
+    ../../optional/zfs-unlock.nix
+    ../../optional/znapzend-mail.nix
+  ];
 
   services = {
     smartd.enable = true;
@@ -48,37 +46,7 @@ in {
     };
   };
 
-  environment.systemPackages = [
-    (pkgs.writeShellApplication {
-      name = "unlock-pool0";
-      runtimeInputs = [pkgs.zfs];
-      text = ''
-        if (( EUID != 0 )); then
-          echo "Run this command with sudo." >&2
-          exit 1
-        fi
-
-        read -r -s -p "Passphrase for encrypted datasets: " passphrase
-        echo
-        trap 'unset passphrase' EXIT
-
-        for dataset in ${lib.escapeShellArgs encryptedDatasets}; do
-          if [[ "$(zfs get -H -o value keystatus "$dataset")" == unavailable ]]; then
-            printf '%s\n' "$passphrase" | zfs load-key "$dataset"
-          fi
-        done
-
-        unset passphrase
-        trap - EXIT
-
-        for dataset in ${lib.escapeShellArgs encryptedDatasets}; do
-          if [[ "$(zfs get -H -o value mounted "$dataset")" == no ]]; then
-            zfs mount "$dataset"
-          fi
-        done
-      '';
-    })
-  ];
+  programs.zfsUnlock.datasets = encryptedDatasets;
 
   systemd.services.znapzend = {
     after = ["network-online.target"];

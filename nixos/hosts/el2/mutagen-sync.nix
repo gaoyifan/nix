@@ -51,8 +51,8 @@ in {
 
   systemd.services."container@mutagen-sync" = {
     wantedBy = ["el2-services.target"];
-    requires = ["mount-el2-encrypted-datasets.service"];
-    after = ["mount-el2-encrypted-datasets.service"];
+    requires = ["zfs-unlock-mount.service"];
+    after = ["zfs-unlock-mount.service"];
     preStart = ''
       ${lib.getExe' pkgs.coreutils "install"} -d -m 0700 -o 1000 -g 1000 /pool1/services/mutagen-sync/config
       ${lib.getExe' pkgs.coreutils "install"} -d -m 0755 -o 1000 -g 1000 /pool1/services/mutagen-sync/data

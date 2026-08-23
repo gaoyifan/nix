@@ -14,37 +14,9 @@
     "pool0/syncthing"
   ];
 in {
-  environment.systemPackages = [
-    (pkgs.writeShellApplication {
-      name = "unlock-pool0";
-      runtimeInputs = [
-        pkgs.systemd
-        pkgs.zfs
-      ];
-      text = ''
-        if (( EUID != 0 )); then
-          echo "Run this command with sudo." >&2
-          exit 1
-        fi
+  imports = [../../optional/zfs-unlock.nix];
 
-        read -r -s -p "Passphrase for encrypted datasets: " passphrase
-        echo
-        trap 'unset passphrase' EXIT
-
-        for dataset in ${lib.escapeShellArgs encryptedDatasets}; do
-          if [[ "$(zfs get -H -o value keystatus "$dataset")" == unavailable ]]; then
-            printf '%s\n' "$passphrase" | zfs load-key "$dataset"
-          fi
-        done
-
-        unset passphrase
-        trap - EXIT
-
-        systemctl --no-ask-password start mount-el2-encrypted-datasets.service
-        systemctl --no-ask-password --no-block start el2-services.target
-      '';
-    })
-  ];
+  programs.zfsUnlock.datasets = encryptedDatasets;
 
   virtualisation.oci-containers.containers = {
     plex = {
@@ -159,8 +131,7 @@ in {
     };
   };
 
-  systemd.services.mount-el2-encrypted-datasets = {
-    description = "Mount manually unlocked datasets used by el2 services";
+  systemd.services.zfs-unlock-mount = {
     after = [
       "zfs-import-pool0.service"
       "zfs-import-pool1.service"
@@ -169,29 +140,20 @@ in {
       "zfs-import-pool0.service"
       "zfs-import-pool1.service"
     ];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-    };
-    script = ''
-      set -euo pipefail
+    preStart = ''
       ${pkgs.zfs}/bin/zfs set readonly=on pool0/backup pool0/footage
-      for dataset in ${lib.escapeShellArgs encryptedDatasets}; do
-        if [[ "$(${pkgs.zfs}/bin/zfs get -H -o value mounted "$dataset")" == no ]]; then
-          ${pkgs.zfs}/bin/zfs mount "$dataset"
-        fi
-      done
     '';
+    serviceConfig.ExecStartPost = "${lib.getExe' pkgs.systemd "systemctl"} --no-ask-password --no-block start el2-services.target";
   };
 
   systemd.services.podman-immich-postgres = {
     wantedBy = ["el2-services.target"];
     requires = [
-      "mount-el2-encrypted-datasets.service"
+      "zfs-unlock-mount.service"
       "podman-network-immich.service"
     ];
     after = [
-      "mount-el2-encrypted-datasets.service"
+      "zfs-unlock-mount.service"
       "podman-network-immich.service"
     ];
   };
@@ -205,29 +167,29 @@ in {
   systemd.services.podman-immich-server = {
     wantedBy = ["el2-services.target"];
     requires = [
-      "mount-el2-encrypted-datasets.service"
+      "zfs-unlock-mount.service"
       "podman-network-immich.service"
     ];
     after = [
-      "mount-el2-encrypted-datasets.service"
+      "zfs-unlock-mount.service"
       "podman-network-immich.service"
     ];
   };
 
   systemd.services.podman-plex = {
     wantedBy = ["el2-services.target"];
-    requires = ["mount-el2-encrypted-datasets.service"];
-    after = ["mount-el2-encrypted-datasets.service"];
+    requires = ["zfs-unlock-mount.service"];
+    after = ["zfs-unlock-mount.service"];
     serviceConfig.TimeoutStartSec = lib.mkForce "2min";
   };
   systemd.services.podman-metatube = {
     wantedBy = ["el2-services.target"];
-    requires = ["mount-el2-encrypted-datasets.service"];
-    after = ["mount-el2-encrypted-datasets.service"];
+    requires = ["zfs-unlock-mount.service"];
+    after = ["zfs-unlock-mount.service"];
   };
   systemd.services.podman-openlist = {
     wantedBy = ["el2-services.target"];
-    requires = ["mount-el2-encrypted-datasets.service"];
-    after = ["mount-el2-encrypted-datasets.service"];
+    requires = ["zfs-unlock-mount.service"];
+    after = ["zfs-unlock-mount.service"];
   };
 }
