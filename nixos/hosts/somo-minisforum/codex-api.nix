@@ -2,6 +2,7 @@
   config,
   inputs,
   lib,
+  username,
   ...
 }: let
   hermesUsers = builtins.attrNames config.services.hermes-nspawn.containers;
@@ -39,6 +40,7 @@ in {
         settings = {
           server.listen = "0.0.0.0:3002";
           state.path = "/var/lib/codex-api/state.sqlite3";
+          state.file_mode = "0640";
           upstream.auth_file = config.age.secrets.somo-minisforum-codex-api-auth.path;
           model_prices."gpt-5.6-sol".max_reasoning_effort = "high";
           api_keys =
@@ -51,7 +53,13 @@ in {
         };
       };
 
-      systemd.services.codex-api.serviceConfig.StateDirectory = "codex-api";
+      users.users.${username}.extraGroups = ["codex-api"];
+
+      systemd.services.codex-api.serviceConfig = {
+        StateDirectory = "codex-api";
+        StateDirectoryMode = "0750";
+        UMask = lib.mkForce "0027";
+      };
     })
   ];
 }
