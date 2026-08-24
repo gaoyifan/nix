@@ -335,7 +335,7 @@ sync-and-rebuild target:
     target="{{ target }}"
     if [ "$local_hostname" = "$target" ]; then
         echo "Already on $target; running local NixOS switch..."
-        {{ self_just }} nixos "$target"
+        {{ self_just }} nixos
         exit 0
     fi
     host="$(nix eval --accept-flake-config "$FLAKE_REF#deploy.nodes.$target.hostname" --raw)"
