@@ -12,21 +12,10 @@
   lanInterfaceSet = "{ ${lib.concatMapStringsSep ", " (name: "\"${name}\"") homeRouter.internalInterfaces} }";
   disabledIpv6Mark = "0xfff";
   disabledIpv6Table = 4095;
-  defaultOutletRules = ''
-    ${lib.optionalString (cfg.defaultOutlet.ipv4Mark != null) ''fib saddr oifname ${lanInterfaceSet} ip daddr != @cn meta mark 0 meta mark set ${cfg.defaultOutlet.ipv4Mark}''}
-    fib saddr oifname ${lanInterfaceSet} ip6 daddr != @cn6 meta mark 0 meta mark set ${disabledIpv6Mark}
-  '';
 
   configD = "/var/lib/wlt/config.d";
   persistDir = "/var/lib/wlt/persist";
   snapshotFile = "${persistDir}/wlt_src2mark-v3.conf";
-  wltSecrets = {
-    sshHostKeyFile = "/run/agenix/wlt-ssh-host-key";
-    tls = {
-      certFile = config.services.secrets.filesDir + "/nixos/wlt-server.pem";
-      keyFile = "/run/agenix/wlt-server-key";
-    };
-  };
   portalIpv4 = homeRouter.serviceAddresses.ipv4;
   portalIpv6 = homeRouter.serviceAddresses.ipv6;
   geoSets = pkgs.nft-geo-sets;
@@ -39,12 +28,12 @@
 
     [web.https]
     listen = ["${portalIpv4}:443", "[${portalIpv6}]:443"]
-    cert = "${wltSecrets.tls.certFile}"
-    key = "${wltSecrets.tls.keyFile}"
+    cert = "${config.services.secrets.filesDir}/nixos/wlt-server.pem"
+    key = "/run/agenix/wlt-server-key"
 
     [ssh]
     listen = ["[::]:2222"]
-    host_key = "${wltSecrets.sshHostKeyFile}"
+    host_key = "/run/agenix/wlt-ssh-host-key"
 
     [persist]
     path = "${snapshotFile}"
@@ -87,8 +76,7 @@ in {
   options.networking.homeRouter.wlt = {
     enable = lib.mkEnableOption "WLT outlet selector";
     defaultOutlet.ipv4Mark = lib.mkOption {
-      type = lib.types.nullOr lib.types.str;
-      default = null;
+      type = lib.types.str;
       description = "Default IPv4 overseas outlet mark for internal LAN clients.";
     };
   };
@@ -138,7 +126,8 @@ in {
           ip daddr != @cn meta mark set ip saddr map @src2mark meta mark set mark & 0xfff
           ip6 daddr @cn6    meta mark set ip6 saddr map @src2mark6 meta mark set mark >> 12
           ip6 daddr != @cn6 meta mark set ip6 saddr map @src2mark6 meta mark set mark & 0xfff
-          ${defaultOutletRules}
+          fib saddr oifname ${lanInterfaceSet} ip daddr != @cn meta mark 0 meta mark set ${cfg.defaultOutlet.ipv4Mark}
+          fib saddr oifname ${lanInterfaceSet} ip6 daddr != @cn6 meta mark 0 meta mark set ${disabledIpv6Mark}
         }
 
         chain wlt-portal-dnat {
