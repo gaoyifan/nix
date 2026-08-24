@@ -260,7 +260,13 @@ in {
     };
   };
 
-  users.users.${username}.extraGroups = ["incus-admin"];
+  users.users.${username}.extraGroups = [
+    "docker"
+    "incus-admin"
+  ];
+
+  virtualisation.docker.enable = true;
+  environment.systemPackages = [pkgs.docker-compose];
 
   systemd.services.incus.environment.INCUS_EDK2_PATH = lib.mkForce incusEdk2;
 
