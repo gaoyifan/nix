@@ -60,6 +60,8 @@ Run `just fmt` and `just check` before opening a PR. Don't commit `result/` outp
 
 ## CI
 
+When changing CI configuration, first push the changes to the `origin/ci` branch and verify the workflow there. After it passes, rebase the changes onto `main`.
+
 GitHub Actions live in `.github/workflows/`:
 
 - `build.yml`: builds Home Manager / nix-darwin closures and dynamically loaded CLI apps on every push/PR; signs and pushes them to the R2 binary cache on `main`.
