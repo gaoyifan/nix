@@ -72,6 +72,11 @@
       inputs.rust-overlay.follows = "rust-overlay";
     };
 
+    codex-capacity-proxy = {
+      url = "git+ssh://git@github.com/gaoyifan/codex-capacity-proxy.git";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     github-backup = {
       url = "github:gaoyifan/github-backup";
       inputs.nixpkgs.follows = "nixpkgs";

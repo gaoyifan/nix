@@ -24,6 +24,7 @@ in {
     ../../optional/nylon-public-exit.nix
     ../../optional/qemu-guest.nix
     ../../optional/tailscale-gnet-vm-exit.nix
+    ./codex-capacity-proxy.nix
     ./disk-config.nix
     ./github-backup.nix
   ];
