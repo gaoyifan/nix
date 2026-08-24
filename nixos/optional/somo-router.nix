@@ -171,10 +171,11 @@ in {
           ct direction reply ct state established,related return
           meta mark != 0 return
           udp sport ${toString config.services.nylon.udpPort} return
+          meta nfproto ipv6 fib daddr type local return
           ip daddr != @cn meta mark set ${homeRouter.wgIplc.mark}
-          ip6 daddr != @cn6 meta l4proto ipv6-icmp return
-          ip6 daddr != @cn6 meta l4proto tcp reject with tcp reset
-          ip6 daddr != @cn6 reject with icmpv6 type no-route
+          ip6 daddr 2000::/3 ip6 daddr != @cn6 meta l4proto ipv6-icmp return
+          ip6 daddr 2000::/3 ip6 daddr != @cn6 meta l4proto tcp reject with tcp reset
+          ip6 daddr 2000::/3 ip6 daddr != @cn6 reject with icmpv6 type no-route
         }
 
         chain postrouting {
