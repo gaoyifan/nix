@@ -52,7 +52,6 @@
     "wireshark" # Network packet analyzer (CLI)
 
     # Development
-    "cloudflare-wrangler" # Cloudflare Workers CLI
     "fnm" # Fast Node.js version manager
     "git-lfs" # Git large file storage
 
