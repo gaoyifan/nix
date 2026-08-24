@@ -22,7 +22,7 @@
           ];
           extraConfig = "client_max_body_size 256m;";
           locations."/" = {
-            proxyPass = "http://100.64.1.30:80/";
+            proxyPass = "http://100.64.2.30:80/";
             proxyWebsockets = true;
           };
         };
