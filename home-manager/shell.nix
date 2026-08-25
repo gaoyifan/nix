@@ -69,12 +69,16 @@ in {
     dynamicCli.wrapperFiles
     // lib.optionalAttrs config.services.mutagen.dotfileSync.enable {
       "${codexWrapperPath}".source = pkgs.writeShellScript "codex" ''
-        export CODEX_HOME=${lib.escapeShellArg "${config.home.homeDirectory}/.syncd-dotfiles/.codex"}
+        if [[ ! -v CODEX_HOME ]]; then
+          export CODEX_HOME=${lib.escapeShellArg "${config.home.homeDirectory}/.syncd-dotfiles/.codex"}
+        fi
         export CODEX_SQLITE_HOME=${lib.escapeShellArg "${config.home.homeDirectory}/.codex"}
         exec ${dynamicCli.wrapperFiles.${codexWrapperPath}.source} "$@"
       '';
       "${codexReindexWrapperPath}".source = pkgs.writeShellScript "codex-reindex" ''
-        export CODEX_HOME=${lib.escapeShellArg "${config.home.homeDirectory}/.syncd-dotfiles/.codex"}
+        if [[ ! -v CODEX_HOME ]]; then
+          export CODEX_HOME=${lib.escapeShellArg "${config.home.homeDirectory}/.syncd-dotfiles/.codex"}
+        fi
         export CODEX_SQLITE_HOME=${lib.escapeShellArg "${config.home.homeDirectory}/.codex"}
         exec ${dynamicCli.wrapperFiles.${codexReindexWrapperPath}.source} "$@"
       '';
