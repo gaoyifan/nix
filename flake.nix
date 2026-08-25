@@ -73,7 +73,7 @@
     };
 
     codex-capacity-proxy = {
-      url = "git+ssh://git@github.com/gaoyifan/codex-capacity-proxy.git";
+      url = "github:gaoyifan/codex-capacity-proxy";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 

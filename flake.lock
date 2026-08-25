@@ -171,15 +171,15 @@
       "locked": {
         "lastModified": 1787606005,
         "narHash": "sha256-i9vv5O3+H4xYwe83rTQ9A5O1nO80YnKKCGFR+WC0j1M=",
-        "ref": "refs/heads/main",
+        "owner": "gaoyifan",
+        "repo": "codex-capacity-proxy",
         "rev": "8fded2d38fab58aea3262b0632121ee7b645c79c",
-        "revCount": 4,
-        "type": "git",
-        "url": "ssh://git@github.com/gaoyifan/codex-capacity-proxy.git"
+        "type": "github"
       },
       "original": {
-        "type": "git",
-        "url": "ssh://git@github.com/gaoyifan/codex-capacity-proxy.git"
+        "owner": "gaoyifan",
+        "repo": "codex-capacity-proxy",
+        "type": "github"
       }
     },
     "crate2nix": {
