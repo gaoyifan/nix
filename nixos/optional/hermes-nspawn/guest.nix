@@ -75,6 +75,8 @@
     pkgs.agent-browser
     pkgs.chromium
   ];
+  podmanRuntimeDir = "/run/hermes-podman";
+  podmanTmpDir = "/var/lib/hermes/podman-tmp";
   terminal = import ./terminal.nix {
     inherit aptProxyAddress lib managedSkills newApiBaseUrl pkgs;
   };
@@ -146,10 +148,9 @@ in {
 
   systemd.tmpfiles.rules = [
     "d /var/lib/hermes 0750 agent agent - -"
-    "d /var/lib/hermes/podman-tmp 0700 agent agent - -"
+    "d ${podmanTmpDir} 0700 agent agent - -"
     # Rootless Podman persists its first RunRoot in the storage database.
-    "d /run/hermes-podman 0700 agent agent - -"
-    "d /run/user/1000 0700 agent agent - -"
+    "d ${podmanRuntimeDir} 0700 agent agent - -"
     "d /var/lib/hermes/.ssh 0700 agent agent - -"
     "d /var/lib/hermes/ssh 0700 root root - -"
     "d /var/lib/hermes/.hermes/skills 2770 agent agent - -"
@@ -331,8 +332,8 @@ in {
     unitConfig.RequiresMountsFor = "/var/lib/hermes";
     environment = {
       HOME = "/var/lib/hermes";
-      TMPDIR = "/var/lib/hermes/podman-tmp";
-      XDG_RUNTIME_DIR = "/run/user/1000";
+      TMPDIR = podmanTmpDir;
+      XDG_RUNTIME_DIR = podmanRuntimeDir;
     };
     path = [
       pkgs.coreutils
@@ -391,12 +392,13 @@ in {
     path = [config.virtualisation.podman.package];
     environment = {
       AGENT_BROWSER_EXECUTABLE_PATH = lib.getExe pkgs.chromium;
-      XDG_RUNTIME_DIR = "/run/user/1000";
+      XDG_RUNTIME_DIR = podmanRuntimeDir;
     };
     serviceConfig = {
       Delegate = true;
       EnvironmentFile = "/etc/hermes/.env";
       NoNewPrivileges = lib.mkForce false;
+      ReadWritePaths = lib.mkAfter [podmanRuntimeDir];
     };
   };
 
@@ -419,6 +421,7 @@ in {
       HERMES_HOME = "/var/lib/hermes/.hermes";
       HERMES_MANAGED = "true";
       HOME = "/var/lib/hermes";
+      XDG_RUNTIME_DIR = podmanRuntimeDir;
     };
     path =
       [
@@ -438,10 +441,14 @@ in {
       Restart = "always";
       RestartSec = 5;
       UMask = "0007";
-      NoNewPrivileges = true;
+      Delegate = true;
+      NoNewPrivileges = false;
       ProtectSystem = "strict";
       ProtectHome = false;
-      ReadWritePaths = ["/var/lib/hermes"];
+      ReadWritePaths = [
+        "/var/lib/hermes"
+        podmanRuntimeDir
+      ];
       PrivateTmp = true;
     };
   };
