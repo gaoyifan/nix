@@ -47,7 +47,10 @@ in {
         "192.168.225.1/24"
       ];
       ipv6.enable = false;
-      dhcpServer.range = "100.64.2.100,100.64.2.200,24h";
+      dhcpServer = {
+        range = "100.64.2.100,100.64.2.200,24h";
+        settings.dhcp-range = ["192.168.225.0,static,255.255.255.0"];
+      };
     };
 
     wans = {

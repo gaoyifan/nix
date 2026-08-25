@@ -84,6 +84,7 @@ in {
     instances.kingdee = {
       vlan = 642;
       macAddress = "CA:52:18:F3:D7:F4";
+      dhcpAddress = "192.168.225.50";
       rootSize = "512GiB";
       rootConfig = {
         "boot.priority" = "10";
