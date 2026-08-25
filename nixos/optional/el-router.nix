@@ -2,12 +2,10 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }: let
   cfg = config.networking.elRouter;
   homeRouter = config.networking.homeRouter;
-  types = lib.types;
 
   addressWithoutPrefix = address: lib.head (lib.splitString "/" address);
   ipv4Addresses = addresses: lib.filter (address: !(lib.hasInfix ":" address)) addresses;
@@ -23,22 +21,10 @@
   cernetIpv6 = addressWithoutPrefix (lib.head (ipv6Addresses cernet.addresses));
   chinanetIpv4 = addressWithoutPrefix (lib.head (ipv4Addresses chinanet.addresses));
   cmccIpv4 = addressWithoutPrefix (lib.head (ipv4Addresses cmcc.addresses));
-  cernetMark = toString cernet.routingTable;
-  chinanetMark = toString chinanet.routingTable;
-  cmccMark = toString cmcc.routingTable;
-  preservedUdpSourcePorts = [
-    2197
-    config.services.nylon.udpPort
-    6627
-  ];
-
-  nftSet = values: lib.concatMapStringsSep ", " toString values;
-  routingBypassRules = lib.concatStringsSep "\n" (
-    map (subnet: "ip daddr ${subnet} return") cfg.routingBypass.ipv4Subnets
-    ++ map (subnet: "ip6 daddr ${subnet} return") cfg.routingBypass.ipv6Subnets
-  );
-  returnSourceRules = lib.concatMapStringsSep "\n" (address: "ip saddr ${address} return") cfg.unclassifiedIpv4Sources;
-  masqueradeRules = lib.concatMapStringsSep "\n" (interface: ''oifname "${interface}" masquerade'') cfg.masqueradeInterfaces;
+  cernetMark = cernet.routingTable;
+  chinanetMark = chinanet.routingTable;
+  cmccMark = cmcc.routingTable;
+  formatMark = mark: "0x${lib.toLower (lib.toHexString mark)}";
 in {
   imports = [
     ./edge-firewall.nix
@@ -47,31 +33,6 @@ in {
 
   options.networking.elRouter = {
     enable = lib.mkEnableOption "shared GNet multi-WAN edge datapath";
-
-    unclassifiedIpv4Sources = lib.mkOption {
-      type = types.listOf types.str;
-      default = [];
-      description = "IPv4 source addresses left to source-policy routing before destination classification.";
-    };
-
-    masqueradeInterfaces = lib.mkOption {
-      type = types.listOf types.str;
-      default = [];
-      description = "Additional interfaces requiring source masquerade.";
-    };
-
-    routingBypass = {
-      ipv4Subnets = lib.mkOption {
-        type = types.listOf types.str;
-        default = ["100.64.0.0/10"];
-        description = "IPv4 Tailnet destinations excluded from WAN classification.";
-      };
-      ipv6Subnets = lib.mkOption {
-        type = types.listOf types.str;
-        default = ["fd7a:115c:a1e0::/48"];
-        description = "IPv6 Tailnet destinations excluded from WAN classification.";
-      };
-    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -103,7 +64,36 @@ in {
     ];
 
     networking.homeRouter.wgIplc.enable = true;
-    networking.wireguard.interfaces.wg-iplc.fwMark = lib.mkForce chinanetMark;
+    networking.wireguard.interfaces.wg-iplc.fwMark = lib.mkForce (toString chinanetMark);
+
+    networking.homeRouter.egress.classification = {
+      extraIngressInterfaces = ["tailscale0"];
+      destinationAddressSetRules = [
+        {
+          set = "cernet";
+          mark = formatMark cernetMark;
+        }
+        {
+          set = "chinanet";
+          mark = formatMark chinanetMark;
+        }
+        {
+          set = "cmcc";
+          mark = formatMark cmccMark;
+        }
+        {
+          set = "cn";
+          mark = formatMark chinanetMark;
+        }
+        {
+          set = "cn6";
+          mark = formatMark cernetMark;
+        }
+      ];
+      extraRules = [
+        ''udp sport 2197 return''
+      ];
+    };
 
     services.nylon = {
       enable = true;
@@ -132,57 +122,5 @@ in {
     };
 
     networking.edgeFirewall.enable = true;
-
-    networking.nftables.tables = {
-      el-router = {
-        family = "inet";
-        content = ''
-          include "${pkgs.nft-geo-sets}/set-cn.conf"
-          include "${pkgs.nft-geo-sets}/set-cn6.conf"
-          include "${pkgs.nft-geo-sets}/set-cernet.conf"
-          include "${pkgs.nft-geo-sets}/set-chinanet.conf"
-          include "${pkgs.nft-geo-sets}/set-cmcc.conf"
-
-          chain classify {
-            ${routingBypassRules}
-            meta mark != 0 return
-            ${returnSourceRules}
-            udp sport { ${nftSet preservedUdpSourcePorts} } return
-
-            ip saddr ${chinanetIpv4} meta mark set ${chinanetMark} return
-            ip saddr ${cmccIpv4} meta mark set ${cmccMark} return
-
-            ip daddr @cernet meta mark set ${cernetMark} return
-            ip daddr @chinanet meta mark set ${chinanetMark} return
-            ip daddr @cmcc meta mark set ${cmccMark} return
-            ip daddr @cn meta mark set ${chinanetMark} return
-            meta nfproto ipv4 meta mark set ${homeRouter.wgIplc.mark} return
-
-            ip6 daddr @cn6 meta mark set ${cernetMark} return
-            ip6 daddr != @cn6 meta l4proto ipv6-icmp return
-            ip6 daddr != @cn6 reject with icmpx type admin-prohibited
-          }
-
-          chain prerouting {
-            type filter hook prerouting priority mangle + 1; policy accept;
-            jump classify
-          }
-
-          chain output {
-            type route hook output priority mangle + 1; policy accept;
-            jump classify
-          }
-
-          chain postrouting {
-            type nat hook postrouting priority srcnat; policy accept;
-            ${masqueradeRules}
-            meta mark ${homeRouter.wgIplc.mark} oifname "wg-iplc" masquerade
-            meta mark ${cernetMark} oifname "${cernetInterface}" snat ip to ${cernetIpv4}
-            meta mark ${chinanetMark} oifname "${chinanetInterface}" snat ip to ${chinanetIpv4}
-            meta mark ${cmccMark} oifname "${cmccInterface}" snat ip to ${cmccIpv4}
-          }
-        '';
-      };
-    };
   };
 }

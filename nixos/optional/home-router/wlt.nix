@@ -9,7 +9,6 @@
 }: let
   homeRouter = config.networking.homeRouter;
   cfg = homeRouter.wlt;
-  lanInterfaceSet = "{ ${lib.concatMapStringsSep ", " (name: "\"${name}\"") homeRouter.internalInterfaces} }";
   disabledIpv6Mark = "0xfff";
   disabledIpv6Table = 4095;
 
@@ -18,7 +17,6 @@
   snapshotFile = "${persistDir}/wlt_src2mark-v3.conf";
   portalIpv4 = homeRouter.serviceAddresses.ipv4;
   portalIpv6 = homeRouter.serviceAddresses.ipv6;
-  geoSets = pkgs.nft-geo-sets;
 
   wltConfig = pkgs.writeText "wlt-config.toml" ''
     time_limits = [1, 4, 10, 24, 0]
@@ -75,10 +73,6 @@ in {
 
   options.networking.homeRouter.wlt = {
     enable = lib.mkEnableOption "WLT outlet selector";
-    defaultOutlet.ipv4Mark = lib.mkOption {
-      type = lib.types.str;
-      description = "Default IPv4 overseas outlet mark for internal LAN clients.";
-    };
   };
 
   config = lib.mkIf (homeRouter.enable && cfg.enable) (lib.mkMerge [
@@ -108,9 +102,6 @@ in {
       ];
 
       networking.nftables.tables.home-router.content = ''
-        include "${geoSets}/set-cn.conf"
-        include "${geoSets}/set-cn6.conf"
-
         map src2mark {
           type ipv4_addr : mark
           flags interval, timeout
@@ -126,8 +117,6 @@ in {
           ip daddr != @cn meta mark set ip saddr map @src2mark meta mark set mark & 0xfff
           ip6 daddr @cn6    meta mark set ip6 saddr map @src2mark6 meta mark set mark >> 12
           ip6 daddr != @cn6 meta mark set ip6 saddr map @src2mark6 meta mark set mark & 0xfff
-          fib saddr oifname ${lanInterfaceSet} ip daddr != @cn meta mark 0 meta mark set ${cfg.defaultOutlet.ipv4Mark}
-          fib saddr oifname ${lanInterfaceSet} ip6 daddr != @cn6 meta mark 0 meta mark set ${disabledIpv6Mark}
         }
 
         chain wlt-portal-dnat {

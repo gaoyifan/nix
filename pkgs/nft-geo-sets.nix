@@ -21,4 +21,5 @@ pkgs.runCommand "nft-geo-sets" {} ''
   gen cernet ipv4_addr ${inputs.china-operator-ip}/cernet.txt
   gen chinanet ipv4_addr ${inputs.china-operator-ip}/chinanet.txt
   gen cmcc ipv4_addr ${inputs.china-operator-ip}/cmcc.txt
+  gen ustc ipv4_addr ${./nft-geo-sets/ustc.txt}
 ''

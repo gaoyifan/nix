@@ -35,7 +35,6 @@ in {
     age.secrets.wg-iplc-private-key = lib.mkIf config.services.secrets.hasRealFiles {
       file = cfg.privateKeyFile;
     };
-    networking.homeRouter.wlt.defaultOutlet.ipv4Mark = lib.mkDefault cfg.mark;
     networking.wireguard.interfaces.wg-iplc = {
       ips = [cfg.ip];
       privateKeyFile = "/run/agenix/wg-iplc-private-key";

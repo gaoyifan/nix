@@ -1,14 +1,10 @@
-{
-  config,
-  lib,
-  ...
-}: let
+{config, ...}: let
   homeRouter = config.networking.homeRouter;
   cernetInterface = homeRouter.wans.cernet.interface;
   chinanetInterface = homeRouter.wans.chinanet.interface;
   managementInterface = "ens161";
   managementAddress = "192.168.93.152";
-  managementTable = 9300;
+  managementAddress6 = "2001:da8:d800:931::192:152";
 in {
   imports = [
     ../../optional/el-router.nix
@@ -57,6 +53,7 @@ in {
         gateway6 = "2001:da8:d800:931::1";
         routingTable = 93;
         defaultRoute = true;
+        defaultRouteMetric = 200;
         routes = [
           {
             Destination = "192.168.174.0/24";
@@ -94,38 +91,41 @@ in {
     wlt = {
       enable = true;
     };
-  };
 
-  systemd.network = {
-    config.routeTables.management = managementTable;
-    networks."09-management" = {
-      matchConfig.Name = managementInterface;
-      address = ["${managementAddress}/24"];
-      routes = [
-        {
-          Gateway = "192.168.93.254";
-          GatewayOnLink = true;
-          PreferredSource = managementAddress;
-          Table = "management";
-        }
-      ];
-      networkConfig = {
-        DHCP = "no";
-        IPv6AcceptRA = false;
-      };
-      linkConfig.RequiredForOnline = "routable";
+    egress = {
+      classification.outputClassificationInterface = managementInterface;
+      masquerade.extraInterfaces = [managementInterface];
     };
   };
 
-  networking.policyRouting.ipv4.routingPolicyRules.preMain = lib.mkBefore [
-    "from ${managementAddress}/32 lookup management"
-  ];
-
-  networking.elRouter = {
-    enable = true;
-    unclassifiedIpv4Sources = [managementAddress];
-    masqueradeInterfaces = [managementInterface];
+  systemd.network.networks."09-management" = {
+    matchConfig.Name = managementInterface;
+    address = [
+      "${managementAddress}/24"
+      "${managementAddress6}/64"
+    ];
+    routes = [
+      {
+        Gateway = "192.168.93.254";
+        GatewayOnLink = true;
+        PreferredSource = managementAddress;
+        Metric = 100;
+      }
+      {
+        Gateway = "2001:da8:d800:931::1";
+        GatewayOnLink = true;
+        PreferredSource = managementAddress6;
+        Metric = 100;
+      }
+    ];
+    networkConfig = {
+      DHCP = "no";
+      IPv6AcceptRA = false;
+    };
+    linkConfig.RequiredForOnline = "routable";
   };
+
+  networking.elRouter.enable = true;
 
   networking.edgeFirewall = {
     extraPublicTcpPorts = ["29979-29980"];

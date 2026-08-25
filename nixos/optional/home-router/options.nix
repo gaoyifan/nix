@@ -185,22 +185,15 @@ in {
             default = false;
             description = "Whether static gateways also install default routes in the main table.";
           };
+          defaultRouteMetric = lib.mkOption {
+            type = types.nullOr types.ints.positive;
+            default = null;
+            description = "Metric assigned to this WAN's static default routes in the main table.";
+          };
           routes = lib.mkOption {
             type = types.listOf types.attrs;
             default = [];
             description = "Additional systemd-networkd routes installed on this WAN.";
-          };
-          masquerade = {
-            ipv4SourceSubnets = lib.mkOption {
-              type = types.listOf types.str;
-              default = [];
-              description = "IPv4 source subnets masqueraded through this WAN.";
-            };
-            ipv6SourceSubnets = lib.mkOption {
-              type = types.listOf types.str;
-              default = [];
-              description = "IPv6 source subnets masqueraded through this WAN.";
-            };
           };
         };
       }));
@@ -223,6 +216,67 @@ in {
       });
       default = {};
       description = "IPv4 source-routing policies that pin LANs to DHCP WANs.";
+    };
+
+    egress = {
+      classification = {
+        outputClassificationInterface = lib.mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = "Initial egress interface that sends locally generated traffic through outlet classification; null classifies all local output.";
+        };
+
+        extraIngressInterfaces = lib.mkOption {
+          type = types.listOf types.str;
+          default = [];
+          description = "Additional nftables ingress-interface names or wildcard patterns whose forwarded traffic enters outlet classification.";
+        };
+
+        destinationAddressSetRules = lib.mkOption {
+          type = types.listOf (types.submodule {
+            options = {
+              set = lib.mkOption {
+                type = types.enum [
+                  "cn"
+                  "cn6"
+                  "cernet"
+                  "chinanet"
+                  "cmcc"
+                  "ustc"
+                ];
+                description = "Named CIDR set matched as the packet destination.";
+              };
+              mark = lib.mkOption {
+                type = types.strMatching "0x[0-9a-fA-F][0-9a-fA-F]?[0-9a-fA-F]?";
+                example = "0x200";
+                description = "Hexadecimal outlet mark assigned to matching destinations.";
+              };
+            };
+          });
+          default = [];
+          description = "Ordered destination CIDR-set rules that run after extra rules, set and persist an outlet mark, and return from classification.";
+        };
+
+        extraRules = lib.mkOption {
+          type = types.listOf types.str;
+          default = [];
+          description = "Ordered nftables rules evaluated after common transport guards and before destination CIDR-set rules.";
+        };
+      };
+
+      masquerade = {
+        extraInterfaces = lib.mkOption {
+          type = types.listOf types.str;
+          default = [];
+          description = "Additional egress interfaces that translate private home-router source addresses.";
+        };
+
+        extraRules = lib.mkOption {
+          type = types.listOf types.str;
+          default = [];
+          description = "Additional nftables rules evaluated after generated egress masquerade rules.";
+        };
+      };
     };
 
     internalInterfaces = lib.mkOption {

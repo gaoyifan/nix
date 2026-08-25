@@ -1,7 +1,6 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }: let
   cfg = config.networking.somoRouter;
@@ -114,13 +113,6 @@ in {
       wans.cmcc = {
         device = cfg.wanDevice;
         dhcp = true;
-        masquerade = {
-          ipv4SourceSubnets = ["100.64.0.0/10"];
-          ipv6SourceSubnets = [
-            "${ipv6Prefix 0}::/64"
-            "${ipv6Prefix 1}::/64"
-          ];
-        };
       };
 
       routingPolicies.guest = {
@@ -136,6 +128,11 @@ in {
       wlt = {
         enable = true;
       };
+
+      egress.masquerade.extraRules = [
+        ''ip saddr @private_v4 oifgroup ${toString usbWanGroup} masquerade''
+        ''ip6 saddr @private_v6 oifgroup ${toString usbWanGroup} masquerade''
+      ];
     };
 
     services.nylon = {
@@ -158,32 +155,6 @@ in {
         ''iifname "${guestInterface}" meta nfproto ipv4 oifname "${homeRouter.wans.cmcc.interface}" accept''
         ''iifname "${guestInterface}" drop''
       ];
-    };
-
-    networking.nftables.tables.somo-router = {
-      family = "inet";
-      content = ''
-        include "${pkgs.nft-geo-sets}/set-cn.conf"
-        include "${pkgs.nft-geo-sets}/set-cn6.conf"
-
-        chain output {
-          type route hook output priority mangle; policy accept;
-          ct direction reply ct state established,related return
-          meta mark != 0 return
-          udp sport ${toString config.services.nylon.udpPort} return
-          meta nfproto ipv6 fib daddr type local return
-          ip daddr != @cn meta mark set ${homeRouter.wgIplc.mark}
-          ip6 daddr 2000::/3 ip6 daddr != @cn6 meta l4proto ipv6-icmp return
-          ip6 daddr 2000::/3 ip6 daddr != @cn6 meta l4proto tcp reject with tcp reset
-          ip6 daddr 2000::/3 ip6 daddr != @cn6 reject with icmpv6 type no-route
-        }
-
-        chain postrouting {
-          type nat hook postrouting priority srcnat; policy accept;
-          oifname "wg-iplc" meta mark ${homeRouter.wgIplc.mark} masquerade
-          ip saddr 100.64.0.0/10 oifgroup ${toString usbWanGroup} masquerade
-        }
-      '';
     };
   };
 }

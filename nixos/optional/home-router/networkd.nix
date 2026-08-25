@@ -42,9 +42,14 @@
         // lib.optionalAttrs (addresses != []) {
           PreferredSource = addressWithoutPrefix (lib.head addresses);
         };
+      mainRoute =
+        route
+        // lib.optionalAttrs (wan.defaultRouteMetric != null) {
+          Metric = wan.defaultRouteMetric;
+        };
     in
       lib.optionals (gateway != null) (
-        lib.optional (wan.defaultRoute || wan.routingTable == null) route
+        lib.optional (wan.defaultRoute || wan.routingTable == null) mainRoute
         ++ lib.optional (wan.routingTable != null) (route // {Table = wanName;})
       );
   in

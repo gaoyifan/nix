@@ -1,10 +1,4 @@
-{
-  config,
-  lib,
-  ...
-}: let
-  managementTable = 9300;
-in {
+{config, ...}: {
   imports = [
     ../../optional/el-router.nix
     ../../optional/home-router
@@ -64,6 +58,7 @@ in {
         gateway6 = "2001:da8:d800:931::1";
         routingTable = 93;
         defaultRoute = true;
+        defaultRouteMetric = 200;
       };
       chinanet = {
         vlan = 22;
@@ -91,38 +86,46 @@ in {
     wlt = {
       enable = true;
     };
-  };
 
-  systemd.network = {
-    config.routeTables.management = managementTable;
-    networks."09-management" = {
-      matchConfig.Name = "ens49f3";
-      address = ["192.168.93.98/24"];
-      routes = [
-        {
-          Gateway = "192.168.93.254";
-          GatewayOnLink = true;
-          PreferredSource = "192.168.93.98";
-          Table = "management";
-        }
-      ];
-      networkConfig = {
-        DHCP = "no";
-        IPv6AcceptRA = false;
+    egress = {
+      classification = {
+        extraIngressInterfaces = [
+          "podman*"
+          "wg0"
+        ];
+        outputClassificationInterface = "ens49f3";
       };
-      linkConfig.RequiredForOnline = "routable";
     };
   };
 
-  networking.policyRouting.ipv4.routingPolicyRules.preMain = lib.mkBefore [
-    "from 192.168.93.98/32 lookup management"
-  ];
-
-  networking.elRouter = {
-    enable = true;
-    unclassifiedIpv4Sources = ["192.168.93.98"];
-    masqueradeInterfaces = ["ens49f3"];
+  systemd.network.networks."09-management" = {
+    matchConfig.Name = "ens49f3";
+    address = [
+      "192.168.93.98/24"
+      "2001:da8:d800:931::192:98/64"
+    ];
+    routes = [
+      {
+        Gateway = "192.168.93.254";
+        GatewayOnLink = true;
+        PreferredSource = "192.168.93.98";
+        Metric = 100;
+      }
+      {
+        Gateway = "2001:da8:d800:931::1";
+        GatewayOnLink = true;
+        PreferredSource = "2001:da8:d800:931::192:98";
+        Metric = 100;
+      }
+    ];
+    networkConfig = {
+      DHCP = "no";
+      IPv6AcceptRA = false;
+    };
+    linkConfig.RequiredForOnline = "routable";
   };
+
+  networking.elRouter.enable = true;
 
   networking.edgeFirewall = {
     extraTrustedInterfaces = ["wg0"];
