@@ -111,7 +111,6 @@ in {
         chain classify {
           meta mark != 0 ct mark set meta mark return
           udp dport { 3478-3497, 16384-16387, 16393-16402 } meta mark set ${pppMark}
-          meta mark 0 tcp dport 5223 meta mark set ${pppMark}
           meta mark 0 ip daddr @ustc meta mark set ${nylonEl2CernetMark}
           meta mark 0 ip daddr @cn meta mark set ${pppMark}
           meta mark 0 meta nfproto ipv4 meta mark set ${homeRouter.wgIplc.mark}
