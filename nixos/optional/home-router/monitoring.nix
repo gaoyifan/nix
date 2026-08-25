@@ -81,12 +81,13 @@
       then lib.concatMapStringsSep "\n" addressRule wan.addresses
       else ''${interfaceSelector} "${wan.interface}" counter name ${counter}'')
     monitoredWans;
-  wanMetricsFile = "/run/prometheus-node-exporter/home-router-wan.prom";
+  wanMetricsDirectory = "/run/home-router-wan-metrics";
+  wanMetricsFile = "${wanMetricsDirectory}/home-router-wan.prom";
   collectWanMetrics = pkgs.writeShellScript "collect-home-router-wan-metrics" ''
     set -euo pipefail
 
-    counters_file="$(${pkgs.coreutils}/bin/mktemp /run/prometheus-node-exporter/.home-router-wan-counters.XXXXXX)"
-    metrics_file="$(${pkgs.coreutils}/bin/mktemp /run/prometheus-node-exporter/.home-router-wan-metrics.XXXXXX)"
+    counters_file="$(${pkgs.coreutils}/bin/mktemp ${wanMetricsDirectory}/.home-router-wan-counters.XXXXXX)"
+    metrics_file="$(${pkgs.coreutils}/bin/mktemp ${wanMetricsDirectory}/.home-router-wan-metrics.XXXXXX)"
     trap '${pkgs.coreutils}/bin/rm -f "$counters_file" "$metrics_file"' EXIT
 
     ${lib.getExe pkgs.nftables} --json list counters inet home-router > "$counters_file"
@@ -212,7 +213,7 @@ in {
     services.prometheus.exporters.node = {
       enable = true;
       listenAddress = "127.0.0.1";
-      extraFlags = ["--collector.textfile.directory=/run/prometheus-node-exporter"];
+      extraFlags = ["--collector.textfile.directory=${wanMetricsDirectory}"];
     };
 
     systemd.services =
@@ -264,6 +265,8 @@ in {
           ];
           serviceConfig = {
             Type = "oneshot";
+            RuntimeDirectory = "home-router-wan-metrics";
+            RuntimeDirectoryPreserve = true;
             ExecStart = collectWanMetrics;
           };
         };
