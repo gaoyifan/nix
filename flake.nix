@@ -39,11 +39,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    microvm = {
-      url = "github:microvm-nix/microvm.nix/ad098ef4658203b3bbc39523ca3f72ece1553e24";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     nix-darwin = {
       url = "github:LnL7/nix-darwin/nix-darwin-26.05";
       inputs.nixpkgs.follows = "nixpkgs-darwin";
@@ -109,7 +104,6 @@
 
     diverge = {
       url = "github:gaoyifan/diverge-rs";
-      inputs.microvm.follows = "microvm";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
