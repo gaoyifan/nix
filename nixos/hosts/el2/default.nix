@@ -44,6 +44,8 @@
     extraExcludes = ["!/home/${username}/.syncd-dotfiles"];
   };
 
+  home-manager.users.${username}.services.mutagen.dotfileSync.syncCodexSessions = true;
+
   systemd.targets.el2-services = {
     description = "Services using manually unlocked datasets";
     requires = ["zfs-unlock-mount.service"];

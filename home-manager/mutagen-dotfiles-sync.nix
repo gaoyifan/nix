@@ -21,14 +21,17 @@
   remoteEndpoint = "${cfg.user}@${cfg.host}:${toString cfg.port}:/data/syncd-dotfiles";
   remoteRsyncRoot = "${cfg.user}@${cfg.host}:/data/syncd-dotfiles/";
   rsyncSshCommand = "${sshWrapper}/bin/ssh -F /dev/null -p ${toString cfg.port}";
-  ignoredPaths = [
-    ".codex/archived_sessions"
-    ".codex/cache"
-    ".codex/history.jsonl"
-    ".codex/models_cache.json"
-    ".codex/tmp"
-    ".codex/version.json"
-  ];
+  ignoredPaths =
+    [
+      ".codex/archived_sessions"
+      ".codex/cache"
+      ".codex/history.jsonl"
+      ".codex/models_cache.json"
+      ".codex/tmp"
+      ".codex/.tmp"
+      ".codex/version.json"
+    ]
+    ++ lib.optional (!cfg.syncCodexSessions) ".codex/sessions";
   rsyncExcludeArguments = map (path: "--exclude=/${path}") ignoredPaths;
   sessionCreateArguments = lib.cli.toCommandLineGNU {} {
     compression = "deflate";
@@ -377,6 +380,12 @@ in {
       type = lib.types.port;
       default = 2222;
       description = "SSH port for the central dotfiles sync server.";
+    };
+
+    syncCodexSessions = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Whether to include Codex sessions in the Mutagen synchronization session.";
     };
   };
 

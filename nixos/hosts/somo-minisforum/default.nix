@@ -2,6 +2,7 @@
 {
   config,
   lib,
+  username,
   ...
 }: let
   filesDir = config.services.secrets.filesDir;
@@ -63,6 +64,8 @@ in {
     map
     (name: "/var/lib/nixos-containers/hermes-nix-${name}/var/lib/hermes")
     (lib.attrNames config.services.hermes-nspawn.containers);
+
+  home-manager.users.${username}.services.mutagen.dotfileSync.syncCodexSessions = true;
 
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;

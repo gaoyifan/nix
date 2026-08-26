@@ -217,7 +217,8 @@ check:
         nix eval --accept-flake-config --raw ".#nixosConfigurations.$(hostname -s).config.system.build.toplevel.drvPath" >/dev/null
     else
         system="$(nix eval --impure --raw --expr builtins.currentSystem)"
-        nix eval --accept-flake-config --raw ".#legacyPackages.$system.homeConfigurations.$(whoami).activationPackage.drvPath" >/dev/null
+        user="$(whoami)"
+        nix eval --accept-flake-config --raw ".#homeConfigurations" --apply "configs: (configs.\"$user@$(hostname -s)\" or configs.\"$user\").activationPackage.drvPath" >/dev/null
         nix eval --accept-flake-config --raw ".#systemConfigs.$system.default.drvPath" >/dev/null
     fi
 

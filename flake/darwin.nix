@@ -15,6 +15,10 @@
     "openclaw"
     "default"
   ];
+  codexSessionSyncHosts = [
+    "Yifans-MacBook-Air-2022"
+    "YifansMacStudio"
+  ];
 in {
   darwinConfigurations = nixpkgs.lib.genAttrs darwinHosts (
     hostname:
@@ -48,7 +52,10 @@ in {
                   inherit inputs;
                   darwinHost = hostname;
                 };
-                users.${username} = import ../home-manager;
+                users.${username} = {
+                  imports = [../home-manager];
+                  services.mutagen.dotfileSync.syncCodexSessions = builtins.elem hostname codexSessionSyncHosts;
+                };
               };
             })
           ]
