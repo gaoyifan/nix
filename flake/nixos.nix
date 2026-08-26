@@ -44,6 +44,7 @@
     google = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/google];
     misc0-jp = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/misc0-jp];
     nfs = mkNixosHost "x86_64-linux" [../nixos/hosts/nfs];
+    nixos-orbstack = mkNixosHost "aarch64-linux" [../nixos/hosts/nixos-orbstack];
     oracle = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/oracle];
     nanopi-r4s-bootstrap = nixpkgs.lib.nixosSystem {
       system = "aarch64-linux";
