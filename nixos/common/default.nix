@@ -11,5 +11,6 @@
     ./users.nix
     ./openssh.nix
     ./power.nix
+    ./tailscale-gnet.nix
   ];
 }

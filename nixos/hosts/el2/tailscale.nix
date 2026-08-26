@@ -72,8 +72,6 @@
     "--snat-subnet-routes=false"
   ];
 in {
-  imports = [../../optional/tailscale-gnet.nix];
-
   age.secrets.headscale-router-auth-key = lib.mkIf config.services.secrets.hasRealFiles {
     file = config.services.secrets.filesDir + "/nixos/el2/headscale-router-auth-key.age";
   };

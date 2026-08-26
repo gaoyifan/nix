@@ -81,16 +81,7 @@ in {
   };
 
   services.tailscale = {
-    enable = true;
-    useRoutingFeatures = "client";
-    extraSetFlags = [
-      "--accept-dns=false"
-      "--accept-routes"
-      "--advertise-exit-node=false"
-      "--netfilter-mode=off"
-      "--operator=yifan"
-      "--snat-subnet-routes=false"
-    ];
+    gnetMode = "client";
   };
 
   networking.edgeFirewall = {

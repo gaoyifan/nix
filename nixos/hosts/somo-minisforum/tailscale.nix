@@ -10,8 +10,6 @@
 }: let
   routeFlags = ["--advertise-routes=100.65.2.0/24,100.65.3.0/24,fd9a:2d16:5c3e:2::/64,fd9a:2d16:5c3e:3::/64"];
 in {
-  imports = [../../optional/tailscale-gnet.nix];
-
   age.secrets = lib.mkIf config.services.secrets.hasRealFiles {
     somo-minisforum-tailscale-auth-key.file = config.services.secrets.filesDir + "/nixos/somo-minisforum/tailscale-auth-key.age";
   };
