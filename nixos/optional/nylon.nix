@@ -189,8 +189,7 @@ in {
     (lib.mkIf cfg.policyRouting.enable {
       systemd.services.nylon-routes = {
         description = "Nylon MPLS route batches";
-        wants = ["network-online.target"];
-        after = ["nylon.service" "network-online.target"];
+        after = ["nylon.service"];
         # A nylon restart recreates nylon0, dropping MPLS routes in the per-exit
         # tables; PartOf makes that restart re-run this unit.
         partOf = ["nylon.service"];
@@ -323,8 +322,7 @@ in {
       # replacing them is idempotent.
       systemd.services.nylon-exit = {
         description = "Nylon MPLS exits: static LSPs and egress SNAT";
-        wants = ["network-online.target"];
-        after = ["nylon.service" "network-online.target"];
+        after = ["nylon.service"];
         partOf = ["nylon.service"];
         wantedBy = ["multi-user.target"];
         path = [

@@ -293,10 +293,10 @@ in {
     (lib.mkIf cfg.cacheReclaim {
       systemd.services.incus-drop-vm-caches-on-low-memory = {
         description = "Drop Incus VM guest caches when host memory is low";
-        wants = ["incus.service"];
         after = ["incus.service"];
         serviceConfig = {
           Type = "oneshot";
+          ExecCondition = "${lib.getExe' pkgs.systemd "systemctl"} --quiet is-active incus.service";
           ExecStart = "${dropVmCaches}/bin/incus-drop-vm-caches-on-low-memory";
         };
       };

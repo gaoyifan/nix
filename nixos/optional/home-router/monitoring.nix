@@ -228,8 +228,6 @@ in {
         lib.nameValuePair "prometheus-ping-${wan.name}-exporter" {
           description = "Prometheus ping exporter for ${wan.name}";
           wantedBy = ["multi-user.target"];
-          after = ["network-online.target"];
-          wants = ["network-online.target"];
           serviceConfig = {
             ExecStart = ''
               ${pkgs.prometheus-ping-exporter}/bin/ping_exporter \

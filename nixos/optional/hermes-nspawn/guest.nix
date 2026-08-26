@@ -328,7 +328,6 @@ in {
 
   systemd.services.hermes-terminal-image = {
     description = "Load the Hermes terminal image into Podman";
-    before = ["hermes-agent.service"];
     unitConfig.RequiresMountsFor = "/var/lib/hermes";
     environment = {
       HOME = "/var/lib/hermes";

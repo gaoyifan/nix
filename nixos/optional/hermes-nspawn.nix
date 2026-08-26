@@ -88,7 +88,6 @@ in {
       in {
         "${containerName}-secrets" = {
           description = "Prepare secrets for ${containerName}";
-          before = ["container@${containerName}.service"];
           after = ["honcho-runtime-env.service"];
           wants = ["honcho-runtime-env.service"];
           path = [

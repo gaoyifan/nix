@@ -18,7 +18,6 @@ in {
 
   systemd.services.hostapd = {
     after = [bridgeDevice];
-    bindsTo = [bridgeDevice];
   };
 
   services.hostapd = {

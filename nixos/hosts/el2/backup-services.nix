@@ -128,6 +128,8 @@
 
   systemd.services.kopia-alipan-maintenance = {
     description = "Run full maintenance for the Aliyun Drive Kopia repository";
+    requires = ["podman-openlist.service"];
+    after = ["podman-openlist.service"];
     path = [pkgs.rclone];
     serviceConfig = {
       Type = "oneshot";
@@ -140,6 +142,8 @@
 
   systemd.services.kopia-alipan-snapshot = {
     description = "Back up pool0/backup and pool0/footage to Aliyun Drive with Kopia";
+    requires = ["podman-openlist.service"];
+    after = ["podman-openlist.service"];
     path = [pkgs.rclone];
     unitConfig.RequiresMountsFor = [
       "/pool0/backup"
@@ -161,8 +165,6 @@
 
   systemd.timers.kopia-alipan-maintenance = {
     wantedBy = ["el2-services.target"];
-    requires = ["podman-openlist.service"];
-    after = ["podman-openlist.service"];
     timerConfig = {
       OnCalendar = "*-*-* 01:17:00";
       Persistent = true;
@@ -171,8 +173,6 @@
 
   systemd.timers.kopia-alipan-snapshot = {
     wantedBy = ["el2-services.target"];
-    requires = ["podman-openlist.service"];
-    after = ["podman-openlist.service"];
     timerConfig = {
       OnCalendar = "*-*-* 02:17:00";
       Persistent = true;

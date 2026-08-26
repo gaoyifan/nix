@@ -45,9 +45,4 @@ in {
       configFile = serveConfig;
     };
   };
-
-  systemd.services.tailscale-serve = {
-    after = ["codex-capacity-proxy.service"];
-    requires = ["codex-capacity-proxy.service"];
-  };
 }

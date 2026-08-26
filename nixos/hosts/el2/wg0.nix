@@ -127,7 +127,6 @@ in {
     wantedBy = ["multi-user.target"];
     after = ["nftables.service"];
     requires = ["nftables.service"];
-    partOf = ["nftables.service"];
     path = [pkgs.nftables];
     serviceConfig = {
       Type = "oneshot";
