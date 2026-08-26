@@ -224,6 +224,8 @@
       test "$(counter_bytes home_router_wan_0_transmit)" -gt 0
 
       systemctl start home-router-wan-metrics.service
+      ! systemctl show --property=After --value home-router-wan-metrics.service | grep -qw prometheus-node-exporter.service
+      ! systemctl show --property=Requires --value home-router-wan-metrics.service | grep -qw prometheus-node-exporter.service
       grep -F 'home_router_wan_receive_bytes_total{wan="cernet"}' /run/home-router-wan-metrics/home-router-wan.prom
       grep -F 'home_router_wan_transmit_bytes_total{wan="chinanet"}' /run/home-router-wan-metrics/home-router-wan.prom
       grep -F 'home_router_wan_transmit_bytes_total{wan="cmcc"}' /run/home-router-wan-metrics/home-router-wan.prom

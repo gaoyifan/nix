@@ -255,14 +255,8 @@ in {
       // {
         home-router-wan-metrics = {
           description = "Export Home Router WAN counters for Prometheus";
-          after = [
-            "nftables.service"
-            "prometheus-node-exporter.service"
-          ];
-          requires = [
-            "nftables.service"
-            "prometheus-node-exporter.service"
-          ];
+          after = ["nftables.service"];
+          requires = ["nftables.service"];
           serviceConfig = {
             Type = "oneshot";
             RuntimeDirectory = "home-router-wan-metrics";
