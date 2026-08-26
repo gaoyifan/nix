@@ -256,7 +256,8 @@
         ./flake/packages.nix
         ./flake/formatter.nix
         ./flake/devshell.nix
-        ./flake/darwin-home.nix
+        ./flake/home-manager.nix
+        ./flake/darwin.nix
         ./flake/nixos.nix
         ./flake/system-manager.nix
         ./flake/checks.nix
