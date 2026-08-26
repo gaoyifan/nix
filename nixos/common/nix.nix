@@ -16,7 +16,7 @@ in {
       internalSubstituters
       ++ cacheSettings.extra-substituters;
     extra-trusted-public-keys = cacheSettings.extra-trusted-public-keys;
-    trusted-users = ["root" username];
+    trusted-users = [username];
     # Free disk space automatically when the store partition runs low.
     min-free = lib.mkDefault (2 * 1024 * 1024 * 1024);
     max-free = lib.mkDefault (6 * 1024 * 1024 * 1024);
