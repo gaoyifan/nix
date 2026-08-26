@@ -7,6 +7,22 @@
   hasAtuinSecrets = config.services.secrets.atuin.available;
   isDarwin = pkgs.stdenv.isDarwin;
   isLinux = pkgs.stdenv.isLinux;
+  atuinPackage =
+    if hasAtuinSecrets
+    then
+      pkgs.writeShellApplication {
+        name = "atuin";
+        text = ''
+          key_path=${lib.escapeShellArg config.services.secrets.atuin.keyFile}
+          if [ ! -s "$key_path" ]; then
+            echo "Atuin encryption key is unavailable; refusing to generate a replacement key." >&2
+            exit 1
+          fi
+
+          exec ${lib.getExe pkgs.atuin} "$@"
+        '';
+      }
+    else pkgs.atuin;
   cliApps = import ../cli-apps.nix {inherit lib;};
   dynamicCli = cliApps.mkHomeManager pkgs;
   codexWrapperPath = "${dynamicCli.relBinDir}/codex";
@@ -44,9 +60,9 @@
 
     if [ -f "${config.services.secrets.atuin.passwordFile}" ] \
       && [ -f "${config.services.secrets.atuin.keyFile}" ]; then
-      if ! ${pkgs.atuin}/bin/atuin status 2>/dev/null | grep -q "Username: ${config.home.username}"; then
+      if ! ${lib.getExe atuinPackage} status 2>/dev/null | grep -q "Username: ${config.home.username}"; then
         echo "Atuin not logged in. Attempting automated login..."
-        ${pkgs.coreutils}/bin/timeout 10s ${pkgs.atuin}/bin/atuin login -u ${config.home.username} \
+        ${pkgs.coreutils}/bin/timeout 10s ${lib.getExe atuinPackage} login -u ${config.home.username} \
           -p "$(${pkgs.coreutils}/bin/cat "${config.services.secrets.atuin.passwordFile}")" \
           -k "$(${pkgs.coreutils}/bin/cat "${config.services.secrets.atuin.keyFile}")" \
           || echo "Atuin login failed (non-blocking)"
@@ -88,6 +104,7 @@ in {
 
   programs.atuin = {
     enable = true;
+    package = atuinPackage;
     forceOverwriteSettings = true;
     settings =
       {
