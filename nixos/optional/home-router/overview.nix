@@ -642,7 +642,7 @@
           color = {mode = "palette-classic";};
           unit = "celsius";
         };
-        fillOpacity = 10;
+        fillOpacity = 0;
         legendCalcs = ["lastNotNull" "mean" "max"];
         type = "timeseries";
       };
