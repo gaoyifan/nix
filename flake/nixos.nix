@@ -43,6 +43,7 @@
     el2-install = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/el2 ../nixos/hosts/el2/install.nix];
     google = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/google];
     misc0-jp = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/misc0-jp];
+    misc1-sh = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/misc1-sh];
     nfs = mkNixosHost "x86_64-linux" [../nixos/hosts/nfs];
     nixos-orbstack = mkNixosHost "aarch64-linux" [../nixos/hosts/nixos-orbstack];
     oracle = mkNixosHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/oracle];
@@ -125,6 +126,7 @@ in {
     el2 = mkDeployNode "x86_64-linux" "el2.ts.gaof.net" configs.el2;
     google = mkDeployNode "x86_64-linux" "google.ts.gaof.net" configs.google;
     misc0-jp = mkDeployNode "x86_64-linux" "misc0-jp.ts.gaof.net" configs.misc0-jp;
+    misc1-sh = mkDeployNode "x86_64-linux" "misc1-sh.ts.gaof.net" configs.misc1-sh;
     nfs = mkDeployNode "x86_64-linux" "nfs.ts.gaof.net" configs.nfs;
     nixos-orbstack = mkDeployNode "aarch64-linux" "nixos-orbstack.ts.gaof.net" configs.nixos-orbstack;
     oracle = mkDeployNode "x86_64-linux" "oracle.ts.gaof.net" configs.oracle;

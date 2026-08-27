@@ -13,7 +13,6 @@
     "debian22"
     "misc0-61"
     "misc0-sz"
-    "misc1"
     "oracle"
   ];
   tailscaleUserspaceHosts = [
