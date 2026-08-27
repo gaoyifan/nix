@@ -4,7 +4,6 @@
   nylonEl2CernetMark = "0x200";
 in {
   imports = [
-    ../../optional/edge-firewall.nix
     ../../optional/home-router
     ../../optional/oob-ssh.nix
   ];
@@ -74,9 +73,6 @@ in {
       ];
     };
   };
-
-  networking.edgeFirewall.enable = true;
-
   systemd.network = {
     config.routeTables.ppp = 1000;
     networks."10-wan-ppp" = {

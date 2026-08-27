@@ -6,6 +6,7 @@
   cfg = config.networking.homeRouter;
 in {
   imports = [
+    ../edge-firewall.nix
     ../policy-routing.nix
     ./options.nix
     ./diverge.nix
@@ -36,6 +37,7 @@ in {
 
     networking.useDHCP = false;
     networking.useNetworkd = true;
+    networking.edgeFirewall.enable = true;
     networking.firewall.enable = false;
     networking.nftables.enable = true;
     networking.nftables.flushRuleset = false;

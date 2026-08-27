@@ -14,7 +14,6 @@
   ipv6Prefix = offset: "fd9a:2d16:5c3e:${subnet offset}";
 in {
   imports = [
-    ./edge-firewall.nix
     ./home-router
     ./nylon.nix
   ];
@@ -145,7 +144,6 @@ in {
     };
 
     networking.edgeFirewall = {
-      enable = true;
       extraInputRules = [
         ''iifname "${guestInterface}" drop''
       ];

@@ -27,7 +27,6 @@
   formatMark = mark: "0x${lib.toLower (lib.toHexString mark)}";
 in {
   imports = [
-    ./edge-firewall.nix
     ./nylon.nix
   ];
 
@@ -120,7 +119,5 @@ in {
         };
       };
     };
-
-    networking.edgeFirewall.enable = true;
   };
 }
