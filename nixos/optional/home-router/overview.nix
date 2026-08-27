@@ -692,6 +692,19 @@
       };
     }
     {
+      conditionalRendering = {
+        kind = "ConditionalRenderingGroup";
+        spec = {
+          condition = "and";
+          items = [
+            {
+              kind = "ConditionalRenderingData";
+              spec.value = true;
+            }
+          ];
+          visibility = "show";
+        };
+      };
       id = 19;
       queries = [
         {

@@ -118,14 +118,24 @@ let
       };
     };
   };
-  layoutItem = id: {
+  layoutItem = panels: id: let
+    value = builtins.head (builtins.filter (candidate: candidate.id == id) panels);
+  in {
     kind = "AutoGridLayoutItem";
-    spec.element = {
-      kind = "ElementReference";
-      name = elementName id;
-    };
+    spec =
+      {
+        element = {
+          kind = "ElementReference";
+          name = elementName value.id;
+        };
+      }
+      // (
+        if value ? conditionalRendering
+        then {inherit (value) conditionalRendering;}
+        else {}
+      );
   };
-  row = value: {
+  row = panels: value: {
     kind = "RowsLayoutRow";
     spec = {
       inherit (value) title;
@@ -143,7 +153,7 @@ let
               if value ? rowHeight
               then "custom"
               else value.rowHeightMode;
-            items = map layoutItem value.panels;
+            items = map (layoutItem panels) value.panels;
             inherit (value) maxColumnCount;
           }
           // (
@@ -223,7 +233,7 @@ in {
       elements = builtins.listToAttrs (map panel source.panels);
       layout = {
         kind = "RowsLayout";
-        spec.rows = map row source.rows;
+        spec.rows = map (row source.panels) source.rows;
       };
       links = [];
       liveNow = false;

@@ -289,6 +289,22 @@
           http://127.0.0.1:9090/api/v1/query |
           ${pkgs.jq}/bin/jq --exit-status '.status == "success"'
       done <<< "$thermal_queries"
+
+      ${pkgs.curl}/bin/curl --fail --silent \
+        http://127.0.0.1:3001/apis/dashboard.grafana.app/v2/namespaces/default/dashboards/home-router-overview |
+        ${pkgs.jq}/bin/jq --exit-status '
+          [
+            .spec.layout.spec.rows[].spec.layout.spec.items[]
+            | select(.spec.element.name == "panel-19")
+            | .spec.conditionalRendering
+            | select(
+                .spec.visibility == "show"
+                and (.spec.items | length) == 1
+                and .spec.items[0].kind == "ConditionalRenderingData"
+                and .spec.items[0].spec.value
+              )
+          ] | length == 1
+        '
     '';
   in {
     imports = [
