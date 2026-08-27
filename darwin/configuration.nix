@@ -1,6 +1,6 @@
 # Darwin system configuration
 {
-  darwinProfile ? "default",
+  config,
   lib,
   pkgs,
   username,
@@ -8,7 +8,6 @@
 }: let
   cacheSettings = import ../nix-cache.nix;
   defaultHomebrew = import ./homebrew/default.nix;
-  yifansMacStudioHomebrew = import ./homebrew/yifansmacstudio.nix;
 in {
   # User configuration - required for home-manager
   users.users.${username}.home = "/Users/${username}";
@@ -59,8 +58,8 @@ in {
       };
     }
     // (
-      if darwinProfile == "yifansmacstudio"
-      then yifansMacStudioHomebrew
+      if config.networking.hostName == "yifans-mac-studio"
+      then import ./homebrew/yifans-mac-studio.nix
       else defaultHomebrew
     );
 }

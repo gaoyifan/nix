@@ -10,7 +10,7 @@
   hasRealSecrets = builtins.pathExists (realSecretsDir + "/.gitkeep");
   hasRegisteredUserKey =
     !pkgs.stdenv.isDarwin
-    || darwinHost == "Yifans-MacBook-Air-2022";
+    || darwinHost == "yifans-mba-2022";
   hasAtuinSecrets =
     hasRealSecrets
     && hasRegisteredUserKey
