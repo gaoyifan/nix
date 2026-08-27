@@ -34,6 +34,7 @@ in {
     ../../optional/hermes-nspawn.nix
     ./hardware-configuration.nix
     ./networking.nix
+    ./netgear-switch.nix
     ./virtualisation.nix
     ./graphics.nix
     ./bees.nix
