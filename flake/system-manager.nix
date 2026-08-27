@@ -37,7 +37,6 @@
       modules =
         [
           ../system-manager/nix.nix
-          ../system-manager/restic.nix
           ../system-manager/tailscale.nix
           # system-manager imports NixOS nginx without the full NixOS module list.
           "${nixpkgs}/nixos/modules/security/dhparams.nix"
@@ -58,9 +57,7 @@ in {
       // nixpkgs.lib.genAttrs systemManagerHosts (
         host:
           mkSystemConfig system host (
-            nixpkgs.lib.optional (builtins.elem host resticBackupHosts) {
-              services.resticBackup.enable = true;
-            }
+            nixpkgs.lib.optional (builtins.elem host resticBackupHosts) ../system-manager/restic.nix
             ++ nixpkgs.lib.optional (builtins.elem host tailscaleUserspaceHosts) {
               services.tailscale.interfaceName = "userspace-networking";
             }

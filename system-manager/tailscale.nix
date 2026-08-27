@@ -12,18 +12,6 @@ in {
       default = "tailscale0";
       description = "Tailscale tunnel interface name, or userspace-networking to avoid using TUN.";
     };
-
-    port = lib.mkOption {
-      type = lib.types.port;
-      default = 6627;
-      description = "UDP port used for Tailscale tunnel traffic.";
-    };
-
-    extraDaemonFlags = lib.mkOption {
-      type = lib.types.listOf lib.types.str;
-      default = ["--no-logs-no-support"];
-      description = "Additional flags passed to tailscaled.";
-    };
   };
 
   config = {
@@ -45,8 +33,8 @@ in {
         pkgs.kmod
       ];
       serviceConfig.Environment = [
-        "PORT=${toString cfg.port}"
-        ''"FLAGS=--tun ${lib.escapeShellArg cfg.interfaceName} ${lib.concatStringsSep " " cfg.extraDaemonFlags}"''
+        "PORT=6627"
+        ''"FLAGS=--tun ${lib.escapeShellArg cfg.interfaceName} --no-logs-no-support"''
       ];
     };
   };
