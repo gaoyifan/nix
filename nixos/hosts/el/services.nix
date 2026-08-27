@@ -14,7 +14,6 @@ in {
   };
 
   services.openssh.settings.MaxStartups = 100;
-  services.fail2ban.enable = true;
 
   services.acmeCertificates = {
     enable = true;

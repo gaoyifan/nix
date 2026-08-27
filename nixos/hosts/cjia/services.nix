@@ -11,8 +11,6 @@
     cjia-godns-password.file = config.services.secrets.filesDir + "/nixos/cjia/godns-password.age";
   };
 
-  services.fail2ban.enable = true;
-
   services.nylon = {
     enable = true;
     policyRouting.enable = true;
