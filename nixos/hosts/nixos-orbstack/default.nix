@@ -107,9 +107,12 @@
     systemd-networkd.serviceConfig.WatchdogSec = lib.mkIf config.systemd.network.enable 0;
   };
 
-  programs.ssh.extraConfig = ''
-    Include /opt/orbstack-guest/etc/ssh_config
-  '';
+  programs = {
+    nix-ld.enable = true;
+    ssh.extraConfig = ''
+      Include /opt/orbstack-guest/etc/ssh_config
+    '';
+  };
 
   nix.settings.extra-platforms = [
     "x86_64-linux"
