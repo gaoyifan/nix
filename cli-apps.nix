@@ -52,10 +52,6 @@
       npx = from ["nodejs-slim" "npm"];
       nvtop = from ["nvtopPackages" "full"];
       pi = from "pi-coding-agent";
-      pi-baseline = {
-        packagePath = ["pi-coding-agent-baseline"];
-        program = "pi";
-      };
       playwright-cli = {};
       pv = {};
       redis-cli = from "redis";
@@ -154,13 +150,14 @@ in {
   mkHomeManager = pkgs: let
     relBinDir = ".local/share/nix-lazy-apps/bin";
     availableAppSpecs = availableSpecs pkgs.stdenv.hostPlatform pkgs;
+    cacheSettings = import ./nix-cache.nix;
     nixCacheOptions = [
       "--option"
       "extra-substituters"
-      "https://nix-cache.yfgao.net?priority=50"
+      (lib.concatStringsSep " " cacheSettings.extra-substituters)
       "--option"
       "extra-trusted-public-keys"
-      "nix-cache.yfgao.net-1:mSv/FykKK4oFZbX9JgD38D/me1+xJeAKsQ+STHiHVp4="
+      (lib.concatStringsSep " " cacheSettings.extra-trusted-public-keys)
     ];
     completions = pkgs.runCommand "dynamic-cli-completions" {} ''
       install -Dm644 ${pkgs.fd}/share/zsh/site-functions/_fd \

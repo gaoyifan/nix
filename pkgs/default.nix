@@ -17,6 +17,7 @@ rec {
   };
   cursor-cli = import ./cursor-cli.nix {inherit pkgs;};
   pi-coding-agent = import ./pi-coding-agent.nix {inherit pkgs;};
+  nft-geo-sets = import ./nft-geo-sets.nix {inherit pkgs inputs;};
   playwright-cli = import ./playwright-cli.nix {inherit pkgs;};
   prosafe-vlan-manager = import ./prosafe-vlan-manager.nix {inherit pkgs;};
   loft = inputs.loft.packages.${pkgs.stdenv.hostPlatform.system}.default;

@@ -5,6 +5,7 @@
   newApiBaseUrl,
   pkgs,
 }: let
+  cacheSettings = import ../../../nix-cache.nix;
   tesseractWithLanguages = pkgs.tesseract.override {
     enableLanguages = [
       "eng"
@@ -31,8 +32,8 @@
   nixConfig = pkgs.writeTextDir "etc/nix/nix.conf" ''
     build-users-group =
     experimental-features = nix-command flakes
-    extra-substituters = https://nix-cache.yfgao.net?priority=50
-    extra-trusted-public-keys = nix-cache.yfgao.net-1:mSv/FykKK4oFZbX9JgD38D/me1+xJeAKsQ+STHiHVp4=
+    extra-substituters = ${lib.concatStringsSep " " cacheSettings.extra-substituters}
+    extra-trusted-public-keys = ${lib.concatStringsSep " " cacheSettings.extra-trusted-public-keys}
   '';
   codexCli = pkgs.writeShellScriptBin "codex" ''
     exec ${pkgs.nix}/bin/nix run \

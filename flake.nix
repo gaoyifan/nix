@@ -2,6 +2,7 @@
   description = "Nix configuration for yifan";
 
   nixConfig = {
+    # Flake configuration must be literal; imported values remain thunks.
     # cache.nixos.org remains Nix's built-in fallback.
     extra-substituters = [
       "https://nix-cache.yfgao.net?priority=50"
@@ -188,14 +189,8 @@
   };
 
   outputs = {
-    self,
     nixpkgs,
     nixpkgs-darwin,
-    home-manager,
-    nix-darwin,
-    deploy-rs,
-    system-manager,
-    disko,
     ...
   } @ inputs: let
     systems = [
@@ -225,11 +220,7 @@
         target="$1"
         [ -n "$target" ] && mv "$target" "$target.${homeManagerBackupExtension}"
       '';
-    customPackages = pkgs:
-      import ./pkgs {inherit pkgs inputs;}
-      // {
-        nft-geo-sets = import ./pkgs/nft-geo-sets.nix {inherit pkgs inputs;};
-      };
+    customPackages = pkgs: import ./pkgs {inherit pkgs inputs;};
     cliApps = import ./cli-apps.nix {lib = nixpkgs.lib;};
     overlay = _final: prev: customPackages prev;
     treefmtEval = forAllSystems (system: inputs.treefmt-nix.lib.evalModule (pkgsFor system) ./treefmt.nix);
