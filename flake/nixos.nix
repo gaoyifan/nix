@@ -126,6 +126,7 @@ in {
     google = mkDeployNode "x86_64-linux" "google.ts.gaof.net" configs.google;
     misc0-jp = mkDeployNode "x86_64-linux" "misc0-jp.ts.gaof.net" configs.misc0-jp;
     nfs = mkDeployNode "x86_64-linux" "nfs.ts.gaof.net" configs.nfs;
+    nixos-orbstack = mkDeployNode "aarch64-linux" "nixos-orbstack.ts.gaof.net" configs.nixos-orbstack;
     oracle = mkDeployNode "x86_64-linux" "oracle.ts.gaof.net" configs.oracle;
     oracle2 = mkDeployNode "aarch64-linux" "oracle2.ts.gaof.net" configs.oracle2;
     oracle3 = mkDeployNode "x86_64-linux" "oracle3.ts.gaof.net" configs.oracle3;
