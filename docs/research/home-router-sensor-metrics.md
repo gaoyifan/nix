@@ -3,7 +3,7 @@
 日期：2026-08-28
 
 状态：仓库源码、上游一手文档和五台实际 Home Router 节点均已核验；第一批 Dashboard、
-per-WAN scrape 收窄与 `el2` smartctl exporter 已于 2026-08-28 实施，其余候选仍是调研建议。
+per-WAN scrape 收窄，以及 `el2` smartctl/IPMI exporter 已于 2026-08-28 实施，其余候选仍是调研建议。
 
 ## 结论
 
@@ -23,8 +23,8 @@ exporter，并保留 90 天数据（[`monitoring.nix`](../../nixos/optional/home
    3 块 SATA SSD 和 2 块 NVMe 的温度与 SMART 健康信息。
 4. **P1，主机特定 collector：** 只在 `somo-minisforum` 启用 node exporter 的 `wifi`
    collector，增加信号、速率、重试和失败指标。
-5. **P2，服务器特定 exporter：** 给 `el2` 接 IPMI，尝试补齐 BMC 的进风/出风、DIMM、
-   风扇、PSU 等传感器；具体 sensor 清单尚未读取，权限和凭据也使它不属于零成本改动。
+5. **P2，服务器特定 exporter：** `el2` 已通过本地 `/dev/ipmi0` 接入 BMC 的环境、DIMM、
+   VR、PSU、RAID 温度，风扇 RPM、电压、分项功耗和状态。
 
 不要先做一个自定义温度采集脚本。Linux 已经用标准 hwmon ABI 统一导出温度、风扇、
 电压、电流、功率、阈值、alarm 和 fault，node exporter 也已默认读取它们
@@ -91,7 +91,7 @@ FriendlyElec 的官方规格也确认 R4S 使用 RK3399，并有 CPU/GPU、可�
   311–337 W；
 - `node_cpu_package_throttles_total`、`node_cpu_core_throttles_total`，盘点时均为 0；
 - `node_edac_correctable_errors_total`、`node_edac_uncorrectable_errors_total`，盘点时均为 0；
-- `/dev/ipmi0`，但权限是 `root:root 0600`；
+- `/dev/ipmi0` 由 udev 设为 `root:ipmi-exporter-access 0660`，仅供 DynamicUser exporter 使用；
 - 12 块 Seagate SAS HDD、3 块 Micron SATA SSD、2 块 NVMe。逐盘只读 `smartctl -a -j`
   已能读出温度与健康状态；代表性路径 `/dev/sda`（SCSI）为 36°C、trip 60°C，
   `/dev/sdb`（SAT）为 32°C，`/dev/nvme0n1` 为 46°C。全部盘点范围内 SAS/SATA 为
@@ -114,8 +114,8 @@ FriendlyElec 的官方规格也确认 R4S 使用 RK3399，并有 CPU/GPU、可�
 | 5 | `node_hwmon_power_average_watt`、EDAC | `el2` 已采集 | 0 | 中高 | 高 | 与温度、负载关联展示 |
 | 6 | `smartctl_device_temperature` 和 SMART health | `el2` 已部署，17 块盘全部进入 Prometheus | 1 | 高 | 高 | SAS/SATA 使用稳定 by-id，独立 60 秒 scrape |
 | 7 | node exporter `wifi` collector | Minisforum AP 实测可用，当前未启用 | 1 | 中高 | 中高 | 主机级 opt-in；控制基数与隐私 |
-| 8 | IPMI 温度/风扇/PSU | `el2` 有 BMC device，尚未读取传感器清单 | 2 | 高 | 未验证/预期高 | 做完前两层后再接入 |
-| 9 | hwmon 风扇、板级电压、电流、功率 | 当前只有少量 GPU/整机功率，没有 fan RPM | 0/2 | 中 | 中 | 自动消费将来出现的标准 hwmon；不要假设现在有 |
+| 8 | IPMI 温度/风扇/PSU | `el2` 已部署，IPMI collector 正常 | 2 | 高 | 高 | 独有环境温度、8 路风扇和板级供电数据已进入 Prometheus |
+| 9 | hwmon 风扇、板级电压、电流、功率 | node hwmon 仍无 fan RPM；`el2` IPMI 已补齐 | 0/2 | 中 | 中 | 自动消费将来出现的标准 hwmon；不要与 IPMI 重复展示 |
 | 10 | SATA `drivetemp` | `el2` 模块存在但未加载；源码只接受 SATA/SAT | 1 | 中 | 中 | 最多补 3 块 Micron，覆盖不了 12 块 SAS，不替代 smartctl |
 | 11 | PHY/SFP 温度与光功率 | 当前 hwmon 无对应设备；`el2` 的 `ethtool -m` 返回 `EINVAL` | 0/2 | 条件性高 | 中高 | 将来换成带 DDM/SFP hwmon 的模块时自动接入 |
 | 12 | 环境温湿度 | 五台均无对应传感器 | 3 | 中 | 取决于硬件 | 需要外置 USB/I²C 传感器，不是本轮低成本项 |
@@ -281,25 +281,30 @@ scrape 时间和基数
 
 ## P2：IPMI 与板级风扇
 
-`el2` 的 Inspur BMC 是获得“环境温度”和风扇转速的最佳现成来源。官方 IPMI exporter 会
+`el2` 的 Inspur BMC 是获得环境温度和风扇转速的最佳现成来源，现已通过本地 `/dev/ipmi0`
+接入。官方 IPMI exporter 会
 直接提供 `ipmi_temperature_celsius`、`ipmi_temperature_state`、`ipmi_fan_speed_rpm`、
 电压、电流和功率指标
 （[官方指标文档](https://github.com/prometheus-community/ipmi_exporter/blob/master/docs/metrics.md)）。
 锁定 Nixpkgs 也已有 IPMI exporter 模块
 （[模块](https://github.com/NixOS/nixpkgs/blob/531670d871c0e29724a02f3cbcac170adc65b58c/nixos/modules/services/monitoring/prometheus/exporters/ipmi.nix#L20-L64)）。
 
-以上只是 exporter 能表达的标准指标；本次没有运行 `ipmi-sensors`，所以 `el2` 实际提供
-哪些 inlet/exhaust/DIMM/fan/PSU 传感器仍是未决事实。
+实机 inventory 与 exporter 验证确认了 12 条独有温度：Inlet/Outlet、双 CPU DIMM/VR、双
+PSU、双 RAID、M.2 inlet 和 rear HDD backplane；另有 8 路 chassis fan、13 路电压，以及
+1 路整机和 6 路分项功耗。CPU/PCH/HDD max 等已有数据没有重复加入 Dashboard。
+`CPU0_DTS`/`CPU1_DTS` 实际是
+离 90°C critical 的 headroom，却被 exporter 标成 Celsius，也明确从温度查询中排除。
 
-但当前不能把“有 `/dev/ipmi0`”推断成“加一个 enable 就能工作”：设备是
-`root:root 0600`，而 NixOS exporter 的通用 hardening 默认启用 private devices、空 device
-allowlist 和非 root service user
-（[锁定 Nixpkgs exporter 基类](https://github.com/NixOS/nixpkgs/blob/531670d871c0e29724a02f3cbcac170adc65b58c/nixos/modules/services/monitoring/prometheus/exporters.nix#L312-L410)）。
-可选方案是安全地放行本地 `/dev/ipmi0`，或使用 BMC LAN endpoint 与 agenix 凭据。后者还能在
-主机关机时采集，但需要确认 BMC 地址、账号和网络可达性。
+Exporter 继续使用 DynamicUser、空 capability set 和 `NoNewPrivileges`；专用
+`ipmi-exporter-access` 组通过 udev 获得 `/dev/ipmi0` 读写权限；除 hardening 默认设备外，
+systemd 额外只放行该设备，并关闭 PrivateDevices。首切时重放了一次 udev add 规则；后续开机
+自动应用。只启用 `ipmi` collector：
+实测 DCMI 虽报告 up，却恒为 0W，因此未接入；72 条全 NaN `ipmi_sensor_value` 也在 metric
+relabel 阶段丢弃，保留对应 state。
 
-五台当前 scrape 中都没有 `node_hwmon_fan_rpm`。这是**没有 Linux 可见的 tach sensor**，
-不是“机器一定没有风扇”。R4S 官方板卡有 5V 风扇接口，vendor kernel 还描述过基于温度的
+五台 node scrape 中仍没有 `node_hwmon_fan_rpm`；`el2` 现在由 IPMI 提供 8 路 fan RPM。
+其余节点没有 Linux 可见的 tach sensor，不代表机器一定没有风扇。R4S 官方板卡有 5V 风扇
+接口，vendor kernel 还描述过基于温度的
 PWM fan control（[FriendlyElec 文档](https://wiki.friendlyelec.com/wiki/index.php/NanoPi_R4S#How_to_Control_Fan_Speed_for_Cooling)），
 但当前 mainline NixOS 设备树没有相应 fan hwmon/cooling device；而 2-pin 风扇本身通常也没有
 转速反馈。因此 R4S 风扇 RPM 不属于低成本、可靠的软件指标。
@@ -333,20 +338,17 @@ PWM fan control（[FriendlyElec 文档](https://wiki.friendlyelec.com/wiki/index
 - 本文列出的 R4S 70/75/95°C trip points 来自 2026-08-28 两台机器的实时 sysfs，
   不是从上游 DTS 推断。
 - Minisforum 有 CPU/CCD、DIMM、NVMe、Wi-Fi、GPU 温度，但没有 fan RPM。
-- `el2` 有 CPU/PCH/NVMe/NIC 温度、整机功率、thermal throttle counter、EDAC、可读
-  SMART 和本地 IPMI device，但没有当前 Prometheus fan RPM。
+- `el2` 有 CPU/PCH/NVMe/NIC/环境/板级温度、整机与分项功率、8 路风扇、thermal throttle
+  counter、EDAC、SMART 和 IPMI state；IPMI typed state 当前均为 nominal。
 
 ### 推断
 
-- `el2` 的 IPMI 大概率能补齐进风、出风、DIMM、风扇和 PSU；这是服务器 BMC 的典型能力，
-  也是 IPMI exporter 的标准指标，但必须以实际 sensor inventory 为准。
 - 加载 `drivetemp` 大概率能覆盖 3 块 SATA SSD；在 canary 实测前不能当成事实，且无论如何
   覆盖不了源码会拒绝的 12 块 SAS 盘。
 - 将来更换带 DDM 的光模块或受支持 PHY 后，hwmon 会自动产生新指标；无需现在写兼容层。
 
 ### 未决项
 
-- `el2` 选择本地 IPMI device 还是 BMC LAN，以及对应最小权限/凭据方案。
 - 是否接受 Wi-Fi station MAC 进入 90 天时序库。
 - 是否希望 Home Router Overview 对无温度的 VM 显示显式 N/A；PromQL 返回空本身是正确
   语义，不应伪造 0°C。
@@ -362,9 +364,10 @@ PWM fan control（[FriendlyElec 文档](https://wiki.friendlyelec.com/wiki/index
 4. `Temperature Headroom`，只显示确实提供合理 crit 的 series。
 
 这批没有新增 option、service、权限或兼容层，并已覆盖四台物理路由器。`node-wan-*` scrape
-也已限定为 `netclass`/`netdev`，`el2` smartctl 也已作为主机特定能力接入。后续可增加
-sticky alarm，再处理 Minisforum Wi-Fi 和 `el2` IPMI。这样每一步都有真实消费者，也避免把
-服务器、AP 和 VMware guest 的硬件差异塞进一个假装统一的接口。
+也已限定为 `netclass`/`netdev`，`el2` smartctl 和 IPMI 也已作为主机特定能力接入；Overview
+增加了去重后的 IPMI 温度与 fan RPM。后续可增加 sticky alarm，再处理 Minisforum Wi-Fi。
+这样每一步都有真实消费者，也避免把服务器、AP 和 VMware guest 的硬件差异塞进一个假装
+统一的接口。
 
 ## 运行态复核命令
 

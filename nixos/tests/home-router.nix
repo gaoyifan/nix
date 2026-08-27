@@ -268,6 +268,7 @@
             [
           "CPU/SoC Temperature",
           "Hardware Temperatures",
+          "IPMI Fan Speed",
           "Thermal Mitigation",
           "Critical Temperature Headroom"
             ] as $titles

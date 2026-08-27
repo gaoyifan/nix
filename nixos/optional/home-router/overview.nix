@@ -635,6 +635,15 @@
           };
           refId = "C";
         }
+        {
+          query = {
+            expr = ''ipmi_temperature_celsius{job="ipmi", name=~"Inlet_Temp|Outlet_Temp|CPU[01]_(DIMM|VR)_Temp|PSU[01]_Temp|RAID[01]_Temp|M[.]2_Inlet_Temp|Rear_HDDBP_Temp"}'';
+            instant = false;
+            legendFormat = "IPMI {{name}}";
+            range = true;
+          };
+          refId = "D";
+        }
       ];
       title = "Hardware Temperatures";
       visualization = {
@@ -682,6 +691,31 @@
         type = "timeseries";
       };
     }
+    {
+      id = 19;
+      queries = [
+        {
+          query = {
+            expr = ''ipmi_fan_speed_rpm{job="ipmi"}'';
+            instant = false;
+            legendFormat = "{{name}}";
+            range = true;
+          };
+          refId = "A";
+        }
+      ];
+      title = "IPMI Fan Speed";
+      visualization = {
+        fieldDefaults = {
+          color = {mode = "palette-classic";};
+          min = 0;
+          unit = "rotrpm";
+        };
+        fillOpacity = 0;
+        legendCalcs = ["lastNotNull" "mean" "max"];
+        type = "timeseries";
+      };
+    }
   ];
   rows = [
     {
@@ -707,8 +741,8 @@
     }
     {
       columnWidth = 350;
-      maxColumnCount = 2;
-      panels = [17 18];
+      maxColumnCount = 3;
+      panels = [17 18 19];
       rowHeightMode = "standard";
       title = "Thermal health";
     }

@@ -6,6 +6,9 @@
   ...
 }: let
   certDir = "${config.services.acmeCertificates.directory}/yfgao";
+  ipmiExporterConfig = (pkgs.formats.yaml {}).generate "ipmi-exporter.yaml" {
+    modules.default.collectors = ["ipmi"];
+  };
   tailscale = inputs.nixpkgs.legacyPackages.${pkgs.stdenv.hostPlatform.system}.tailscale;
   derper = "${tailscale.derper}/bin/derper";
   stund = tailscale.overrideAttrs {
@@ -31,12 +34,39 @@ in {
 
   services.openssh.settings.MaxStartups = 100;
   services.prometheus = {
-    exporters.smartctl = {
-      enable = true;
-      listenAddress = "127.0.0.1";
-      extraFlags = ["--smartctl.scan-device-type=by-id"];
+    exporters = {
+      ipmi = {
+        enable = true;
+        listenAddress = "127.0.0.1";
+        configFile = ipmiExporterConfig;
+      };
+      smartctl = {
+        enable = true;
+        listenAddress = "127.0.0.1";
+        extraFlags = ["--smartctl.scan-device-type=by-id"];
+      };
     };
     scrapeConfigs = [
+      {
+        job_name = "ipmi";
+        metric_relabel_configs = [
+          {
+            source_labels = ["__name__"];
+            regex = "ipmi_sensor_value";
+            action = "drop";
+          }
+          {
+            source_labels = ["__name__"];
+            regex = "ipmi_.*";
+            action = "keep";
+          }
+        ];
+        scrape_interval = "60s";
+        scrape_timeout = "30s";
+        static_configs = [
+          {targets = ["127.0.0.1:${toString config.services.prometheus.exporters.ipmi.port}"];}
+        ];
+      }
       {
         job_name = "smartctl";
         scrape_interval = "60s";
@@ -46,6 +76,9 @@ in {
       }
     ];
   };
+  services.udev.extraRules = ''
+    ACTION=="add", SUBSYSTEM=="ipmi", KERNEL=="ipmi0", GROUP="ipmi-exporter-access", MODE="0660"
+  '';
   services.ncps = {
     enable = true;
     analytics.reporting.enable = false;
@@ -104,6 +137,11 @@ in {
           ExecStart = "${derper} --hostname ${hostname} --certdir ${runtimeDir} --certmode manual --verify-clients --http-port=-1 --stun=false -a :10000";
         };
       };
+      prometheus-ipmi-exporter.serviceConfig = {
+        DeviceAllow = ["/dev/ipmi0 rw"];
+        PrivateDevices = false;
+        SupplementaryGroups = ["ipmi-exporter-access"];
+      };
     }
     // lib.mapAttrs' (name: listenAddress:
       lib.nameValuePair "stun-${name}" {
@@ -119,6 +157,8 @@ in {
         };
       })
     stunListenAddresses;
+
+  users.groups.ipmi-exporter-access = {};
 
   virtualisation.oci-containers.containers = {
     light-single = {
