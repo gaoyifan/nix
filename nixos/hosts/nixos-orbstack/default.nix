@@ -114,6 +114,8 @@
     '';
   };
 
+  home-manager.users.${username}.services.mutagen.dotfileSync.syncCodexSessions = true;
+
   nix.settings.extra-platforms = [
     "x86_64-linux"
     "i686-linux"
