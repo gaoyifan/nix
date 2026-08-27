@@ -1,8 +1,6 @@
 # Power management for always-on servers: never sleep, ignore power/lid
 # events, so SSH stays reachable.
 {
-  powerManagement.enable = true;
-
   systemd.sleep.settings.Sleep = {
     AllowSuspend = "no";
     AllowHibernation = "no";

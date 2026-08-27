@@ -5,7 +5,6 @@
   ...
 }: {
   time.timeZone = lib.mkDefault "Asia/Singapore";
-  i18n.defaultLocale = "en_US.UTF-8";
 
   programs.zsh.enable = true;
   services.tailscale.port = 6627;

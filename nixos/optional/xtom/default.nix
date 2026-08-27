@@ -39,7 +39,6 @@
 
   services = {
     timesyncd = {
-      enable = true;
       extraConfig = ''
         [Time]
         SaveIntervalSec=15min

@@ -17,7 +17,6 @@ in {
   ];
 
   networking.hostName = "somo-gw";
-  networking.useDHCP = lib.mkDefault true;
 
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi = {
