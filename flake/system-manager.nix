@@ -7,10 +7,10 @@
   ...
 }: let
   resticBackupHosts = [
-    "bitmagnet"
+    "bitmagnet-db2"
     "debian41"
-    "docker"
-    "docker22"
+    "debian20"
+    "debian22"
     "misc0-61"
     "misc0-sz"
     "misc1"
