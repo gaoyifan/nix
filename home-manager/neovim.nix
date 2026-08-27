@@ -34,6 +34,9 @@
       source ~/.vim_runtime/my_configs.vim
     catch
     endtry
+
+    " Restore Vim's default 0 motion; basic.vim maps it to ^.
+    unmap 0
   '';
 in {
   # Link the ultimate vimrc (shared across platforms)
