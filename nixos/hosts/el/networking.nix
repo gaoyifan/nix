@@ -18,14 +18,7 @@ in {
       privateKeyFile = config.services.secrets.filesDir + "/nixos/el/wg-iplc-private-key.age";
     };
 
-    monitoring = {
-      enable = true;
-      wans = [
-        "cernet"
-        "chinanet"
-        "cmcc"
-      ];
-    };
+    monitoring.enable = true;
 
     # VMXNET3 adapters 1-3 are untagged access ports. Adapter 4 is the
     # standalone management network and must not join the core bridge.

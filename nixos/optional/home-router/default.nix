@@ -39,6 +39,7 @@ in {
     networking.useNetworkd = true;
     networking.edgeFirewall.enable = true;
     networking.firewall.enable = false;
+    networking.homeRouter.monitoring.wans = lib.mkDefault (lib.attrNames cfg.wans);
     networking.nftables.enable = true;
     networking.nftables.flushRuleset = false;
     networking.nftables.tables.home-router = {

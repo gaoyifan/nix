@@ -329,7 +329,7 @@ in {
       wans = lib.mkOption {
         type = types.listOf types.str;
         default = [];
-        description = "WANs probed and displayed by public egress dashboards.";
+        description = "WANs probed and displayed by public egress dashboards; defaults to all configured WANs.";
       };
     };
   };

@@ -11,14 +11,7 @@
       privateKeyFile = config.services.secrets.filesDir + "/nixos/el2/wg-iplc-private-key.age";
     };
 
-    monitoring = {
-      enable = true;
-      wans = [
-        "cernet"
-        "chinanet"
-        "cmcc"
-      ];
-    };
+    monitoring.enable = true;
 
     switch.ports.uplink0 = {
       bond = {

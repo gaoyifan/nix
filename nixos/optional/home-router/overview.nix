@@ -536,12 +536,149 @@
         type = "timeseries";
       };
     }
+    {
+      id = 15;
+      queries = [
+        {
+          query = {
+            expr = ''max(node_hwmon_temp_celsius{job="node", sensor!="temp0"} * on(instance, job, chip) group_left(chip_name) node_hwmon_chip_names{job="node", chip_name=~"cpu_thermal_0|k10temp|coretemp"})'';
+            instant = true;
+            legendFormat = "CPU/SoC";
+            range = false;
+          };
+          refId = "A";
+        }
+      ];
+      title = "CPU/SoC Temperature";
+      visualization = {
+        fieldDefaults = {
+          color = {mode = "palette-classic";};
+          unit = "celsius";
+        };
+        options = {
+          colorMode = "value";
+          graphMode = "area";
+        };
+        type = "stat";
+      };
+    }
+    {
+      id = 16;
+      queries = [
+        {
+          query = {
+            expr = ''min((((node_hwmon_temp_crit_celsius{job="node"} > 0) < 200) - on(instance, job, chip, sensor) node_hwmon_temp_celsius{job="node", sensor!="temp0"}) unless on(instance, job, chip, sensor) node_hwmon_sensor_label{job="node", label=~"Core .*"})'';
+            instant = true;
+            legendFormat = "Headroom";
+            range = false;
+          };
+          refId = "A";
+        }
+      ];
+      title = "Critical Temperature Headroom";
+      visualization = {
+        fieldDefaults = {
+          color = {mode = "thresholds";};
+          thresholds = {
+            mode = "absolute";
+            steps = [
+              {
+                color = "red";
+                value = null;
+              }
+              {
+                color = "yellow";
+                value = 10;
+              }
+              {
+                color = "green";
+                value = 20;
+              }
+            ];
+          };
+          unit = "celsius";
+        };
+        options = {
+          colorMode = "value";
+          graphMode = "area";
+        };
+        type = "stat";
+      };
+    }
+    {
+      id = 17;
+      queries = [
+        {
+          query = {
+            expr = ''(node_hwmon_temp_celsius{job="node", sensor!="temp0"} * on(instance, job, chip) group_left(chip_name) node_hwmon_chip_names{job="node"}) * on(instance, job, chip, sensor) group_left(label) node_hwmon_sensor_label{job="node", label!~"Core .*"}'';
+            instant = false;
+            legendFormat = "{{chip_name}} {{chip}} {{label}}";
+            range = true;
+          };
+          refId = "A";
+        }
+        {
+          query = {
+            expr = ''(node_hwmon_temp_celsius{job="node", sensor!="temp0"} * on(instance, job, chip) group_left(chip_name) node_hwmon_chip_names{job="node"}) unless on(instance, job, chip, sensor) node_hwmon_sensor_label{job="node"}'';
+            instant = false;
+            legendFormat = "{{chip_name}} {{chip}} {{sensor}}";
+            range = true;
+          };
+          refId = "B";
+        }
+      ];
+      title = "Hardware Temperatures";
+      visualization = {
+        fieldDefaults = {
+          color = {mode = "palette-classic";};
+          unit = "celsius";
+        };
+        fillOpacity = 10;
+        legendCalcs = ["lastNotNull" "mean" "max"];
+        type = "timeseries";
+      };
+    }
+    {
+      id = 18;
+      queries = [
+        {
+          query = {
+            expr = ''max by (type) (node_cooling_device_cur_state{job="node"} > bool 0) * 100'';
+            instant = false;
+            legendFormat = "{{type}} cooling";
+            range = true;
+          };
+          refId = "A";
+        }
+        {
+          query = {
+            expr = ''(increase(node_cpu_package_throttles_total{job="node"}[$__rate_interval]) > bool 0) * 100'';
+            instant = false;
+            legendFormat = "Package {{package}} throttled";
+            range = true;
+          };
+          refId = "B";
+        }
+      ];
+      title = "Thermal Mitigation";
+      visualization = {
+        fieldDefaults = {
+          color = {mode = "palette-classic";};
+          max = 100;
+          min = 0;
+          unit = "percent";
+        };
+        fillOpacity = 10;
+        legendCalcs = ["lastNotNull" "max"];
+        type = "timeseries";
+      };
+    }
   ];
   rows = [
     {
       columnWidth = 100;
-      maxColumnCount = 6;
-      panels = [1 2 3 4 5 6];
+      maxColumnCount = 8;
+      panels = [1 2 3 4 5 6 15 16];
       rowHeight = 128;
       title = "Summary";
     }
@@ -558,6 +695,13 @@
       panels = [13 14];
       rowHeightMode = "standard";
       title = "Resource history";
+    }
+    {
+      columnWidth = 350;
+      maxColumnCount = 2;
+      panels = [17 18];
+      rowHeightMode = "standard";
+      title = "Thermal health";
     }
     {
       columnWidth = 350;

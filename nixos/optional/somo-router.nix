@@ -58,10 +58,7 @@ in {
       enable = true;
       wgIplc.enable = true;
 
-      monitoring = {
-        enable = true;
-        wans = ["cmcc"];
-      };
+      monitoring.enable = true;
 
       switch.ports.${cfg.lanPort} = {
         untagged = cfg.nativeVlan;

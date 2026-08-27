@@ -49,10 +49,7 @@ in {
       extraInterfaces = ["tailscale0"];
     };
 
-    monitoring = {
-      enable = true;
-      wans = ["ppp"];
-    };
+    monitoring.enable = true;
 
     wlt.enable = true;
 

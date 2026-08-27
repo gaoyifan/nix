@@ -231,6 +231,63 @@
       grep -F 'home_router_wan_transmit_bytes_total{wan="cmcc"}' /run/home-router-wan-metrics/home-router-wan.prom
       ${pkgs.curl}/bin/curl --fail --silent http://127.0.0.1:9100/metrics |
         grep -F 'home_router_wan_receive_bytes_total{wan="chinanet"}'
+
+      prometheus_config="$(
+        systemctl show --property=ExecStart --value prometheus.service |
+          sed -n 's/.*--config.file=\([^ ;]*\).*/\1/p'
+      )"
+      test -r "$prometheus_config"
+      test "$(grep -c 'collect\[\]:' "$prometheus_config")" -eq 3
+      test "$(grep -c -- '- netclass' "$prometheus_config")" -eq 3
+      test "$(grep -c -- '- netdev' "$prometheus_config")" -eq 3
+
+      filtered_node_metrics="$(
+        ${pkgs.curl}/bin/curl --fail --silent --get \
+          --data-urlencode 'collect[]=netclass' \
+          --data-urlencode 'collect[]=netdev' \
+          http://127.0.0.1:9100/metrics
+      )"
+      test "$(grep -c '^node_scrape_collector_success{collector=' <<< "$filtered_node_metrics")" -eq 2
+      grep -F 'node_scrape_collector_success{collector="netclass"} 1' <<< "$filtered_node_metrics"
+      grep -F 'node_scrape_collector_success{collector="netdev"} 1' <<< "$filtered_node_metrics"
+      ! grep -q '^node_cpu_seconds_total' <<< "$filtered_node_metrics"
+
+      for metric in node_network_carrier node_network_receive_errs_total; do
+        test "$(
+          ${pkgs.curl}/bin/curl --fail --silent --get \
+            --data-urlencode "query=count($metric{job=~\"node-wan-.+\"})" \
+            http://127.0.0.1:9090/api/v1/query |
+            ${pkgs.jq}/bin/jq --exit-status --raw-output '.data.result[0].value[1]'
+        )" -eq 3
+      done
+
+      thermal_queries="$(
+        ${pkgs.curl}/bin/curl --fail --silent \
+          http://127.0.0.1:3001/api/dashboards/uid/home-router-overview |
+          ${pkgs.jq}/bin/jq --exit-status --raw-output '
+            [
+          "CPU/SoC Temperature",
+          "Hardware Temperatures",
+          "Thermal Mitigation",
+          "Critical Temperature Headroom"
+            ] as $titles
+            | if .meta.provisioned and ((($titles - [.dashboard.panels[].title]) | length) == 0)
+              then
+                .dashboard.panels[]
+                | select(.title as $title | $titles | index($title))
+                | .targets[].expr
+              else error("thermal dashboard panels were not provisioned")
+              end
+          '
+      )"
+
+      while IFS= read -r query; do
+        query="''${query//\$__rate_interval/5m}"
+        ${pkgs.curl}/bin/curl --fail --silent --get \
+          --data-urlencode "query=$query" \
+          http://127.0.0.1:9090/api/v1/query |
+          ${pkgs.jq}/bin/jq --exit-status '.status == "success"'
+      done <<< "$thermal_queries"
     '';
   in {
     imports = [
@@ -258,14 +315,7 @@
     networking.homeRouter = {
       enable = true;
 
-      monitoring = {
-        enable = true;
-        wans = [
-          "cernet"
-          "chinanet"
-          "cmcc"
-        ];
-      };
+      monitoring.enable = true;
 
       switch.ports.uplink0 = {
         untagged = 931;
@@ -406,6 +456,9 @@
   testScript = {nodes, ...}: ''
     start_all()
     router.wait_for_unit("systemd-networkd.service")
+    router.wait_for_open_port(9090)
+    router.wait_for_open_port(9100)
+    router.wait_for_open_port(3001)
     router.wait_until_succeeds("ip link show dev br-core")
     router.succeed("grep -F 'server=/cjia.gaof.net/100.65.1.254' ${nodes.router.services.dnsmasq.configFile}")
     router.fail("grep -F 'server=/test.invalid/' ${nodes.router.services.dnsmasq.configFile}")
