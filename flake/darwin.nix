@@ -11,8 +11,6 @@
   darwinHosts = [
     "Yifans-MacBook-Air-2022"
     "YifansMacStudio"
-    "Yans-Mac-mini"
-    "openclaw"
     "default"
   ];
   codexSessionSyncHosts = [
@@ -26,9 +24,7 @@ in {
         specialArgs = {
           inherit inputs username;
           darwinProfile =
-            if hostname == "openclaw"
-            then "openclaw"
-            else if hostname == "YifansMacStudio"
+            if hostname == "YifansMacStudio"
             then "yifansmacstudio"
             else "default";
         };

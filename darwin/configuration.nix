@@ -8,7 +8,6 @@
 }: let
   cacheSettings = import ../nix-cache.nix;
   defaultHomebrew = import ./homebrew/default.nix;
-  openclawHomebrew = import ./homebrew/openclaw.nix;
   yifansMacStudioHomebrew = import ./homebrew/yifansmacstudio.nix;
 in {
   # User configuration - required for home-manager
@@ -60,9 +59,7 @@ in {
       };
     }
     // (
-      if darwinProfile == "openclaw"
-      then openclawHomebrew
-      else if darwinProfile == "yifansmacstudio"
+      if darwinProfile == "yifansmacstudio"
       then yifansMacStudioHomebrew
       else defaultHomebrew
     );
