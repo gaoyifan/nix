@@ -27,6 +27,7 @@
       ".codex/cache"
       ".codex/history.jsonl"
       ".codex/models_cache.json"
+      ".codex/plugins/cache"
       ".codex/tmp"
       ".codex/.tmp"
       ".codex/version.json"
