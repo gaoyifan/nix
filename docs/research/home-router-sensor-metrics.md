@@ -2,8 +2,8 @@
 
 日期：2026-08-28
 
-状态：仓库源码、上游一手文档和五台实际 Home Router 节点均已核验；第一批 Dashboard
-与 per-WAN scrape 收窄已于 2026-08-28 实施，其余候选仍是调研建议。
+状态：仓库源码、上游一手文档和五台实际 Home Router 节点均已核验；第一批 Dashboard、
+per-WAN scrape 收窄与 `el2` smartctl exporter 已于 2026-08-28 实施，其余候选仍是调研建议。
 
 ## 结论
 
@@ -19,8 +19,8 @@ exporter，并保留 90 天数据（[`monitoring.nix`](../../nixos/optional/home
    状态和硬件临界温度余量已经实现。额外 WAN scrape 也已限制到 `netclass`/`netdev`，
    后续可可靠增加 sticky alarm 面板。
 2. **P0，纯 dashboard：** `el2` 的整机功率与 EDAC 错误；它们已经在当前 scrape 中。
-3. **P1，主机特定 exporter：** 给 `el2` 启用 `smartctl_exporter`，补齐 12 块 SAS HDD
-   和 3 块 SATA SSD 的温度与 SMART 健康信息。
+3. **P1，主机特定 exporter：** `el2` 已启用 `smartctl_exporter`，覆盖 12 块 SAS HDD、
+   3 块 SATA SSD 和 2 块 NVMe 的温度与 SMART 健康信息。
 4. **P1，主机特定 collector：** 只在 `somo-minisforum` 启用 node exporter 的 `wifi`
    collector，增加信号、速率、重试和失败指标。
 5. **P2，服务器特定 exporter：** 给 `el2` 接 IPMI，尝试补齐 BMC 的进风/出风、DIMM、
@@ -112,7 +112,7 @@ FriendlyElec 的官方规格也确认 R4S 使用 RK3399，并有 CPU/GPU、可�
 | 3 | `node_cpu_package_throttles_total` / core throttles | `el2` 已采集 | 0 | 高 | 高 | 比从频率下降推断过热更直接 |
 | 4 | `node_hwmon_temp_crit_celsius - current` 与温度 alarm | 部分 Intel CPU、NVMe、DIMM、NIC 有；R4S/AMD 不完整 | 0 | 高 | 高/中 | headroom 已展示；WAN scrape 已收窄，sticky alarm 可后续增加 |
 | 5 | `node_hwmon_power_average_watt`、EDAC | `el2` 已采集 | 0 | 中高 | 高 | 与温度、负载关联展示 |
-| 6 | `smartctl_device_temperature` 和 SMART health | `el2` 逐盘实测可读，尚无 exporter | 1 | 高 | 高 | 为 `el2` 单独启用 smartctl exporter |
+| 6 | `smartctl_device_temperature` 和 SMART health | `el2` 已部署，17 块盘全部进入 Prometheus | 1 | 高 | 高 | SAS/SATA 使用稳定 by-id，独立 60 秒 scrape |
 | 7 | node exporter `wifi` collector | Minisforum AP 实测可用，当前未启用 | 1 | 中高 | 中高 | 主机级 opt-in；控制基数与隐私 |
 | 8 | IPMI 温度/风扇/PSU | `el2` 有 BMC device，尚未读取传感器清单 | 2 | 高 | 未验证/预期高 | 做完前两层后再接入 |
 | 9 | hwmon 风扇、板级电压、电流、功率 | 当前只有少量 GPU/整机功率，没有 fan RPM | 0/2 | 中 | 中 | 自动消费将来出现的标准 hwmon；不要假设现在有 |
@@ -227,23 +227,31 @@ CPU frequency 已经采集，但只适合作为关联证据：powersave、空闲
 
 ### `el2` 的 smartctl exporter
 
-这是新增 exporter 中回报最高的一项。NVMe 温度已通过 hwmon 存在，但 12 块 SAS HDD 和
-3 块 SATA SSD 目前没有 Prometheus 温度；逐盘 `smartctl` 已验证全部 17 块盘可读，并分别
-覆盖了 SCSI、SAT 和 NVMe 代表盘。
+这是新增 exporter 中回报最高的一项，现已部署。NVMe 温度此前已通过 hwmon 存在，但 12 块
+SAS HDD 和 3 块 SATA SSD 没有 Prometheus 温度；smartctl exporter 现在通过 by-id 自动发现
+并读取全部 17 块盘，分别覆盖 SCSI、SAT 和 NVMe。
 
 锁定 Nixpkgs 已提供 `services.prometheus.exporters.smartctl`，默认可自动发现设备、以 60 秒
 间隔限制实际查询，并配置了磁盘组、device ACL 和必要 capability
 （[锁定 Nixpkgs 模块](https://github.com/NixOS/nixpkgs/blob/531670d871c0e29724a02f3cbcac170adc65b58c/nixos/modules/services/monitoring/prometheus/exporters/smartctl.nix#L25-L78)）。
-仓库的裸机模块也已经安装 `smartmontools`
-（[`bare-metal.nix`](../../nixos/optional/bare-metal.nix#L1-L17)）。锁定版本 0.14.0 会导出
+exporter package 已把 `smartmontools` 的绝对路径编入闭包，不依赖 `el2` 的交互式 PATH。
+锁定版本 0.14.0 会导出
 `smartctl_device_temperature`、SMART status、media errors、percentage used、power-on time 等
 （[官方 metrics 源码](https://github.com/prometheus-community/smartctl_exporter/blob/v0.14.0/metrics.go)）。
 
-这仍需要 canary：root 下的 `smartctl` 成功证明设备和控制器可穿透，不等于受 systemd
-device policy/capability 限制的 exporter 自动发现会一次覆盖全部 aacraid/SAS 盘。
+部署验证确认 exporter 的 systemd device policy/capability 能读取全部 aacraid/SAS/SAT 盘。
+既有 `/dev/nvme0`、`/dev/nvme1` 在首切时没有自动重放 udev `ACTION=add`，因此部署时执行了
+一次 `udevadm trigger --settle --subsystem-match=nvme --action=add` 并重启 exporter；之后 ACL、
+17 条 device/current-temperature/SMART-status series 均正常。后续开机或设备重新出现时，
+NixOS 模块的 udev 规则会自动应用该 ACL。
 
-实施时应给它单独的 60 秒 scrape，而不是沿用 node job 的 15 秒；避免无意义地频繁访问
-机械盘。Linux `drivetemp` 官方文档也提醒，读温可能重置某些磁盘的 spin-down timer
+Dashboard 的 SMART 温度分支只补充 12 块 SAS 和 3 块 SATA。两块 NVMe 的 smartctl current
+是 hwmon Composite 温度的整数版本；Overview 已通过 hwmon 展示 Composite 与两个 secondary
+sensor，因此不再重复绘制 smartctl NVMe 温度。NVMe 的 SMART health、寿命和错误指标仍完整
+保留在 Prometheus。
+
+它使用独立的 60 秒 scrape，而不是沿用 node job 的 15 秒；避免无意义地频繁访问机械盘。
+Linux `drivetemp` 官方文档也提醒，读温可能重置某些磁盘的 spin-down timer
 （[drivetemp](https://docs.kernel.org/hwmon/drivetemp.html#usage-note)）。
 
 `drivetemp` 看似更轻，但对这台机器不是完整替代：`el2` 的模块存在但未加载，上游实现会
@@ -354,8 +362,8 @@ PWM fan control（[FriendlyElec 文档](https://wiki.friendlyelec.com/wiki/index
 4. `Temperature Headroom`，只显示确实提供合理 crit 的 series。
 
 这批没有新增 option、service、权限或兼容层，并已覆盖四台物理路由器。`node-wan-*` scrape
-也已限定为 `netclass`/`netdev`。后续可增加 sticky alarm，再把 smartctl 和 Wi-Fi 作为明确的
-host capability opt-in；最后单独处理 `el2` IPMI。这样每一步都有真实消费者，也避免把
+也已限定为 `netclass`/`netdev`，`el2` smartctl 也已作为主机特定能力接入。后续可增加
+sticky alarm，再处理 Minisforum Wi-Fi 和 `el2` IPMI。这样每一步都有真实消费者，也避免把
 服务器、AP 和 VMware guest 的硬件差异塞进一个假装统一的接口。
 
 ## 运行态复核命令

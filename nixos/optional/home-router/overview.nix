@@ -626,6 +626,15 @@
           };
           refId = "B";
         }
+        {
+          query = {
+            expr = ''smartctl_device_temperature{job="smartctl", temperature_type="current"} * on(instance, job, device) group_left(model_name) smartctl_device{interface!="nvme"}'';
+            instant = false;
+            legendFormat = "{{model_name}} {{device}}";
+            range = true;
+          };
+          refId = "C";
+        }
       ];
       title = "Hardware Temperatures";
       visualization = {

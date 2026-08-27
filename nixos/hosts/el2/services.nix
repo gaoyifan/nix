@@ -30,6 +30,22 @@ in {
   ];
 
   services.openssh.settings.MaxStartups = 100;
+  services.prometheus = {
+    exporters.smartctl = {
+      enable = true;
+      listenAddress = "127.0.0.1";
+      extraFlags = ["--smartctl.scan-device-type=by-id"];
+    };
+    scrapeConfigs = [
+      {
+        job_name = "smartctl";
+        scrape_interval = "60s";
+        static_configs = [
+          {targets = ["127.0.0.1:${toString config.services.prometheus.exporters.smartctl.port}"];}
+        ];
+      }
+    ];
+  };
   services.ncps = {
     enable = true;
     analytics.reporting.enable = false;
