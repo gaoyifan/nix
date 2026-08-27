@@ -33,6 +33,9 @@
   };
 
   networking.homeRouter.switch.ports.wlp6s0.untagged = 652;
+  networking.homeRouter.lans.gnet.dhcpServer.hosts = [
+    "f0:2f:74:ae:ca:ea,100.65.2.99,WIN11-SOMO-TOWER,infinite"
+  ];
   systemd.network.networks."10-wan-cmcc".linkConfig.RequiredFamilyForOnline = "both";
   systemd.network.networks."11-usb-wan".linkConfig.RequiredForOnline = "no";
 }
