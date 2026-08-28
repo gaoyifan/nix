@@ -50,6 +50,7 @@
     el2-install = mkNixosOnlyHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/el2 ../nixos/hosts/el2/install.nix];
     google = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/google];
     misc0-jp = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/misc0-jp];
+    misc1-sz = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/misc1-sz];
     misc1-sh = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/misc1-sh];
     nfs = mkDeployableHost "x86_64-linux" [../nixos/hosts/nfs];
     nixos-orbstack = mkDeployableHost "aarch64-linux" [../nixos/hosts/nixos-orbstack];
