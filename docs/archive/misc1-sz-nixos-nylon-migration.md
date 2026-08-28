@@ -1,5 +1,8 @@
 # misc1-sz NixOS 与 Nylon 角色迁移计划
 
+> 状态：已完成并被后续 fleet 重构取代。Nylon 的当前声明与运维入口见
+> [`docs/nylon.md`](../nylon.md)；本文只保留 misc1-sz 主机迁移的历史决策与证据。
+
 ## 目标
 
 在 PVE 宿主机 `root@58.84.55.35` 上新增 NixOS VM `misc1-sz`，部署
