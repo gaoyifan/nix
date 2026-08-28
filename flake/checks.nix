@@ -73,6 +73,7 @@
             nylonService = config.systemd.services.nylon;
             centralSource = config.environment.etc."nylon/central.yaml".source;
             publicNodeSource = config.environment.etc."nylon/node-public.yaml".source;
+            selectorDirectory = x86Pkgs.writeTextDir "nylon.toml" selector.wlt.text;
             scriptLines = nixpkgs.lib.splitString "\n" config.systemd.services.nylon-routes.script;
             routeCommands4 = builtins.filter (nixpkgs.lib.hasPrefix "ip -4 route replace ") scriptLines;
             routeCommands6 = builtins.filter (nixpkgs.lib.hasPrefix "ip -6 route replace ") scriptLines;
@@ -80,6 +81,7 @@
             assert config.services.nylon.udpPort == config.services.nylon.compiled.publicNode.value.port;
             assert builtins.elem centralSource nylonService.restartTriggers;
             assert builtins.elem publicNodeSource nylonService.restartTriggers;
+            assert config.services.wlt.configDirectory == selectorDirectory;
             assert nylonService.reloadTriggers == [];
             assert builtins.hasAttr "ExecReload" nylonService.serviceConfig;
             assert builtins.length selector.routes.ipv4 == 1;

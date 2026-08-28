@@ -3,7 +3,6 @@
   lib,
   options,
   pkgs,
-  utils,
   ...
 }: let
   cfg = config.services.nylon;
@@ -98,6 +97,7 @@
   warp = cfg.compiled.cloudflareWarp;
   warpEnabled = warp != null;
   hasWltConfigDirectory = lib.hasAttrByPath ["services" "wlt" "configDirectory"] options;
+  hasWltDnsConfigDirectory = lib.hasAttrByPath ["services" "wltDns" "configDirectory"] options;
 
   centralStore = pkgs.writeText "nylon-central.yaml" cfg.compiled.central.text;
   publicNodeStore = pkgs.writeText "nylon-node-public.yaml" cfg.compiled.publicNode.text;
@@ -442,14 +442,10 @@ in {
           message = "the Cloudflare WARP private key must not come from the Nix store.";
         }
         {
-          assertion = !selector.enable || hasWltConfigDirectory;
-          message = "a compiled Nylon selector requires the WLT NixOS module.";
-        }
-        {
           assertion =
             !selector.enable
             || (hasWltConfigDirectory && config.services.wlt.enable);
-          message = "a compiled Nylon selector requires services.wlt.enable.";
+          message = "a compiled Nylon selector requires an enabled WLT NixOS module.";
         }
       ];
 
@@ -557,18 +553,11 @@ in {
         };
       }
       (lib.optionalAttrs hasWltConfigDirectory {
-        # Upstream types this option as externalPath, which rejects a Nix
-        # store directory. Keep the public option empty and put the immutable
-        # directory behind the systemd adapter instead.
-        services.wlt.configDirectory = lib.mkForce null;
-        systemd.services.wlt.serviceConfig.ExecStart = lib.mkForce (utils.escapeSystemdExecArgs [
-          (lib.getExe config.services.wlt.package)
-          "--config"
-          config.services.wlt.configFile
-          "--config-dir"
-          selectorWltDirectory
-        ]);
+        services.wlt.configDirectory = lib.mkForce selectorWltDirectory;
       })
+      (lib.optionalAttrs hasWltDnsConfigDirectory (lib.mkIf config.services.wltDns.enable {
+        services.wltDns.configDirectory = selectorWltDirectory;
+      }))
     ]))
 
     (lib.mkIf exitsEnabled {
