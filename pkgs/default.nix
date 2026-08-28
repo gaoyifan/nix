@@ -35,6 +35,7 @@ rec {
   lightningstream = import ./lightningstream.nix {inherit pkgs;};
   nylon = import ./nylon.nix {inherit pkgs;};
   nylon-health-runner = import ./nylon-health-runner.nix {inherit pkgs;};
+  nylon-powerdns-reconcile = import ./nylon-powerdns-reconcile.nix {inherit pkgs;};
   prosafe-vlan-manager = import ./prosafe-vlan-manager.nix {inherit pkgs;};
   znapzend = import ./znapzend.nix {inherit pkgs;};
 }
