@@ -57,11 +57,25 @@
       ip -n upstream address add 2001:db8:931::1/64 dev upstream0
       ip -n upstream address add 2606:4700:4408::1/128 dev lo
       ip -n upstream address add 223.5.5.5/32 dev lo
+      ip -n upstream address add 223.6.6.6/32 dev lo
       ip -n upstream link add link upstream0 name upstream0.22 type vlan id 22
       ip -n upstream address add 192.0.2.1/24 dev upstream0.22
       ip -n upstream address add 203.0.113.10/32 dev upstream0.22
       ip -n upstream link set upstream0.22 up
       ip -n upstream route add 10.64.2.0/24 via 192.0.2.2 dev upstream0.22
+      ip netns exec upstream ${pkgs.dnsmasq}/bin/dnsmasq \
+        --no-daemon \
+        --no-resolv \
+        --bind-interfaces \
+        --listen-address=223.5.5.5 \
+        --listen-address=223.6.6.6 \
+        --address=/www.public.test/223.5.5.5 \
+        --address=/www.public-v6.test/2400:3200::53 \
+        --pid-file=/tmp/fake-public-dns.pid \
+        >/tmp/fake-public-dns.log 2>&1 &
+      fake_dns_pid=$!
+      sleep 0.2
+      kill -0 "$fake_dns_pid"
 
       ip netns add management
       ip link add management0 type veth peer name router0
@@ -100,13 +114,13 @@
       nft list chain inet edge-filter input | grep 'iifname' | grep -F '"br-core.642"'
       nft list chain inet edge-filter input | grep -F 'iifname "br-core.654" udp dport 67 accept'
       nft list chain inet edge-filter input | grep -F 'tcp dport 5201 accept'
-      nft list chain inet edge-filter input | grep 'udp dport' | grep -F '5201' | grep -F '6622' | grep -F '61001-61999'
+      nft list chain inet edge-filter input | grep 'udp dport' | grep -F '5201' | grep -F '61001-61999'
       nft list chain inet edge-filter forward | grep -F 'policy drop'
       nft list chain inet home-router mss-forward | grep -F 'tcp option maxseg size set rt mtu'
       nft list chain inet home-router wlt-prerouting | grep -F 'meta mark set'
       nft list chain inet home-router egress-output | grep -F 'oifname "management0" jump egress-classify'
       nft list chain inet home-router egress-prerouting | grep -F 'iifname "podman*" jump egress-classify'
-      nft list chain inet home-router egress-classify | grep 'udp sport' | grep -F '6622' | grep -F '6627'
+      nft list chain inet home-router egress-classify | grep 'udp sport' | grep -F '6627'
       nft list chain inet home-router egress-classify | grep -F 'udp sport 2197 return'
       nft list chain inet home-router egress-classify | grep -F 'ip daddr @cernet' | grep -F 'ct mark set meta mark return'
       ! nft list chain inet home-router egress-classify | grep -F 'ip saddr'
@@ -114,7 +128,6 @@
       nft list chain inet home-router egress-postrouting | grep -F 'snat ip6 to 2001:db8:931::2'
       nft list chain inet home-router egress-postrouting | grep -F 'oifgroup 6505 masquerade'
       ! nft list table inet el-router
-      nft list chain inet nylon overlay-nat-postrouting | grep -F 'masquerade'
       timeout 5 nc -6 -l 23456 >/dev/null &
       localhost_listener_pid=$!
       sleep 0.2
@@ -186,6 +199,17 @@
       ip -4 route get 203.0.113.10 mark 198 | grep -F 'via 198.51.100.1 dev br-core.931 table cernet src 198.51.100.2'
       ip -4 route get 203.0.113.10 mark 201 | grep -F 'via 192.0.2.1 dev br-core.22 table chinanet src 192.0.2.2'
       ip -4 route get 203.0.113.10 mark 202 | grep -F 'via 192.0.2.1 dev br-core.22 table cmcc src 192.0.2.3'
+
+      systemctl start wlt-dns.service
+      systemctl is-active --quiet wlt-dns.service
+      nft 'add element inet home-router src2mark { 10.64.2.2 : 0xc9000 }'
+      test "$(ip netns exec guest ${pkgs.dnsutils}/bin/dig +short @10.64.2.254 fixture.el2.gaof.net A)" = "10.64.2.123"
+      test "$(ip netns exec guest ${pkgs.dnsutils}/bin/dig +tcp +short @10.64.2.254 fixture.el2.gaof.net A)" = "10.64.2.123"
+      test "$(ip netns exec guest ${pkgs.dnsutils}/bin/dig +short @10.64.2.254 www.public.test A)" = "223.5.5.5"
+      test "$(ip netns exec guest ${pkgs.dnsutils}/bin/dig +tcp +short @10.64.2.254 www.public.test A)" = "223.5.5.5"
+      test "$(ip netns exec guest ${pkgs.dnsutils}/bin/dig +short @10.64.2.254 www.public-v6.test AAAA)" = "2400:3200::53"
+      test "$(ip netns exec guest ${pkgs.dnsutils}/bin/dig +tcp +short @10.64.2.254 www.public-v6.test AAAA)" = "2400:3200::53"
+      nft 'delete element inet home-router src2mark { 10.64.2.2 }'
 
       timeout 10 ip netns exec upstream tcpdump -qnli upstream0 -c 1 'icmp and src host 198.51.100.2'
       timeout 10 ip netns exec upstream tcpdump -qnli upstream0.22 -c 1 'icmp and src host 192.0.2.2'
@@ -384,7 +408,17 @@
       };
 
       wlt = {
-        enable = true;
+        dns = {
+          explicitListenAddresses = [
+            "192.168.93.2"
+            "2001:db8:93::2"
+          ];
+          entryInterfaces = ["management0"];
+          extraAllowedClientCidrs = [
+            "192.168.93.0/24"
+            "2001:db8:93::/64"
+          ];
+        };
       };
 
       egress = {
@@ -405,11 +439,13 @@
         privateKeyFile = pkgs.writeText "unused-wg-iplc-test-private-key.age" "";
       };
 
-      dnsmasq.domain = "test.invalid";
+      dnsmasq.domain = "el2.gaof.net";
     };
 
     services.wlt.enable = lib.mkForce false;
     services.tailscale.port = 6627;
+
+    networking.hosts."10.64.2.123" = ["fixture.el2.gaof.net"];
 
     networking.elRouter = {
       enable = true;
@@ -477,8 +513,43 @@
     router.wait_for_open_port(9100)
     router.wait_for_open_port(3001)
     router.wait_until_succeeds("ip link show dev br-core")
-    router.succeed("grep -F 'server=/cjia.gaof.net/100.65.1.254' ${nodes.router.services.dnsmasq.configFile}")
-    router.fail("grep -F 'server=/test.invalid/' ${nodes.router.services.dnsmasq.configFile}")
+    router.fail("systemctl list-unit-files wlt-dns-canary.service")
+    router.fail("systemctl list-unit-files diverge.service")
+    router.succeed("grep -F 'port=1053' ${nodes.router.services.dnsmasq.configFile}")
+    router.succeed("grep -F 'local=/el2.gaof.net/' ${nodes.router.services.dnsmasq.configFile}")
+    router.succeed("grep -F 'cache-size=0' ${nodes.router.services.dnsmasq.configFile}")
+    router.fail("grep -F 'server=' ${nodes.router.services.dnsmasq.configFile}")
+    router.succeed("grep -F '127.0.0.1:1053' ${nodes.router.services.wltDns.configFile}")
+    router.succeed("grep -F '10.64.2.254:53' ${nodes.router.services.wltDns.configFile}")
+    router.succeed("grep -F '192.168.93.2:53' ${nodes.router.services.wltDns.configFile}")
+    router.succeed("grep -F '[2001:db8:93::2]:53' ${nodes.router.services.wltDns.configFile}")
+    router.succeed("grep -F '[2001:2::ffff]:53' ${nodes.router.services.wltDns.configFile}")
+    router.succeed("grep -F '127.0.0.1:9421' ${nodes.router.services.wltDns.configFile}")
+    router.succeed("grep -F '[dns_servers.aliyun]' ${nodes.router.services.wltDns.configFile}")
+    router.succeed("grep -F '[dns_servers.cloudflare]' ${nodes.router.services.wltDns.configFile}")
+    router.succeed("grep -F 'ipv4_default_mark = 256' ${nodes.router.services.wltDns.configFile}")
+    router.succeed("grep -F 'ipv6_default_mark = 4095' ${nodes.router.services.wltDns.configFile}")
+    router.succeed("grep -F 'title = \"国内出口\"' ${nodes.router.services.wltDns.configFile}")
+    router.succeed("grep -F 'title = \"海外出口\"' ${nodes.router.services.wltDns.configFile}")
+    router.succeed("grep -F 'outlet_regex = \"^CN \"' ${nodes.router.services.wltDns.configFile}")
+    router.fail("grep -F '10.64.4.254:53' ${nodes.router.services.wltDns.configFile}")
+    router.fail("grep -F '192.0.2.2:53' ${nodes.router.services.wltDns.configFile}")
+    router.fail("grep -F '10.255.255.100:53' ${nodes.router.services.wltDns.configFile}")
+    router.succeed("test \"$(id -u wlt-dns)\" = 398")
+    router.succeed("systemctl show wlt-dns.service -p PartOf --value | grep -F 'policy-routing.service'")
+    router.succeed("systemctl show policy-routing.service -p Before --value | grep -F 'wlt-dns.service'")
+    router.fail("systemctl show wlt-dns.service -p ExecStart --value | grep -F -- '--config-dir'")
+    router.succeed("nft list chain inet home-router wlt-prerouting | grep -E 'dport (53|domain)' | grep -F 'iifname' | grep -F 'ct mark set'")
+    router.succeed("nft list chain inet home-router egress-output | grep -F 'meta skuid 398'")
+    router.succeed("nft list chain inet home-router egress-output | grep -F 'ip daddr != {' | grep -F '223.5.5.5' | grep -F '1.1.1.1'")
+    router.succeed("nft list chain inet edge-filter input | grep -F 'th dport 1053 drop'")
+    router.fail("nft list ruleset | grep -E 'dport (53|domain).*dnat'")
+    router.succeed("ip -4 rule show | grep -F 'to 1.1.1.1' | grep -F 'goto 200'")
+    router.succeed("ip -4 rule show | grep -F 'to 1.1.1.1' | grep -F 'fwmark' | grep -F '/0xffffff' | grep -F 'lookup main'")
+    router.succeed("ip -4 rule show | grep -F 'to 1.1.1.1' | grep -F 'unreachable'")
     router.succeed("exercise-home-router-topology")
+    router.wait_for_unit("wlt-dns.service")
+    router.succeed("ss -Hlnut 'sport = :53' | grep -F '10.64.2.254:53'")
+    router.succeed("ss -Hlnut 'sport = :1053' | grep -F '127.0.0.1:1053'")
   '';
 }

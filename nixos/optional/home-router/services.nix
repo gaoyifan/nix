@@ -36,13 +36,16 @@ in {
           [
             {
               bind-dynamic = true;
-              interface = lib.unique (["lo"] ++ allLanInterfaceNames ++ cfg.dnsmasq.extraInterfaces);
+              interface = lib.unique (["lo"] ++ allLanInterfaceNames);
               no-resolv = true;
               domain = cfg.dnsmasq.domain;
               expand-hosts = true;
               dhcp-range = dhcpRanges;
               dhcp-host = dhcpHosts;
               dhcp-authoritative = true;
+              port = 1053;
+              local = ["/${cfg.dnsmasq.domain}/"];
+              cache-size = 0;
             }
           ]
           ++ dhcpSettings

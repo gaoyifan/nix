@@ -9,12 +9,12 @@ in {
     ../edge-firewall.nix
     ../policy-routing.nix
     ./options.nix
-    ./diverge.nix
     ./networkd.nix
     ./firewall.nix
     ./services.nix
     ./monitoring.nix
     ./wlt.nix
+    ./wlt-dns.nix
     ./wg-iplc.nix
   ];
 

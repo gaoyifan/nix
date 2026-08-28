@@ -17,6 +17,12 @@
     ip = "11.13.112.80/24";
     privateKeyFile = config.services.secrets.filesDir + "/nixos/somo-minisforum/wg-iplc-private-key.age";
   };
+  networking.homeRouter.wlt.dns.explicitListenAddresses = [
+    "100.127.166.106"
+    "fd7a:115c:a1e0::ab01:a6b7"
+    "10.250.10.28"
+    "fd10:250:10::28"
+  ];
 
   services.oobSsh = {
     enable = true;

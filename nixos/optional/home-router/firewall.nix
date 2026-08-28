@@ -136,6 +136,7 @@ in {
 
       chain egress-output {
         type route hook output priority mangle + 1; policy accept;
+        ${cfg.wlt.dns.outputBypassRules}
         ${outputClassificationRule}
       }
 

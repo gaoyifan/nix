@@ -115,13 +115,19 @@ in {
         via = "cmcc";
       };
 
-      dnsmasq = {
-        domain = lanDomain;
-        extraInterfaces = ["tailscale0"];
-      };
+      dnsmasq.domain = lanDomain;
 
       wlt = {
-        enable = true;
+        dns = {
+          entryInterfaces = [
+            "tailscale0"
+            "nylon0"
+          ];
+          extraAllowedClientCidrs = [
+            "10.250.10.0/24"
+            "fd10:250:10::/64"
+          ];
+        };
       };
 
       egress.masquerade.extraRules = [

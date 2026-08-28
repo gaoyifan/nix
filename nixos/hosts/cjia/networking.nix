@@ -44,14 +44,28 @@ in {
       ];
     };
 
-    dnsmasq = {
-      domain = "cjia.gaof.net";
-      extraInterfaces = ["tailscale0"];
-    };
+    dnsmasq.domain = "cjia.gaof.net";
 
     monitoring.enable = true;
 
-    wlt.enable = true;
+    wlt = {
+      dns = {
+        explicitListenAddresses = [
+          "100.127.100.3"
+          "fd7a:115c:a1e0::b01:6d26"
+          "10.250.10.17"
+          "fd10:250:10::17"
+        ];
+        entryInterfaces = [
+          "tailscale0"
+          "nylon0"
+        ];
+        extraAllowedClientCidrs = [
+          "10.250.10.0/24"
+          "fd10:250:10::/64"
+        ];
+      };
+    };
 
     egress.classification = {
       extraIngressInterfaces = ["tailscale0"];

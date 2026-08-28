@@ -13,7 +13,7 @@
 | --- | --- | --- |
 | Edge firewall | 全部启用 | 成为 `homeRouter` 的安全不变量 |
 | WAN 监控 | 全部启用，并覆盖全部已配置 WAN | 默认启用，自动推导 WAN 列表 |
-| WLT | 全部启用 | 成为 `homeRouter` 的默认能力，保留显式退出方式 |
+| WLT/WLT-DNS | 全部启用 | 成为 `homeRouter` 的内建能力 |
 | Tailscale 内网集成 | 全部启用，DNS 都监听 `tailscale0` | 由适配层统一 DNS、可信入口和 LAN 路由发布 |
 
 优先级建议是：先收紧 Edge firewall 的模块边界，再统一监控和 WLT，最后处理
@@ -25,8 +25,9 @@ Tailscale 路由发布。Nylon 虽然五台都使用，但不适合直接并入 
 
 - `networking.edgeFirewall.enable`
 - `networking.homeRouter.monitoring.enable`
-- `networking.homeRouter.wlt.enable`
 - `networking.homeRouter.wgIplc.enable`
+- `services.wlt.enable`
+- `services.wltDns.enable`
 - `services.nylon.enable`
 - `services.nylon.policyRouting.enable`
 - `services.tailscale.enable`
@@ -41,7 +42,7 @@ Tailscale 路由发布。Nylon 虽然五台都使用，但不适合直接并入 
 | `somo-minisforum` | `cmcc` |
 | `somo-nanopi-r4s` | `cmcc` |
 
-五台机器的 dnsmasq 额外监听接口都包含 `tailscale0`。Avahi 则并不一致：
+五台机器的 WLT-DNS 入口接口都包含 `tailscale0`。Avahi 则并不一致：
 `cjia` 和两台 SOMO 启用，`el`、`el2` 禁用。
 
 ## 1. Edge firewall 应成为安全不变量
@@ -87,9 +88,9 @@ Home Router 调用点而遗漏适配层，可能得到开启转发但缺少预�
 [`wlt.nix`](../../nixos/optional/home-router/wlt.nix)。WLT 同时涉及密钥、持久状态、Web/SSH
 服务、nftables 映射，以及禁用 IPv6 时使用的路由表，属于完整的 Home Router 子系统。
 
-建议：将 WLT 改为 `homeRouter` 默认能力，删除五处重复的 `wlt.enable = true`。由于它有
-服务和状态成本，现阶段宜保留显式禁用能力；只有在确认“所有未来 Home Router 都必须运行
-WLT”后，才值得完全移除开关。
+实施状态（2026-08-29）：WLT 与 WLT-DNS 已成为 `homeRouter` 的内建能力。五处重复的
+`wlt.enable = true`、无有效公共 DNS 上游的禁用状态，以及旧 DNS fallback 已一起删除。
+主机配置只保留监听地址、入口接口和允许客户端网段等真实拓扑差异。
 
 WLT 的 `defaultOutlet` 应由共享出口选择实现提供，而不是继续由 WG-IPLC 等邻接模块交叉
 设置。这样 WLT 只消费“默认出口”这一结果，不参与决定出口所有权。
@@ -97,13 +98,13 @@ WLT 的 `defaultOutlet` 应由共享出口选择实现提供，而不是继续�
 ## 4. Tailscale 需要 Home Router 适配层
 
 已验证事实：[`tailscale-gnet.nix`](../../nixos/optional/tailscale-gnet.nix) 已统一 Tailscale
-的基础运行参数和策略路由；五台 Home Router 又分别把 `tailscale0` 加入 dnsmasq，并发布
+的基础运行参数和策略路由；五台 Home Router 又分别把 `tailscale0` 加入 WLT-DNS，并发布
 本地或站点路由。
 
 适合进一步统一的是 Home Router 与 Tailscale 的连接逻辑，而不是把 Tailscale 本身塞进
 Home Router 核心：
 
-- Tailscale 启用时，dnsmasq 自动监听 `tailscale0`。
+- Tailscale 启用时，WLT-DNS 自动监听 `tailscale0`。
 - Edge firewall 自动把 `tailscale0` 归类为可信内部入口。
 - 默认发布非 guest LAN 的网段。
 - 保留 `extraAdvertisedRoutes`，供 `el`、`el2` 发布额外站点和 connector 路由。

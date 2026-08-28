@@ -70,11 +70,7 @@
 in {
   imports = [inputs.wlt.nixosModules.default];
 
-  options.networking.homeRouter.wlt = {
-    enable = lib.mkEnableOption "WLT outlet selector";
-  };
-
-  config = lib.mkIf (homeRouter.enable && cfg.enable) (lib.mkMerge [
+  config = lib.mkIf homeRouter.enable (lib.mkMerge [
     {
       assertions = [
         {
@@ -111,6 +107,7 @@ in {
 
         chain wlt-prerouting {
           type filter hook prerouting priority mangle - 1; policy accept;
+          ${cfg.dns.frontDoorBypassRules}
           ip daddr @cn    meta mark set ip saddr map @src2mark meta mark set mark >> 12
           ip daddr != @cn meta mark set ip saddr map @src2mark meta mark set mark & 0xfff
           ip6 daddr @cn6    meta mark set ip6 saddr map @src2mark6 meta mark set mark >> 12

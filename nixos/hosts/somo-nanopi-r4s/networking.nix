@@ -17,6 +17,12 @@
     ip = "11.13.112.79/24";
     privateKeyFile = config.services.secrets.filesDir + "/nixos/somo-nanopi-r4s/wg-iplc-private-key.age";
   };
+  networking.homeRouter.wlt.dns.explicitListenAddresses = [
+    "100.127.100.103"
+    "fd7a:115c:a1e0::f835:422c"
+    "10.250.10.32"
+    "fd10:250:10::32"
+  ];
 
   services.oobSsh = {
     enable = true;

@@ -15,6 +15,7 @@ in {
 
       chain force-chinanet {
         type filter hook prerouting priority mangle + 2; policy accept;
+        ${homeRouter.wlt.dns.frontDoorBypassRules}
         ip saddr 100.64.2.30 meta mark set ${chinanetMark}
       }
 

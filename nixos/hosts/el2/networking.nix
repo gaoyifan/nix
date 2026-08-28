@@ -68,16 +68,28 @@
     };
 
     avahi.enable = false;
-    dnsmasq = {
-      domain = "el2.gaof.net";
-      extraInterfaces = [
-        "tailscale0"
-        "wg0"
-      ];
-    };
+    dnsmasq.domain = "el2.gaof.net";
 
     wlt = {
-      enable = true;
+      dns = {
+        explicitListenAddresses = [
+          "100.127.100.2"
+          "fd7a:115c:a1e0::5d01:b462"
+          "100.64.110.254"
+          "10.250.10.20"
+          "fd10:250:10::20"
+        ];
+        entryInterfaces = [
+          "tailscale0"
+          "wg0"
+          "nylon0"
+        ];
+        extraAllowedClientCidrs = [
+          "100.64.110.0/24"
+          "10.250.10.0/24"
+          "fd10:250:10::/64"
+        ];
+      };
     };
 
     egress = {

@@ -317,11 +317,6 @@ in {
         type = types.str;
         description = "Local LAN domain served by dnsmasq.";
       };
-      extraInterfaces = lib.mkOption {
-        type = types.listOf types.str;
-        default = [];
-        description = "Additional interfaces on which dnsmasq should answer DNS queries.";
-      };
     };
 
     monitoring = {
