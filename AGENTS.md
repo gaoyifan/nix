@@ -16,7 +16,7 @@
 
 - `just` / `just darwin` / `just home` / `just system`: Apply configuration (auto-detects OS; `system` runs system-manager on non-NixOS Linux)
 - Prefer the repository's `just` subcommands for switching configurations. Invoke `nixos-rebuild`, `darwin-rebuild`, or `home-manager` directly only when necessary, and include flake submodules with `.?submodules=1`.
-- `just deploy <target>`: Deploy NixOS via deploy-rs
+- `just deploy <target>`: Deploy NixOS via deploy-rs; targets with `nix.buildMachines` use those remote builders
 - `just sync-and-rebuild <target>`: Sync the repository and run target-side `nixos-rebuild switch` with explicit substituters
 - `just build-disk-image <target>`: Build the target's NixOS disk image for its configured architecture
 - `just build-nanopi-bootstrap-image`: Build the universal NanoPi R4S bootstrap SD image
@@ -28,7 +28,7 @@
 ## Remote Commands
 
 - Before using SSH, verify the target hostname, FQDN, and addresses are not local; run local targets directly, using `sudo` when needed.
-- For remote deployments to devices without restricted internet access, prefer `just sync-and-rebuild <target>` to avoid SSH-NG closure-transfer overhead.
+- For remote deployments to devices without unrestricted internet access, prefer `just sync-and-rebuild <target>` so builds happen on the target through its configured substituters.
 - Avoid nested escaped shell strings across SSH, containers, or VMs. Pass complex scripts through standard input with a quoted heredoc at each boundary.
 
 ## Coding Style

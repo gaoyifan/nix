@@ -305,6 +305,12 @@ deploy target:
     set -euo pipefail
     source <({{ self_just }} _emit_nix_env)
     source <({{ self_just }} _emit_flake_ref)
+    builder="$(nix eval --accept-flake-config --raw "$FLAKE_REF#nixosConfigurations.{{ target }}.config" --apply 'config: config.environment.etc."nix/machines".text or ""')"
+    if [ -n "$builder" ]; then
+        sudo --preserve-env=SSH_AUTH_SOCK "$(command -v nix)" develop --store local --accept-flake-config "$FLAKE_REF" \
+            -c deploy "$FLAKE_REF#{{ target }}" --skip-checks -- --accept-flake-config --store local --max-jobs 0 --builders "$builder"
+        exit
+    fi
     nix develop --accept-flake-config "$FLAKE_REF" \
         -c deploy "$FLAKE_REF#{{ target }}" --skip-checks -- \
         --accept-flake-config
