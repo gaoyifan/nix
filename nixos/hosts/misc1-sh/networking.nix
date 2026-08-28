@@ -1,14 +1,6 @@
 {...}: {
   networking = {
     hostName = "misc1-sh";
-    # The internal el2.gaof.net DNS delegate is itself reached over Tailscale,
-    # while el2 also hosts the custom DERP relay.  This IPv4-only host needs
-    # the relay's public addresses to break that bootstrap dependency.
-    hosts = {
-      "202.38.93.98" = ["el2.gaof.net"];
-      "202.141.162.72" = ["el2.gaof.net"];
-      "202.141.178.7" = ["el2.gaof.net"];
-    };
     useDHCP = false;
     useNetworkd = true;
 
