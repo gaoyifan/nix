@@ -247,6 +247,14 @@
         echo "egress interface $iface for Nylon exit $exit_name is absent" >&2
         exit 1
       fi
+      ${lib.optionalString (!exit.useDefaultRoute && exit.gateway4 == null) ''
+        default_route=$(ip -4 route show default dev "$iface" | ${lib.getExe pkgs.gawk} 'NR == 1 { print; exit }')
+        gateway=$(printf '%s\n' "$default_route" | ${lib.getExe pkgs.gawk} '{ for (i = 1; i <= NF; i++) if ($i == "via") { print $(i + 1); exit } }')
+        if [ -z "$default_route" ] && ! ip -o link show dev "$iface" | grep -qw POINTOPOINT; then
+          echo "no IPv4 default route or point-to-point link for Nylon exit $exit_name on $iface; configure gateway4 explicitly" >&2
+          exit 1
+        fi
+      ''}
 
       printf 'mpls-route\t%s\n' "$label" >> "$state"
       if [ -n "$gateway" ]; then
@@ -564,6 +572,11 @@ in {
     ]))
 
     (lib.mkIf exitsEnabled {
+      boot.kernel.sysctl = {
+        "net.ipv4.conf.all.forwarding" = true;
+        "net.ipv6.conf.all.forwarding" = true;
+      };
+
       networking.nftables.tables.nylon.content = ''
         chain exit-track {
           type filter hook prerouting priority -300; policy accept;
