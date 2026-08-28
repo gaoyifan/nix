@@ -15,6 +15,7 @@
       nixpkgs.config.allowUnfree = true;
     }
     ../nixos/common
+    ../nixos/nylon/fleet.nix
     home-manager.nixosModules.home-manager
   ];
   mkDeployableHost = system: modules: {
@@ -25,10 +26,18 @@
     inherit system modules;
     deploy = false;
   };
-  mkNixosHost = host:
+  mkNixosHost = name: host:
     nixpkgs.lib.nixosSystem {
       inherit (host) system;
-      specialArgs = {inherit inputs username mkHomeManagerBackupCommand;};
+      specialArgs = {
+        inherit
+          inputs
+          username
+          mkHomeManagerBackupCommand
+          nylonTopology
+          ;
+        nixosConfigurationName = name;
+      };
       modules = sharedModules ++ host.modules;
     };
   mkDeployNode = name: host: {
@@ -64,8 +73,15 @@
     xtom-sjc = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/xtom-sjc];
     xtom-syd = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/xtom-syd];
   };
+  deployableHostNames = nixpkgs.lib.attrNames (nixpkgs.lib.filterAttrs (_: host: host.deploy) hostInventory);
+  nylonTopology = import ../nixos/nylon/compile.nix {
+    lib = nixpkgs.lib;
+    mesh = import ../nixos/nylon/mesh.nix;
+    nodes = import ../nixos/nylon/nodes;
+    deployableHosts = deployableHostNames;
+  };
   configs =
-    nixpkgs.lib.mapAttrs (_: host: mkNixosHost host) hostInventory
+    nixpkgs.lib.mapAttrs mkNixosHost hostInventory
     // {
       # The universal bootstrap image is not a deployable host and intentionally
       # omits shared modules.
@@ -129,7 +145,10 @@ in {
       diskImage = mkNixosDiskImage {inherit host;};
     })
   configs;
-  lib = {inherit mkNixosDiskImage;};
+  lib = {
+    inherit mkNixosDiskImage;
+    nylonManifest = nylonTopology.manifest;
+  };
 
   deploy.nodes = nixpkgs.lib.mapAttrs mkDeployNode (
     nixpkgs.lib.filterAttrs (_: host: host.deploy) hostInventory

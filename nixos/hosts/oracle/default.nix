@@ -1,7 +1,6 @@
 {username, ...}: {
   imports = [
     ../../optional/edge-firewall.nix
-    ../../optional/nylon-public-exit.nix
     ../../optional/qemu-guest.nix
     ../../optional/tailscale-gnet-vm-exit.nix
     ./disk-config.nix
@@ -16,7 +15,6 @@
       enable = true;
       extraPublicUdpPorts = [
         "3334"
-        "57175"
       ];
     };
   };

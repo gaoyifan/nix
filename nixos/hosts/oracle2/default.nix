@@ -21,7 +21,6 @@
   };
 in {
   imports = [
-    ../../optional/nylon-public-exit.nix
     ../../optional/qemu-guest.nix
     ../../optional/tailscale-gnet-vm-exit.nix
     ./codex-capacity-proxy.nix
@@ -71,13 +70,6 @@ in {
       ip6tables = false;
       bridge = "none";
     };
-  };
-
-  services.nylon.cloudflareWarp = {
-    enable = true;
-    label = 101;
-    ipv6Address = "2606:4700:110:85d7:5c0:159f:4a50:99";
-    reserved = "0xdeeca8";
   };
 
   services.resticBackup.extraExcludes = [

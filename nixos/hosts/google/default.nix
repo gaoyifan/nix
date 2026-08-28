@@ -6,7 +6,6 @@
   imports = [
     (modulesPath + "/profiles/qemu-guest.nix")
     ../../optional/authoritative-ns.nix
-    ../../optional/nylon-public-exit.nix
     ../../optional/tailscale-gnet-vm-exit.nix
     ./disk-config.nix
     ./networking.nix

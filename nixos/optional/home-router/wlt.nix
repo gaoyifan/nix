@@ -12,7 +12,6 @@
   disabledIpv6Mark = "0xfff";
   disabledIpv6Table = 4095;
 
-  configD = "/var/lib/wlt/config.d";
   persistDir = "/var/lib/wlt/persist";
   snapshotFile = "${persistDir}/wlt_src2mark-v3.conf";
   portalIpv4 = homeRouter.serviceAddresses.ipv4;
@@ -87,7 +86,7 @@ in {
       services.wlt = {
         enable = true;
         configFile = wltConfig;
-        configDirectory = configD;
+        configDirectory = null;
       };
 
       age.secrets = lib.mkIf config.services.secrets.hasRealFiles {
@@ -96,7 +95,6 @@ in {
       };
 
       systemd.tmpfiles.rules = [
-        "d ${configD} 0755 root root -"
         "d ${persistDir} 0755 root root -"
         "f ${snapshotFile} 0644 root root -"
       ];

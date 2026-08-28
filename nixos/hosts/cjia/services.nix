@@ -3,22 +3,10 @@
   lib,
   ...
 }: {
-  imports = [
-    ../../optional/nylon.nix
-  ];
-
   age.secrets = lib.mkIf config.services.secrets.hasRealFiles {
     cjia-godns-password.file = config.services.secrets.filesDir + "/nixos/cjia/godns-password.age";
   };
 
-  services.nylon = {
-    enable = true;
-    policyRouting.enable = true;
-    exits.ppp = {
-      label = 100;
-      interface = "ppp0";
-    };
-  };
   systemd.services.nylon = {
     requires = ["pppd-isp.service"];
     after = ["pppd-isp.service"];

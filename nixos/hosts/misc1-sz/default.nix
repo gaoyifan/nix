@@ -2,7 +2,6 @@
   imports = [
     ../../optional/edge-firewall.nix
     ../../optional/el2-derp-bootstrap.nix
-    ../../optional/nylon-public-exit.nix
     ../../optional/qemu-guest.nix
     ../../optional/tailscale-gnet-vm-exit.nix
     ./disk-config.nix
@@ -15,12 +14,6 @@
   ];
 
   networking.edgeFirewall.enable = true;
-
-  services.nylon.exits.shenzhen = {
-    label = 101;
-    interface = "eth1";
-    gateway4 = "14.215.130.1";
-  };
 
   # tailscaled otherwise races the static WAN links during early boot and can
   # remain in BackendState=Starting with magicsock's network marked down.

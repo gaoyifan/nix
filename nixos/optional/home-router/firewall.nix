@@ -1,10 +1,15 @@
 {
   config,
   lib,
+  options,
   pkgs,
   ...
 }: let
   cfg = config.networking.homeRouter;
+  nylonUdpPort =
+    if lib.hasAttrByPath ["services" "nylon" "udpPort"] options
+    then config.services.nylon.udpPort
+    else 6622;
   classification = cfg.egress.classification;
   wans = lib.attrValues cfg.wans;
   addressWithoutPrefix = address: lib.head (lib.splitString "/" address);
@@ -117,7 +122,7 @@ in {
         ct direction reply ct state established,related return
         meta mark != 0 return
         fib daddr type local return
-        udp sport { ${toString config.services.nylon.udpPort}, ${toString config.services.tailscale.port} } return
+        udp sport { ${toString nylonUdpPort}, ${toString config.services.tailscale.port} } return
         ${extraClassificationRules}
         ${destinationAddressSetRules}
         ip daddr @private_v4 return

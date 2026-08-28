@@ -2,7 +2,6 @@
   imports = [
     ../qemu-guest.nix
     ../tailscale-gnet-vm-exit.nix
-    ../nylon-public-exit.nix
     ./disk-config.nix
   ];
 

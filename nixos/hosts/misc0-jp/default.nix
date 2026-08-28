@@ -2,7 +2,6 @@
   imports = [
     ../../optional/qemu-guest.nix
     ../../optional/tailscale-gnet-vm-exit.nix
-    ../../optional/nylon.nix
     ./disk-config.nix
   ];
 
@@ -31,11 +30,6 @@
   boot.loader.grub.enable = true;
 
   networking.firewall.enable = false;
-
-  services.nylon = {
-    enable = true;
-    overlay.nat.enable = false;
-  };
 
   time.timeZone = "UTC";
   system.stateVersion = "26.05";

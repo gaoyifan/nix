@@ -43,10 +43,10 @@ it is separate from the `0x100` traffic selector and remains unchanged.
 
 ## Cutover
 
-Use a maintenance window and switch the Nix router configurations first. This
-starts with an empty v2 WLT snapshot and may temporarily send cjia's USTC traffic
-through PPPoE. Then run `playbooks/nylon-wlt-deploy.yml` for every selector to
-install the three-digit outlets, rules, and routes. Verify representative WLT
-choices and cjia's `0x200` → table `5200` → MPLS `20/100` path before ending the
-window. No legacy marks or staged compatibility rules are kept during the
-cutover.
+Follow the topology change, checks, and deployment workflow in
+[`docs/nylon.md` § 修改与部署](nylon.md#修改与部署). Deploy each affected selector with
+`just sync-and-rebuild <host>`; its generated Nix configuration installs the
+three-digit outlets, rules, and routes. Use a maintenance window when the change
+invalidates stored WLT choices, and verify representative choices and the
+affected mark → table → MPLS paths before ending the window. Legacy marks and
+staged compatibility rules are not supported.

@@ -10,7 +10,6 @@ in {
   imports = [
     ../../optional/authoritative-ns.nix
     ../../optional/edge-firewall.nix
-    ../../optional/nylon-public-exit.nix
   ];
 
   age.secrets = lib.mkIf config.services.secrets.hasRealFiles {

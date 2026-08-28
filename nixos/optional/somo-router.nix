@@ -15,7 +15,6 @@
 in {
   imports = [
     ./home-router
-    ./nylon.nix
   ];
 
   options.networking.somoRouter = {
@@ -129,15 +128,6 @@ in {
         ''ip saddr @private_v4 oifgroup ${toString usbWanGroup} masquerade''
         ''ip6 saddr @private_v6 oifgroup ${toString usbWanGroup} masquerade''
       ];
-    };
-
-    services.nylon = {
-      enable = true;
-      policyRouting.enable = true;
-      exits.default = {
-        label = 100;
-        interface = homeRouter.wans.cmcc.interface;
-      };
     };
 
     networking.edgeFirewall = {

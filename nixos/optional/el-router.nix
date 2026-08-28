@@ -14,22 +14,11 @@
   cernet = homeRouter.wans.cernet;
   chinanet = homeRouter.wans.chinanet;
   cmcc = homeRouter.wans.cmcc;
-  cernetInterface = cernet.interface;
-  chinanetInterface = chinanet.interface;
-  cmccInterface = cmcc.interface;
-  cernetIpv4 = addressWithoutPrefix (lib.head (ipv4Addresses cernet.addresses));
-  cernetIpv6 = addressWithoutPrefix (lib.head (ipv6Addresses cernet.addresses));
-  chinanetIpv4 = addressWithoutPrefix (lib.head (ipv4Addresses chinanet.addresses));
-  cmccIpv4 = addressWithoutPrefix (lib.head (ipv4Addresses cmcc.addresses));
   cernetMark = cernet.routingTable;
   chinanetMark = chinanet.routingTable;
   cmccMark = cmcc.routingTable;
   formatMark = mark: "0x${lib.toLower (lib.toHexString mark)}";
 in {
-  imports = [
-    ./nylon.nix
-  ];
-
   options.networking.elRouter = {
     enable = lib.mkEnableOption "shared GNet multi-WAN edge datapath";
   };
@@ -92,32 +81,6 @@ in {
       extraRules = [
         ''udp sport 2197 return''
       ];
-    };
-
-    services.nylon = {
-      enable = true;
-      policyRouting.enable = true;
-      exits = {
-        cernet = {
-          label = 100;
-          interface = cernetInterface;
-          gateway4 = cernet.gateway4;
-          ipv4Address = cernetIpv4;
-          ipv6Address = cernetIpv6;
-        };
-        chinanet = {
-          label = 101;
-          interface = chinanetInterface;
-          gateway4 = chinanet.gateway4;
-          ipv4Address = chinanetIpv4;
-        };
-        cmcc = {
-          label = 102;
-          interface = cmccInterface;
-          gateway4 = cmcc.gateway4;
-          ipv4Address = cmccIpv4;
-        };
-      };
     };
   };
 }

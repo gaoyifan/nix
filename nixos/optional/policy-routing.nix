@@ -16,15 +16,9 @@
     defaultOutlet = 900;
   };
 
-  ruleType = types.either types.singleLineStr (types.submodule {
-    options.file = lib.mkOption {
-      type = types.str;
-      description = "Runtime file containing ip-rule arguments.";
-    };
-  });
   familyOptions = {
     routingPolicyRules = lib.mkOption {
-      type = types.attrsOf (types.listOf ruleType);
+      type = types.attrsOf (types.listOf types.singleLineStr);
       default = {};
       description = "Policy rules grouped by semantic or numeric priority.";
     };
@@ -54,17 +48,7 @@
     lib.allUnique (map (bucket: bucket.priority) (bucketsFor family));
 
   emit = line: "printf '%s\\n' ${lib.escapeShellArg line}";
-  renderEntry = priority: entry:
-    if builtins.isString entry
-    then emit "rule add pref ${toString priority} ${entry}"
-    else ''
-      ${lib.getExe pkgs.gnused} -E \
-        -e '/^[[:space:]]*$/d' \
-        -e '/^[[:space:]]*#/d' \
-        -e 's/^[[:space:]]*pref[[:space:]]+[0-9]+[[:space:]]+//' \
-        -e 's/^/rule add pref ${toString priority} /' \
-        ${lib.escapeShellArg entry.file}
-    '';
+  renderEntry = priority: entry: emit "rule add pref ${toString priority} ${entry}";
   renderFamily = family: terminalRules:
     lib.concatStringsSep "\n" (
       lib.concatMap (
