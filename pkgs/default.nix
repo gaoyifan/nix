@@ -34,6 +34,7 @@ rec {
   jip = import ./jip.nix {inherit pkgs;};
   lightningstream = import ./lightningstream.nix {inherit pkgs;};
   nylon = import ./nylon.nix {inherit pkgs;};
+  nylon-health-runner = import ./nylon-health-runner.nix {inherit pkgs;};
   prosafe-vlan-manager = import ./prosafe-vlan-manager.nix {inherit pkgs;};
   znapzend = import ./znapzend.nix {inherit pkgs;};
 }
