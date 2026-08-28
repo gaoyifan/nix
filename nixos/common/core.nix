@@ -6,7 +6,10 @@
 }: {
   time.timeZone = lib.mkDefault "Asia/Singapore";
 
-  programs.zsh.enable = true;
+  programs = {
+    nix-ld.enable = true;
+    zsh.enable = true;
+  };
   services.tailscale.port = 6627;
 
   environment.systemPackages = with pkgs; [

@@ -107,12 +107,9 @@
     systemd-networkd.serviceConfig.WatchdogSec = lib.mkIf config.systemd.network.enable 0;
   };
 
-  programs = {
-    nix-ld.enable = true;
-    ssh.extraConfig = ''
-      Include /opt/orbstack-guest/etc/ssh_config
-    '';
-  };
+  programs.ssh.extraConfig = ''
+    Include /opt/orbstack-guest/etc/ssh_config
+  '';
 
   home-manager.users.${username}.services.mutagen.dotfileSync.syncCodexSessions = true;
 
