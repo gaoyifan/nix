@@ -10,6 +10,8 @@
     hostname = config.networking.hostName;
   };
 in {
+  nix.channel.enable = false;
+
   nix.settings = {
     experimental-features = ["nix-command" "flakes"];
     extra-substituters =
