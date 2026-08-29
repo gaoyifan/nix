@@ -42,6 +42,7 @@ in {
               expand-hosts = true;
               dhcp-range = dhcpRanges;
               dhcp-host = dhcpHosts;
+              dhcp-option = ["option:dns-server,0.0.0.0"];
               dhcp-authoritative = true;
               port = 1053;
               local = ["/${cfg.dnsmasq.domain}/"];

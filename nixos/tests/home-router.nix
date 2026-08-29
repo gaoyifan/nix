@@ -516,6 +516,7 @@
     router.fail("systemctl list-unit-files wlt-dns-canary.service")
     router.fail("systemctl list-unit-files diverge.service")
     router.succeed("grep -F 'port=1053' ${nodes.router.services.dnsmasq.configFile}")
+    router.succeed("grep -F 'dhcp-option=option:dns-server,0.0.0.0' ${nodes.router.services.dnsmasq.configFile}")
     router.succeed("grep -F 'local=/el2.gaof.net/' ${nodes.router.services.dnsmasq.configFile}")
     router.succeed("grep -F 'cache-size=0' ${nodes.router.services.dnsmasq.configFile}")
     router.fail("grep -F 'server=' ${nodes.router.services.dnsmasq.configFile}")
