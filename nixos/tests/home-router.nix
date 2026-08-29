@@ -1,7 +1,7 @@
 {inputs}: {
   name = "home-router";
 
-  node.specialArgs = {inherit inputs;};
+  node.specialArgs.inputs = inputs // {chnroutes2 = ./fixtures/chnroutes2;};
 
   nodes.router = {
     config,
@@ -70,6 +70,8 @@
         --listen-address=223.5.5.5 \
         --listen-address=223.6.6.6 \
         --host-record=el2.gaof.net,223.5.5.5 \
+        --host-record=fixture.el2.gaof.net,203.0.113.123 \
+        --host-record=maplebot.el2.gaof.net,100.64.2.119 \
         --cname=mutagen.yfgao.com,el2.gaof.net \
         --address=/www.public.test/223.5.5.5 \
         --address=/www.public-v6.test/2400:3200::53 \
@@ -207,11 +209,12 @@
       nft 'add element inet home-router src2mark { 10.64.2.2 : 0xc9000 }'
       test "$(ip netns exec guest ${pkgs.dnsutils}/bin/dig +short @10.64.2.254 fixture.el2.gaof.net A)" = "10.64.2.123"
       test "$(ip netns exec guest ${pkgs.dnsutils}/bin/dig +tcp +short @10.64.2.254 fixture.el2.gaof.net A)" = "10.64.2.123"
+      test "$(ip netns exec guest ${pkgs.dnsutils}/bin/dig +short @10.64.2.254 maplebot.el2.gaof.net A)" = "100.64.2.119"
+      test "$(ip netns exec guest ${pkgs.dnsutils}/bin/dig +tcp +short @10.64.2.254 maplebot.el2.gaof.net A)" = "100.64.2.119"
       test "$(ip netns exec guest ${pkgs.dnsutils}/bin/dig +short @10.64.2.254 el2.gaof.net A)" = "223.5.5.5"
       test "$(ip netns exec guest ${pkgs.dnsutils}/bin/dig +tcp +short @10.64.2.254 el2.gaof.net A)" = "223.5.5.5"
       ip netns exec guest ${pkgs.dnsutils}/bin/dig +noall +answer @10.64.2.254 mutagen.yfgao.com A | grep -F 'mutagen.yfgao.com.' | grep -F 'CNAME' | grep -F 'el2.gaof.net.'
       test "$(getent ahostsv4 mutagen.yfgao.com | awk 'NR == 1 { print $1 }')" = "223.5.5.5"
-      ip netns exec guest ${pkgs.dnsutils}/bin/dig +noall +comments @10.64.2.254 missing.el2.gaof.net A | grep -F 'status: NXDOMAIN'
       test "$(ip netns exec guest ${pkgs.dnsutils}/bin/dig +short @10.64.2.254 www.public.test A)" = "223.5.5.5"
       test "$(ip netns exec guest ${pkgs.dnsutils}/bin/dig +tcp +short @10.64.2.254 www.public.test A)" = "223.5.5.5"
       test "$(ip netns exec guest ${pkgs.dnsutils}/bin/dig +short @10.64.2.254 www.public-v6.test AAAA)" = "2400:3200::53"
@@ -524,13 +527,12 @@
     router.fail("systemctl list-unit-files diverge.service")
     router.succeed("grep -F 'port=1053' ${nodes.router.services.dnsmasq.configFile}")
     router.succeed("grep -F 'dhcp-option=option:dns-server,0.0.0.0' ${nodes.router.services.dnsmasq.configFile}")
-    router.succeed("grep -F 'local=/*.el2.gaof.net/' ${nodes.router.services.dnsmasq.configFile}")
+    router.fail("grep -F 'local=' ${nodes.router.services.dnsmasq.configFile}")
     router.succeed("grep -F 'cache-size=0' ${nodes.router.services.dnsmasq.configFile}")
     router.fail("grep -F 'server=' ${nodes.router.services.dnsmasq.configFile}")
     router.succeed("grep -F '127.0.0.1:1053' ${nodes.router.services.wltDns.configFile}")
-    router.succeed("grep -F 'subdomains = [\"el2.gaof.net\"]' ${nodes.router.services.wltDns.configFile}")
-    router.succeed("test \"$(grep -c '^subdomains = ' ${nodes.router.services.wltDns.configFile})\" -eq 6")
-    router.fail("grep -E '^domains =' ${nodes.router.services.wltDns.configFile}")
+    router.succeed("grep -F 'domains = [\"el2.gaof.net\"]' ${nodes.router.services.wltDns.configFile}")
+    router.fail("grep -E '^subdomains =' ${nodes.router.services.wltDns.configFile}")
     router.succeed("grep -F '10.64.2.254:53' ${nodes.router.services.wltDns.configFile}")
     router.succeed("grep -F '192.168.93.2:53' ${nodes.router.services.wltDns.configFile}")
     router.succeed("grep -F '[2001:db8:93::2]:53' ${nodes.router.services.wltDns.configFile}")

@@ -45,7 +45,6 @@ in {
               dhcp-option = ["option:dns-server,0.0.0.0"];
               dhcp-authoritative = true;
               port = 1053;
-              local = ["/*.${cfg.dnsmasq.domain}/"];
               cache-size = 0;
             }
           ]
