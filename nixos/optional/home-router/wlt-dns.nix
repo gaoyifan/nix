@@ -111,6 +111,7 @@
       shutdown_timeout_seconds = 10;
     };
     policy = {
+      family = "inet";
       table = "home-router";
       ipv4_map = "src2mark";
       ipv6_map = "src2mark6";

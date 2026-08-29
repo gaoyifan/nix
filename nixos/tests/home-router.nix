@@ -528,6 +528,7 @@
     router.succeed("grep -F '127.0.0.1:9421' ${nodes.router.services.wltDns.configFile}")
     router.succeed("grep -F '[dns_servers.aliyun]' ${nodes.router.services.wltDns.configFile}")
     router.succeed("grep -F '[dns_servers.cloudflare]' ${nodes.router.services.wltDns.configFile}")
+    router.succeed("grep -F 'family = \"inet\"' ${nodes.router.services.wltDns.configFile}")
     router.succeed("grep -F 'ipv4_default_mark = 256' ${nodes.router.services.wltDns.configFile}")
     router.succeed("grep -F 'ipv6_default_mark = 4095' ${nodes.router.services.wltDns.configFile}")
     router.succeed("grep -F 'title = \"国内出口\"' ${nodes.router.services.wltDns.configFile}")
