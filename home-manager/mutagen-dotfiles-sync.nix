@@ -23,6 +23,7 @@
   rsyncSshCommand = "${sshWrapper}/bin/ssh -F /dev/null -p ${toString cfg.port}";
   ignoredPaths =
     [
+      "*.sqlite"
       ".codex/archived_sessions"
       ".codex/cache"
       ".codex/history.jsonl"
