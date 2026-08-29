@@ -40,6 +40,7 @@
       go = from "go";
       gofmt = from "go";
       hexdump = {};
+      hf = from ["python3Packages" "huggingface-hub"];
       herdr = {};
       iostat = from "sysstat";
       loft = {};
