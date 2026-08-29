@@ -53,7 +53,6 @@
     ali-sg = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/ali-sg];
     blog = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/blog];
     cjia = mkDeployableHost "aarch64-linux" [../nixos/hosts/cjia];
-    do = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/do];
     el = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/el];
     el2 = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/el2];
     el2-install = mkNixosOnlyHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/el2 ../nixos/hosts/el2/install.nix];
