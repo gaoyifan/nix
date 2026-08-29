@@ -24,6 +24,8 @@
   ignoredPaths =
     [
       "*.sqlite"
+      "*.sqlite-shm"
+      "*.sqlite-wal"
       ".codex/archived_sessions"
       ".codex/cache"
       ".codex/history.jsonl"
