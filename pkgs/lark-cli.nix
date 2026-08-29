@@ -2,7 +2,7 @@
   inputs,
   pkgs,
 }:
-pkgs.buildGoModule {
+pkgs.buildGoModule rec {
   pname = "lark-cli";
   version = "1.0.69";
 
@@ -13,7 +13,7 @@ pkgs.buildGoModule {
   ldflags = [
     "-s"
     "-w"
-    "-X github.com/larksuite/cli/internal/build.Version=1.0.69"
+    "-X github.com/larksuite/cli/internal/build.Version=${version}"
     "-X github.com/larksuite/cli/internal/build.Date=1970-01-01"
   ];
 

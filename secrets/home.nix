@@ -57,17 +57,6 @@ in {
         description = "Path to the Atuin password file";
       };
     };
-
-    restic = {
-      envFile = lib.mkOption {
-        type = lib.types.str;
-        default =
-          if hasResticSecrets
-          then config.age.secrets."restic-env".path
-          else "${config.home.homeDirectory}/.config/restic/env";
-        description = "Path to the Restic environment file for systemd EnvironmentFile";
-      };
-    };
   };
 
   config = lib.mkMerge [

@@ -1,31 +1,11 @@
 {
   taps = [
     {
-      name = "devnullvoid/pvetui";
-      trusted = true;
-    }
-    {
       name = "anomalyco/tap";
       trusted = true;
     }
     {
-      name = "ramonvermeulen/whosthere";
-      trusted = true;
-    }
-    {
-      name = "deskflow/tap";
-      trusted = true;
-    }
-    {
-      name = "gaoyifan/tap";
-      trusted = true;
-    }
-    {
       name = "lucasgelfond/zerobrew";
-      trusted = true;
-    }
-    {
-      name = "stablyai/orca";
       trusted = true;
     }
   ];

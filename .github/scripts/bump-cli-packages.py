@@ -259,7 +259,6 @@ def main():
         changed.append((name, current, latest))
 
     set_output("changed", "true" if changed else "false")
-    set_output("packages", " ".join(name for name, _, _ in changed))
     set_output(
         "files",
         " ".join(str(PACKAGES[name]["path"].relative_to(ROOT)) for name, _, _ in changed),

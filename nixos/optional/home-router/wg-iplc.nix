@@ -6,6 +6,7 @@
   cfg = config.networking.homeRouter.wgIplc;
   peer = import (config.services.secrets.filesDir + "/nixos/wg-iplc.nix");
   endpointHost = lib.head (lib.splitString ":" peer.endpoint);
+  table = 5100;
 in {
   options.networking.homeRouter.wgIplc = {
     enable = lib.mkEnableOption "the shared wgIplc outlet";
@@ -23,12 +24,6 @@ in {
       default = "0x100";
       description = "Packet mark selecting wgIplc.";
     };
-    table = lib.mkOption {
-      type = lib.types.int;
-      readOnly = true;
-      default = 5100;
-      description = "Routing table selected by the wgIplc packet mark.";
-    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -39,7 +34,7 @@ in {
       ips = [cfg.ip];
       privateKeyFile = "/run/agenix/wg-iplc-private-key";
       mtu = 1392;
-      table = toString cfg.table;
+      table = toString table;
       fwMark = "0x90000";
       peers = [
         {
@@ -50,7 +45,7 @@ in {
       ];
     };
     networking.policyRouting.ipv4.routingPolicyRules.wltOutlet = [
-      "fwmark ${cfg.mark}/0xfff lookup ${toString cfg.table}"
+      "fwmark ${cfg.mark}/0xfff lookup ${toString table}"
     ];
     services.resolved.dnsDelegates = lib.mkIf (builtins.match ".*[[:alpha:]].*" endpointHost != null) {
       wgIplcEndpoint.Delegate = {

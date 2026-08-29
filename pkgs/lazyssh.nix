@@ -1,7 +1,7 @@
 # Custom lazyssh package using gaoyifan/lazyssh fork
 # Overrides upstream nixpkgs lazyssh with different source
 {pkgs}:
-pkgs.lazyssh.overrideAttrs (oldAttrs: {
+pkgs.lazyssh.overrideAttrs (_: {
   version = "0.3.0-yifan";
 
   src = pkgs.fetchFromGitHub {

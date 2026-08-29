@@ -77,8 +77,6 @@ def main():
 
         set_output("changed", "false")
         set_output("files", "flake.nix flake.lock")
-        set_output("tag", current_tag)
-        set_output("version", version)
         set_output("commit_subject", "")
         set_output("commit_body", "")
         set_output("summary", summary)
@@ -97,8 +95,6 @@ def main():
 
     set_output("changed", "true" if changed else "false")
     set_output("files", "flake.nix flake.lock")
-    set_output("tag", latest_tag)
-    set_output("version", version)
     set_output("commit_subject", f"chore(hermes): bump to {version}" if changed else "")
     set_output("commit_body", summary if changed else "")
     set_output("summary", summary)

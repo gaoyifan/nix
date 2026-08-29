@@ -79,13 +79,7 @@
       inherit profile;
     })
     cfg.instances;
-  vmSpec =
-    lib.mapAttrs (_: vm: {
-      inherit (vm) image;
-      inherit (vm) profile;
-    })
-    managedVms;
-  vmSpecFile = pkgs.writeText "incus-vms.json" (builtins.toJSON vmSpec);
+  vmSpecFile = pkgs.writeText "incus-vms.json" (builtins.toJSON managedVms);
 
   applyDeclarativeVms = pkgs.writeShellScriptBin "incus-apply-declarative-vms" ''
     export INCUS=${lib.escapeShellArg incus}

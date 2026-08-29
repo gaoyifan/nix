@@ -112,7 +112,6 @@ def main():
     summary = "Immich images: " + ", ".join(f"{name}={images[name]}" for name in ("server", "redis", "postgres"))
     set_output("changed", "true" if changed else "false")
     set_output("files", str(TARGET.relative_to(ROOT)))
-    set_output("tag", tag)
     set_output("commit_subject", f"chore(immich): bump to {tag}" if changed else "")
     set_output("commit_body", summary if changed else "")
     set_output("summary", summary)

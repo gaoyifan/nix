@@ -7,7 +7,6 @@
   cfg = config.networking.elRouter;
   homeRouter = config.networking.homeRouter;
 
-  addressWithoutPrefix = address: lib.head (lib.splitString "/" address);
   ipv4Addresses = addresses: lib.filter (address: !(lib.hasInfix ":" address)) addresses;
   ipv6Addresses = addresses: lib.filter (address: lib.hasInfix ":" address) addresses;
 
