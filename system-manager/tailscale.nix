@@ -36,6 +36,7 @@ in {
         "PORT=6627"
         ''"FLAGS=--tun ${lib.escapeShellArg cfg.interfaceName} --no-logs-no-support"''
       ];
+      serviceConfig.EnvironmentFile = "-/etc/default/tailscaled";
     };
   };
 }
