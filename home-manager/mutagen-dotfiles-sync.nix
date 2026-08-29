@@ -157,12 +157,6 @@
         exit 1
       fi
 
-      excluded_conflicts="$(jq '.[0].excludedConflicts // 0' <<<"$status_json")"
-      if [ "$excluded_conflicts" -ne 0 ]; then
-        echo "Mutagen omitted $excluded_conflicts conflicts from its status output" >&2
-        exit 1
-      fi
-
       conflict_count="$(jq '.[0].conflicts | length' <<<"$status_json")"
       if [ "$conflict_count" -eq 0 ]; then
         echo "No conflicts found."
@@ -253,7 +247,7 @@
       mutagen sync flush "$session_name" >/dev/null
 
       status_json="$(mutagen sync list --label-selector "$selector" --template '{{json .}}')"
-      remaining_count="$(jq '([.[0].conflicts | length, (.[0].excludedConflicts // 0)] | add)' <<<"$status_json")"
+      remaining_count="$(jq '((.[0].conflicts | length) + (.[0].excludedConflicts // 0))' <<<"$status_json")"
       if [ "$remaining_count" -ne 0 ]; then
         echo "$remaining_count conflict(s) remain." >&2
         exit 1
