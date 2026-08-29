@@ -159,6 +159,18 @@
 
       conflict_count="$(jq '.[0].conflicts | length' <<<"$status_json")"
       if [ "$conflict_count" -eq 0 ]; then
+        read -r session_status alpha_connected alpha_scanned beta_connected beta_scanned < <(
+          jq -r '.[0] | [.status, .alpha.connected, .alpha.scanned, .beta.connected, .beta.scanned] | @tsv' <<<"$status_json"
+        )
+        if [ "$session_status" != watching ] \
+          || [ "$alpha_connected" != true ] \
+          || [ "$alpha_scanned" != true ] \
+          || [ "$beta_connected" != true ] \
+          || [ "$beta_scanned" != true ]; then
+          echo "Cannot determine whether conflicts remain: Mutagen status is $session_status (alpha connected=$alpha_connected, scanned=$alpha_scanned; beta connected=$beta_connected, scanned=$beta_scanned)." >&2
+          echo "Wait for both endpoints to be connected and scanned and for the session to reach Watching, then retry." >&2
+          exit 1
+        fi
         echo "No conflicts found."
         exit 0
       fi
