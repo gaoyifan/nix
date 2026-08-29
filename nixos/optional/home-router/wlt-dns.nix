@@ -82,7 +82,7 @@
     [
       {
         name = "local-dhcp";
-        domains = [ownDomain];
+        subdomains = [ownDomain];
         unqualified = true;
         reverse_cidrs = lanAddresses;
         servers = ["127.0.0.1:1053"];
@@ -91,7 +91,7 @@
     ]
     ++ lib.mapAttrsToList (domain: backend: {
       name = domain;
-      domains = [domain];
+      subdomains = [domain];
       servers = [(socketAddress 53 backend)];
       timeout_milliseconds = 2000;
     })
