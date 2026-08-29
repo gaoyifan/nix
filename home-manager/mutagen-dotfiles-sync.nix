@@ -34,7 +34,10 @@
       ".codex/.tmp"
       ".codex/version.json"
     ]
-    ++ lib.optional (!cfg.syncCodexSessions) ".codex/sessions";
+    ++ lib.optionals (!cfg.syncCodexSessions) [
+      ".codex/session_index.jsonl"
+      ".codex/sessions"
+    ];
   rsyncExcludeArguments = map (path: "--exclude=/${path}") ignoredPaths;
   sessionCreateArguments = lib.cli.toCommandLineGNU {} {
     compression = "deflate";
