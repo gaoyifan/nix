@@ -81,6 +81,11 @@ in {
       };
     };
 
+    systemd.services.nginx = {
+      after = ["network-online.target"];
+      wants = ["network-online.target"];
+    };
+
     services.nginx = {
       enable = true;
       user = "telegram-bot-api";
