@@ -11,6 +11,7 @@
       cargo-binstall = {};
       codex = {};
       codex-reindex = {};
+      codex-usage = {};
       copilot = {
         packagePath = ["copilot-cli"];
         wrapperArgs = ["--yolo"];

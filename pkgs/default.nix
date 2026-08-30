@@ -15,6 +15,7 @@ rec {
   codex-reindex = import ./codex-reindex.nix {
     inherit pkgs codex;
   };
+  codex-usage = import ./codex-usage.nix {inherit pkgs;};
   cursor-cli = import ./cursor-cli.nix {inherit pkgs;};
   pi-coding-agent = import ./pi-coding-agent.nix {inherit pkgs;};
   nft-geo-sets = import ./nft-geo-sets.nix {inherit pkgs inputs;};
