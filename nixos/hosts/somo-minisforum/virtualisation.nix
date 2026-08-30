@@ -57,5 +57,10 @@ in {
     };
   };
 
-  users.users.${username}.extraGroups = ["incus-admin"];
+  users.users.${username}.extraGroups = [
+    "docker"
+    "incus-admin"
+  ];
+
+  virtualisation.docker.enable = true;
 }
