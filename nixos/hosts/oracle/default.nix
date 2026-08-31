@@ -16,14 +16,6 @@
     };
   };
 
-  systemd.network = {
-    links."10-wan" = {
-      matchConfig.Path = "pci-0000:00:03.0";
-      linkConfig.Name = "ens3";
-    };
-    networks."10-wan".matchConfig.Name = "ens3";
-  };
-
   boot = {
     loader.grub = {
       enable = true;

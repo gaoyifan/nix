@@ -12,7 +12,10 @@
   };
 
   systemd.network.networks."10-wan" = {
-    matchConfig.Type = "ether";
+    matchConfig = {
+      Type = "ether";
+      Kind = "!veth";
+    };
     networkConfig = {
       DNS = [
         "1.1.1.1"
