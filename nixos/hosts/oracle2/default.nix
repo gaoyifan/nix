@@ -67,6 +67,5 @@ in {
     bitmagnet-oracle2 = composeService "Bitmagnet Compose project" "${userHome}/docker-run-scripts/bitmagnet-oracle2";
   };
 
-  time.timeZone = "UTC";
   system.stateVersion = "26.05";
 }

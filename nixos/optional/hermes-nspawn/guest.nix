@@ -94,8 +94,6 @@ in {
   ];
 
   nix.settings.experimental-features = ["nix-command" "flakes"];
-  time.timeZone = "Asia/Singapore";
-
   users.groups.agent.gid = 1000;
   users.users = {
     agent = {

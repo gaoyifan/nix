@@ -31,6 +31,5 @@
 
   networking.firewall.enable = false;
 
-  time.timeZone = "UTC";
   system.stateVersion = "26.05";
 }

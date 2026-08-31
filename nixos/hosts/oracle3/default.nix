@@ -29,6 +29,5 @@
 
   services.journald.extraConfig = "SystemMaxUse=256M";
 
-  time.timeZone = "UTC";
   system.stateVersion = "26.05";
 }

@@ -57,6 +57,5 @@
 
   systemd.tmpfiles.rules = ["d /var/lib/bitmagnet-crawler 0700 root root -"];
 
-  time.timeZone = "UTC";
   system.stateVersion = "26.05";
 }

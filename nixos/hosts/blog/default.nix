@@ -129,6 +129,5 @@ in {
     "d /var/lib/blog 0700 root root -"
   ];
 
-  time.timeZone = "Asia/Shanghai";
   system.stateVersion = "26.05";
 }

@@ -52,7 +52,5 @@
     min-free = 1024 * 1024 * 1024;
     max-free = 2 * 1024 * 1024 * 1024;
   };
-
-  time.timeZone = "UTC";
   system.stateVersion = "26.05";
 }
