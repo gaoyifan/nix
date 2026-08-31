@@ -1,5 +1,5 @@
 {...}: {
-  imports = [../../optional/xtom];
+  imports = [../../optional/vm-qemu-bios-virtio];
 
   networking.hostName = "xtom-syd";
 
