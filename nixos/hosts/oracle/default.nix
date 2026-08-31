@@ -1,16 +1,14 @@
-{username, ...}: {
+{...}: {
   imports = [
     ../../optional/edge-firewall.nix
-    ../../optional/qemu-guest.nix
     ../../optional/tailscale-gnet-vm-exit.nix
+    ../../optional/vm-oracle-cloud.nix
     ./disk-config.nix
   ];
 
   networking = {
     hostName = "oracle";
     nameservers = ["169.254.169.254"];
-    useDHCP = false;
-    useNetworkd = true;
     edgeFirewall = {
       enable = true;
       extraPublicUdpPorts = [
@@ -24,14 +22,7 @@
       matchConfig.Path = "pci-0000:00:03.0";
       linkConfig.Name = "ens3";
     };
-    networks."10-wan" = {
-      matchConfig.Name = "ens3";
-      networkConfig = {
-        DHCP = "yes";
-        IPv6AcceptRA = true;
-      };
-      linkConfig.RequiredForOnline = "routable";
-    };
+    networks."10-wan".matchConfig.Name = "ens3";
   };
 
   boot = {
@@ -47,8 +38,6 @@
     ];
     zswap.enable = true;
   };
-
-  users.users.${username}.uid = 1000;
 
   virtualisation = {
     podman.enable = true;
@@ -71,11 +60,9 @@
     };
   };
 
-  services = {
-    journald.extraConfig = "SystemMaxUse=256M";
-  };
-
   services.resticBackup.extraPaths = ["/var/lib/bitmagnet-crawler"];
+
+  services.journald.extraConfig = "SystemMaxUse=256M";
 
   systemd.tmpfiles.rules = ["d /var/lib/bitmagnet-crawler 0700 root root -"];
 

@@ -21,8 +21,8 @@
   };
 in {
   imports = [
-    ../../optional/qemu-guest.nix
     ../../optional/tailscale-gnet-vm-exit.nix
+    ../../optional/vm-oracle-cloud.nix
     ./codex-capacity-proxy.nix
     ./disk-config.nix
     ./github-backup.nix
@@ -30,18 +30,7 @@ in {
 
   networking = {
     hostName = "oracle2";
-    useDHCP = false;
-    useNetworkd = true;
     firewall.enable = false;
-  };
-
-  systemd.network.networks."10-wan" = {
-    matchConfig.Type = "ether";
-    networkConfig = {
-      DHCP = "yes";
-      IPv6AcceptRA = true;
-    };
-    linkConfig.RequiredForOnline = "routable";
   };
 
   boot = {
@@ -58,10 +47,7 @@ in {
     memoryPercent = 50;
   };
 
-  users.users.${username} = {
-    uid = 1000;
-    extraGroups = ["docker"];
-  };
+  users.users.${username}.extraGroups = ["docker"];
 
   virtualisation.docker = {
     enable = true;

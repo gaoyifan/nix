@@ -1,14 +1,12 @@
-{username, ...}: {
+{...}: {
   imports = [
-    ../../optional/qemu-guest.nix
+    ../../optional/vm-oracle-cloud.nix
     ./disk-config.nix
   ];
 
   networking = {
     hostName = "oracle3";
     nameservers = ["169.254.169.254"];
-    useDHCP = false;
-    useNetworkd = true;
   };
 
   systemd.network = {
@@ -18,14 +16,9 @@
     };
     networks."10-wan" = {
       matchConfig.Name = "ens3";
-      networkConfig = {
-        DHCP = "yes";
-        IPv6AcceptRA = true;
-      };
       dhcpV4Config.UseDNS = false;
       dhcpV6Config.UseDNS = false;
       ipv6AcceptRAConfig.UseDNS = false;
-      linkConfig.RequiredForOnline = "routable";
     };
   };
 
@@ -42,8 +35,6 @@
     ];
     zswap.enable = true;
   };
-
-  users.users.${username}.uid = 1000;
 
   services.journald.extraConfig = "SystemMaxUse=256M";
 
