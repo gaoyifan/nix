@@ -89,6 +89,9 @@ in {
           type filter hook input priority filter; policy drop;
           ct state established,related accept
           ${dhcpServerRules}
+          ${lib.optionalString config.virtualisation.docker.enable ''
+          iifname "docker0" meta l4proto { tcp, udp } th dport 53 accept
+        ''}
           ${extraInputRules}
           ${dhcpClientRules}
 
@@ -105,6 +108,10 @@ in {
           type filter hook forward priority filter; policy drop;
           ct state established,related accept
           ${extraForwardRules}
+          ${lib.optionalString config.virtualisation.docker.enable ''
+          iifname "docker0" accept
+          iifname "br-*" accept
+        ''}
           ${lib.optionalString (trustedInterfaces != []) "iifname { ${interfaceSet (lib.unique trustedInterfaces)} } accept"}
         }
       '';

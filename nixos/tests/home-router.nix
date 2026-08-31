@@ -120,6 +120,15 @@
       nft list chain inet edge-filter input | grep -F 'tcp dport 5201 accept'
       nft list chain inet edge-filter input | grep 'udp dport' | grep -F '5201' | grep -F '61001-61999'
       nft list chain inet edge-filter forward | grep -F 'policy drop'
+      input_rules="$(nft list chain inet edge-filter input)"
+      docker_input_line="$(grep -nF 'iifname "docker0" meta l4proto { tcp, udp } th dport 53 accept' <<<"$input_rules" | cut -d: -f1)"
+      ! grep -Fq 'iifname "docker0" accept' <<<"$input_rules"
+      wlt_dns_drop_line="$(grep -nF 'th dport 1053 drop' <<<"$input_rules" | cut -d: -f1)"
+      test "$docker_input_line" -lt "$wlt_dns_drop_line"
+      forward_rules="$(nft list chain inet edge-filter forward)"
+      extra_forward_line="$(grep -nF 'iifname "podman*" accept' <<<"$forward_rules" | cut -d: -f1)"
+      docker_bridge_line="$(grep -nF 'iifname "br-*" accept' <<<"$forward_rules" | cut -d: -f1)"
+      test "$extra_forward_line" -lt "$docker_bridge_line"
       nft list chain inet home-router mss-forward | grep -F 'tcp option maxseg size set rt mtu'
       nft list chain inet home-router wlt-prerouting | grep -F 'meta mark set'
       nft list chain inet home-router egress-output | grep -F 'oifname "management0" jump egress-classify'
@@ -464,6 +473,8 @@
     };
 
     networking.edgeFirewall.extraForwardRules = [''iifname "podman*" accept''];
+
+    virtualisation.docker.enable = true;
 
     networking.wireguard.interfaces.wg-iplc.privateKeyFile =
       lib.mkForce (toString (pkgs.writeText "wg-iplc-test-private-key" "SHU/G83Hd3I1CH1EM8zifA5ja9QpKzcQljsZmDvuw3k="));
