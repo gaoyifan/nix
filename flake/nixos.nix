@@ -57,6 +57,7 @@
     el2 = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/el2];
     el2-install = mkNixosOnlyHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/el2 ../nixos/hosts/el2/install.nix];
     google = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/google];
+    hhost-jp = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/hhost-jp];
     misc0-jp = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/misc0-jp];
     misc1-sz = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/misc1-sz];
     misc1-sh = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/misc1-sh];

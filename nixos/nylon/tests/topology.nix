@@ -7,6 +7,7 @@
     "cjia"
     "el"
     "el2"
+    "hhost-jp"
     "misc0-jp"
     "misc1-sh"
     "misc1-sz"
@@ -31,6 +32,7 @@
     ali-sg = 18;
     el = 19;
     el2 = 20;
+    hhost-jp = 34;
     misc1-sz = 23;
     misc1-sh = 24;
     oracle3 = 25;
@@ -156,10 +158,10 @@ in
   assert all (name: fleet.topology.peers.${name}.numericId == expectedNumericIds.${name}) expectedHosts;
   assert fleet.manifest.value.counts
   == {
-    peers = 15;
-    exits = 23;
+    peers = 16;
+    exits = 24;
     selectors = 5;
-    dnsRrsets = 30;
+    dnsRrsets = 32;
   };
   assert routerIds fleet == expectedHosts;
   assert !(elem "los6" (routerIds fleet));
@@ -169,7 +171,7 @@ in
   assert all (exit: exit.nodeId != "los6" && exit.nodeId != "google") fleet.topology.catalog;
   assert fleet.dns.controller == "el2";
   assert fleet.dns.apiUrl == "http://pdns-ui.ts.gaof.net/api/v1/servers/localhost/zones/ny.gaof.net";
-  assert fleet.central.sha256 == "bfc095f5c9b347a554a453ad45991e33ce00922d3b4f8b0c0f8c95a8cfd5fd3c";
+  assert fleet.central.sha256 == "d77a3ec7daa22854a725f194196d8c879ff15237d708cc1d059fb0ea74c39d08";
   assert fleet.central.value.graph == [(concatStringsSep ", " expectedHosts)];
   assert builtins.fromJSON fleet.dns.text == fleet.dns.value;
   assert builtins.match ".*privateKey.*" fleet.manifest.text == null;
