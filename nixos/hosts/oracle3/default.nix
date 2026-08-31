@@ -4,22 +4,14 @@
     ./disk-config.nix
   ];
 
-  networking = {
-    hostName = "oracle3";
-    nameservers = ["169.254.169.254"];
-  };
+  networking.hostName = "oracle3";
 
   systemd.network = {
     links."10-wan" = {
       matchConfig.Path = "pci-0000:00:03.0";
       linkConfig.Name = "ens3";
     };
-    networks."10-wan" = {
-      matchConfig.Name = "ens3";
-      dhcpV4Config.UseDNS = false;
-      dhcpV6Config.UseDNS = false;
-      ipv6AcceptRAConfig.UseDNS = false;
-    };
+    networks."10-wan".matchConfig.Name = "ens3";
   };
 
   boot = {

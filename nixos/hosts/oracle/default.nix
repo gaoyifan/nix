@@ -8,7 +8,6 @@
 
   networking = {
     hostName = "oracle";
-    nameservers = ["169.254.169.254"];
     edgeFirewall = {
       enable = true;
       extraPublicUdpPorts = [
