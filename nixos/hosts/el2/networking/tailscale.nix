@@ -5,258 +5,267 @@
   ...
 }: let
   hostPkgs = pkgs;
-  headscaleIpv4Route = "100.124.0.0/16";
-  headscaleIpv6Route = "fd7a:115c:a1e0:124::/64";
-  hostTransitIpv4 = "10.255.124.1";
-  containerTransitIpv4 = "10.255.124.2";
-  hostTransitIpv6 = "fd00:124::1";
-  containerTransitIpv6 = "fd00:124::2";
-  headscalePort = 41641;
   chinanetMark = toString config.networking.homeRouter.wans.chinanet.routingTable;
 
-  headscaleAdvertisedIpv4Routes = [
-    "100.64.0.0/11"
-    "100.96.0.0/12"
-    "100.112.0.0/13"
-    "100.120.0.0/14"
-    "100.125.0.0/16"
-    "100.126.0.0/15"
+  headscaleRouters = [
+    {
+      containerName = "hs-router-auramont";
+      hostname = "el2-headscale-router";
+      loginServer = "https://headscale.auramont.cn";
+      ipv4Route = "100.124.0.0/16";
+      ipv6Route = "fd7a:115c:a1e0:124::/64";
+      hostTransitIpv4 = "10.255.124.1";
+      containerTransitIpv4 = "10.255.124.2";
+      hostTransitIpv6 = "fd00:124::1";
+      containerTransitIpv6 = "fd00:124::2";
+      port = 41641;
+      authKeySecret = "headscale-router-auth-key";
+      caCertificate = null;
+    }
+    {
+      containerName = "hs-router-library";
+      hostname = "el2-gateway-headscale-router";
+      loginServer = "https://gw-hs.lib.ustc.edu.cn";
+      ipv4Route = "100.64.74.0/24";
+      ipv6Route = "fd7a:115c:a1e0:6474::/64";
+      hostTransitIpv4 = "10.255.74.1";
+      containerTransitIpv4 = "10.255.74.2";
+      hostTransitIpv6 = "fd00:6474::1";
+      containerTransitIpv6 = "fd00:6474::2";
+      port = 41642;
+      authKeySecret = null;
+      caCertificate = ../gateway-headscale-ca.crt;
+    }
   ];
-  headscaleAdvertisedIpv6Routes = [
-    "fd7a:115c:a1e0::/56"
-    "fd7a:115c:a1e0:100::/59"
-    "fd7a:115c:a1e0:120::/62"
-    "fd7a:115c:a1e0:125::/64"
-    "fd7a:115c:a1e0:126::/63"
-    "fd7a:115c:a1e0:128::/61"
-    "fd7a:115c:a1e0:130::/60"
-    "fd7a:115c:a1e0:140::/58"
-    "fd7a:115c:a1e0:180::/57"
-    "fd7a:115c:a1e0:200::/55"
-    "fd7a:115c:a1e0:400::/54"
-    "fd7a:115c:a1e0:800::/53"
-    "fd7a:115c:a1e0:1000::/52"
-    "fd7a:115c:a1e0:2000::/51"
-    "fd7a:115c:a1e0:4000::/50"
-    "fd7a:115c:a1e0:8000::/49"
-  ];
-  routeAttrs = cidr: let
-    parts = lib.splitString "/" cidr;
+
+  primaryAdvertisedRoutes =
+    [
+      "10.250.10.0/24"
+      "11.13.112.0/24"
+      "100.64.2.0/24"
+      "100.64.110.0/24"
+      # The control plane intentionally leaves 192.168.93.0/24 unapproved; it is
+      # advertised only to work around an exit-node bug. The overlapping
+      # 192.168.93.151/32 is the route actually approved for tailnet clients.
+      "192.168.93.0/24"
+      "202.38.93.0/24"
+      "202.141.162.0/24"
+      "202.141.178.0/24"
+      "192.168.93.151/32"
+      "192.168.225.50/32"
+    ]
+    ++ lib.concatMap (router: [router.ipv4Route router.ipv6Route]) headscaleRouters;
+
+  mkHeadscaleRouter = router: let
+    authKeyPath = "/run/agenix/${router.authKeySecret}";
+    containerAuthKeyPath = "/run/${router.authKeySecret}";
+    hostVethName = "ve-${router.containerName}";
+    # nspawn shortens long veth names to the first 11 characters plus a hash.
+    # networkd resolves the full alternative name, while nftables needs the
+    # shortened primary-name pattern.
+    hostVethPattern = "${builtins.substring 0 11 hostVethName}*";
+    setFlags = [
+      "--accept-dns=false"
+      "--accept-routes=false"
+      "--advertise-routes="
+      "--hostname=${router.hostname}"
+      "--netfilter-mode=off"
+      "--snat-subnet-routes=false"
+    ];
   in {
-    address = lib.head parts;
-    prefixLength = lib.toInt (lib.last parts);
-  };
-  primaryAdvertisedRoutes = [
-    "10.250.10.0/24"
-    "11.13.112.0/24"
-    "100.64.2.0/24"
-    "100.64.110.0/24"
-    # The control plane intentionally leaves 192.168.93.0/24 unapproved; it is
-    # advertised only to work around an exit-node bug. The overlapping
-    # 192.168.93.151/32 is the route actually approved for tailnet clients.
-    "192.168.93.0/24"
-    "202.38.93.0/24"
-    "202.141.162.0/24"
-    "202.141.178.0/24"
-    "192.168.93.151/32"
-    "192.168.225.50/32"
-    headscaleIpv4Route
-    headscaleIpv6Route
-  ];
-  headscaleSetFlags = [
-    "--accept-dns=false"
-    "--accept-routes=false"
-    "--advertise-routes=${lib.concatStringsSep "," (headscaleAdvertisedIpv4Routes ++ headscaleAdvertisedIpv6Routes)}"
-    "--hostname=el2-headscale-router"
-    "--netfilter-mode=off"
-    "--snat-subnet-routes=false"
-  ];
-in {
-  age.secrets.headscale-router-auth-key = lib.mkIf config.services.secrets.hasRealFiles {
-    file = config.services.secrets.filesDir + "/nixos/el2/headscale-router-auth-key.age";
-  };
-
-  services.tailscale = {
-    extraUpFlags = [
-      "--advertise-connector"
-      "--advertise-routes=${lib.concatStringsSep "," primaryAdvertisedRoutes}"
-    ];
-    serve = {
-      enable = true;
-      services = {
-        bitmagnet2.endpoints."tcp:80" = "http://${config.services.bitmagnet.settings.http_server.port}";
-        immich2.endpoints."tcp:80" = "tcp://127.0.0.1:2283";
-        restic-115.endpoints."tcp:80" = "http://127.0.0.1:8006";
-        restic-123pan.endpoints."tcp:80" = "http://127.0.0.1:8005";
-        restic-nas.endpoints."tcp:80" = "http://127.0.0.1:8000";
+    age.secrets = lib.optionalAttrs (router.authKeySecret != null) {
+      ${router.authKeySecret} = lib.mkIf config.services.secrets.hasRealFiles {
+        file = config.services.secrets.filesDir + "/nixos/el2/${router.authKeySecret}.age";
       };
     };
-  };
 
-  containers.hs-router = {
-    autoStart = true;
-    privateNetwork = true;
-    hostAddress = hostTransitIpv4;
-    localAddress = containerTransitIpv4;
-    hostAddress6 = hostTransitIpv6;
-    localAddress6 = containerTransitIpv6;
-    forwardPorts = [
-      {
-        protocol = "udp";
-        hostPort = headscalePort;
-      }
-    ];
-    allowedDevices = [
-      {
-        node = "/dev/net/tun";
-        modifier = "rwm";
-      }
-    ];
-    bindMounts = {
-      "/dev/net/tun".isReadOnly = false;
-      "/run/headscale-router-auth-key" = {
-        hostPath = "/run/agenix/headscale-router-auth-key";
-      };
-    };
-    config = {...}: {
-      nixpkgs.pkgs = hostPkgs;
-
-      networking = {
-        useNetworkd = true;
-        useHostResolvConf = false;
-        nameservers = ["223.5.5.5"];
-        firewall.enable = false;
-        nftables = {
-          enable = true;
-          tables.hs-router = {
-            family = "inet";
-            content = ''
-              chain postrouting {
-                type nat hook postrouting priority srcnat;
-                ip saddr ${hostTransitIpv4} ip daddr ${headscaleIpv4Route} oifname "tailscale0" masquerade
-                ip6 saddr ${hostTransitIpv6} ip6 daddr ${headscaleIpv6Route} oifname "tailscale0" masquerade
-              }
-            '';
+    containers.${router.containerName} = {
+      autoStart = true;
+      privateNetwork = true;
+      hostAddress = router.hostTransitIpv4;
+      localAddress = router.containerTransitIpv4;
+      hostAddress6 = router.hostTransitIpv6;
+      localAddress6 = router.containerTransitIpv6;
+      forwardPorts = [
+        {
+          protocol = "udp";
+          hostPort = router.port;
+        }
+      ];
+      allowedDevices = [
+        {
+          node = "/dev/net/tun";
+          modifier = "rwm";
+        }
+      ];
+      bindMounts =
+        {
+          "/dev/net/tun".isReadOnly = false;
+        }
+        // lib.optionalAttrs (router.authKeySecret != null) {
+          ${containerAuthKeyPath} = {
+            hostPath = authKeyPath;
           };
         };
-        interfaces.eth0 = {
-          ipv4.routes =
-            [
+      config = {...}: {
+        nixpkgs.pkgs = hostPkgs;
+
+        security.pki.certificateFiles = lib.optional (router.caCertificate != null) router.caCertificate;
+
+        networking = {
+          useNetworkd = true;
+          useHostResolvConf = false;
+          nameservers = ["223.5.5.5"];
+          firewall.enable = false;
+          nftables = {
+            enable = true;
+            tables.hs-router = {
+              family = "inet";
+              content = ''
+                chain forward {
+                  type filter hook forward priority filter; policy drop;
+                  ct state established,related accept
+                  iifname "eth0" oifname "tailscale0" ip daddr ${router.ipv4Route} accept
+                  iifname "eth0" oifname "tailscale0" ip6 daddr ${router.ipv6Route} accept
+                }
+
+                chain postrouting {
+                  type nat hook postrouting priority srcnat;
+                  iifname "eth0" oifname "tailscale0" ip daddr ${router.ipv4Route} masquerade
+                  iifname "eth0" oifname "tailscale0" ip6 daddr ${router.ipv6Route} masquerade
+                }
+              '';
+            };
+          };
+          interfaces.eth0 = {
+            ipv4.routes = [
               {
                 address = "0.0.0.0";
                 prefixLength = 0;
-                via = hostTransitIpv4;
+                via = router.hostTransitIpv4;
                 options.onlink = "";
               }
-            ]
-            ++ map (cidr:
-              routeAttrs cidr
-              // {
-                via = hostTransitIpv4;
-                options.onlink = "";
-              })
-            headscaleAdvertisedIpv4Routes;
-          ipv6.routes =
-            [
+            ];
+            ipv6.routes = [
               {
-                address = hostTransitIpv6;
+                address = router.hostTransitIpv6;
                 prefixLength = 128;
               }
-            ]
-            ++ map (cidr:
-              routeAttrs cidr
-              // {
-                via = hostTransitIpv6;
-              })
-            headscaleAdvertisedIpv6Routes;
+            ];
+          };
         };
-      };
 
-      # Main-table blackholes terminate unassigned Headscale addresses instead
-      # of returning them to the host. The IPv6 routes in table 52 override
-      # Tailscale's ULA /48 for the complementary main-tailnet prefixes.
-      systemd.network.networks."40-eth0".routes =
-        [
+        # Terminate unassigned addresses locally. Tailscale's more-specific
+        # peer routes in table 52 still take precedence for active peers.
+        systemd.network.networks."40-eth0".routes = [
           {
-            Destination = headscaleIpv4Route;
+            Destination = router.ipv4Route;
             Type = "blackhole";
           }
           {
-            Destination = headscaleIpv6Route;
+            Destination = router.ipv6Route;
             Type = "blackhole";
           }
-        ]
-        ++ map (cidr: {
-          Destination = cidr;
-          Gateway = hostTransitIpv6;
+        ];
+
+        services.tailscale = {
+          enable = true;
+          port = router.port;
+          authKeyFile =
+            if router.authKeySecret == null
+            then null
+            else containerAuthKeyPath;
+          useRoutingFeatures = "server";
+          extraUpFlags = ["--login-server=${router.loginServer}"] ++ setFlags;
+          extraSetFlags = setFlags;
+        };
+
+        system.stateVersion = "26.05";
+      };
+    };
+
+    # networkd owns the host end of the veth, so the generated container
+    # post-start commands must not add the same addresses and routes again.
+    systemd.services."container@${router.containerName}".postStart = lib.mkForce "";
+
+    systemd.network.networks."05-${router.containerName}" = {
+      matchConfig.Name = hostVethName;
+      address = [
+        "${router.hostTransitIpv4}/32"
+        "${router.hostTransitIpv6}/128"
+      ];
+      routes = [
+        {
+          Destination = "${router.containerTransitIpv4}/32";
+          Scope = "link";
+        }
+        {
+          Destination = router.ipv4Route;
+          Gateway = router.containerTransitIpv4;
           GatewayOnLink = true;
-          Table = 52;
-        })
-        headscaleAdvertisedIpv6Routes;
-
-      services.tailscale = {
-        enable = true;
-        port = headscalePort;
-        authKeyFile = "/run/headscale-router-auth-key";
-        useRoutingFeatures = "server";
-        extraUpFlags = ["--login-server=https://headscale.auramont.cn"] ++ headscaleSetFlags;
-        extraSetFlags = headscaleSetFlags;
+        }
+        {
+          Destination = "${router.containerTransitIpv6}/128";
+          Scope = "link";
+        }
+        {
+          Destination = router.ipv6Route;
+          Gateway = router.containerTransitIpv6;
+          GatewayOnLink = true;
+        }
+      ];
+      networkConfig = {
+        IPv6AcceptRA = false;
+        # Forwarded packets cannot supply a local source address for NDP. The
+        # kernel therefore needs an IPv6 link-local address to solicit the peer.
+        LinkLocalAddressing = "ipv6";
       };
+      linkConfig.RequiredForOnline = "no";
+    };
 
-      system.stateVersion = "26.05";
+    # The router daemon needs Internet access to reach its control plane.
+    # Packets received from Headscale peers do not match these source addresses.
+    networking.edgeFirewall.extraForwardRules = [
+      ''iifname "${hostVethPattern}" ip saddr ${router.containerTransitIpv4} accept''
+    ];
+
+    networking.nftables.tables."${router.containerName}-egress" = {
+      family = "inet";
+      content = ''
+        chain prerouting {
+          type filter hook prerouting priority mangle;
+          iifname "${hostVethPattern}" ip saddr ${router.containerTransitIpv4} meta mark set ${chinanetMark}
+        }
+
+        chain postrouting {
+          type nat hook postrouting priority srcnat;
+          iifname "tailscale0" oifname "${hostVethPattern}" ip daddr ${router.ipv4Route} masquerade
+          iifname "tailscale0" oifname "${hostVethPattern}" ip6 daddr ${router.ipv6Route} masquerade
+        }
+      '';
     };
   };
-
-  # networkd owns the host end of the veth, so the generated container
-  # post-start commands must not add the same addresses and routes again.
-  systemd.services."container@hs-router".postStart = lib.mkForce "";
-
-  systemd.network.networks."05-hs-router" = {
-    matchConfig.Name = "ve-hs-router";
-    address = [
-      "${hostTransitIpv4}/32"
-      "${hostTransitIpv6}/128"
-    ];
-    routes = [
+in
+  lib.mkMerge (
+    [
       {
-        Destination = "${containerTransitIpv4}/32";
-        Scope = "link";
+        services.tailscale = {
+          extraUpFlags = [
+            "--advertise-connector"
+            "--advertise-routes=${lib.concatStringsSep "," primaryAdvertisedRoutes}"
+          ];
+          serve = {
+            enable = true;
+            services = {
+              bitmagnet2.endpoints."tcp:80" = "http://${config.services.bitmagnet.settings.http_server.port}";
+              immich2.endpoints."tcp:80" = "tcp://127.0.0.1:2283";
+              restic-115.endpoints."tcp:80" = "http://127.0.0.1:8006";
+              restic-123pan.endpoints."tcp:80" = "http://127.0.0.1:8005";
+              restic-nas.endpoints."tcp:80" = "http://127.0.0.1:8000";
+            };
+          };
+        };
       }
-      {
-        Destination = headscaleIpv4Route;
-        Gateway = containerTransitIpv4;
-        GatewayOnLink = true;
-      }
-      {
-        Destination = "${containerTransitIpv6}/128";
-        Scope = "link";
-      }
-      {
-        Destination = headscaleIpv6Route;
-        Gateway = containerTransitIpv6;
-        GatewayOnLink = true;
-      }
-    ];
-    networkConfig = {
-      IPv6AcceptRA = false;
-      # Forwarded packets cannot supply a local source address for NDP. The
-      # kernel therefore needs an IPv6 link-local address to solicit the peer.
-      LinkLocalAddressing = "ipv6";
-    };
-    linkConfig.RequiredForOnline = "no";
-  };
-
-  networking.edgeFirewall.extraForwardRules = [
-    ''iifname "ve-hs-router" ip saddr ${containerTransitIpv4} accept''
-  ];
-
-  networking.nftables.tables.hs-router-egress = {
-    family = "inet";
-    content = ''
-      chain prerouting {
-        type filter hook prerouting priority mangle;
-        iifname "ve-hs-router" ip saddr ${containerTransitIpv4} meta mark set ${chinanetMark}
-      }
-    '';
-  };
-}
+    ]
+    ++ map mkHeadscaleRouter headscaleRouters
+  )
