@@ -1,31 +1,10 @@
-{
-  config,
-  pkgs,
-  username,
-  ...
-}: let
-  userHome = config.users.users.${username}.home;
-  composeService = description: directory: {
-    inherit description;
-    wants = ["docker.service" "network-online.target"];
-    after = ["docker.service" "network-online.target"];
-    wantedBy = ["multi-user.target"];
-    environment.DOCKER_BUILDKIT = "1";
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      WorkingDirectory = directory;
-      ExecStart = "${pkgs.docker}/bin/docker compose up -d --build";
-      ExecStop = "${pkgs.docker}/bin/docker compose stop";
-    };
-  };
-in {
+{username, ...}: {
   imports = [
     ../../optional/tailscale-gnet-vm-exit.nix
     ../../optional/vm-oracle-cloud.nix
-    ./codex-capacity-proxy.nix
     ./disk-config.nix
     ./github-backup.nix
+    ./services.nix
   ];
 
   networking = {
@@ -62,10 +41,6 @@ in {
     "/srv/docker/bitmagnet-postgres"
     "/srv/github"
   ];
-
-  systemd.services = {
-    bitmagnet-oracle2 = composeService "Bitmagnet Compose project" "${userHome}/docker-run-scripts/bitmagnet-oracle2";
-  };
 
   system.stateVersion = "26.05";
 }
