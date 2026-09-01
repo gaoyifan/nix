@@ -212,7 +212,7 @@ recovery；解析其内部日志不是稳定、跨 filesystem 的应用接口。
 [`package.nix`](https://github.com/NixOS/nixpkgs/blob/531670d871c0e29724a02f3cbcac170adc65b58c/pkgs/by-name/mu/mutagen/package.nix)。
 服务端 agent 又是通过 SSH 以普通 `syncd` 用户进入 NixOS container，数据从 host 的
 `/pool1/services/mutagen-sync/data`（ZFS pool）bind mount 到 `/data`；见
-[`nixos/hosts/el2/mutagen-sync.nix`](../../nixos/hosts/el2/mutagen-sync.nix) 和客户端的
+[`nixos/hosts/el2/services/mutagen-sync.nix`](../../nixos/hosts/el2/services/mutagen-sync.nix) 和客户端的
 [`home-manager/default.nix`](../../home-manager/default.nix)。当前部署既不满足 build/sidecar
 条件，也没有所需 capabilities，因此不能只加一个 Mutagen CLI option 来打开 fanotify。
 

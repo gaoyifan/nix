@@ -1,10 +1,13 @@
 {
   lib,
   pkgs,
+  username,
   ...
 }: let
-  inherit (import ../../common/ssh-keys.nix) sshKeys;
+  inherit (import ../../../common/ssh-keys.nix) sshKeys;
 in {
+  home-manager.users.${username}.services.mutagen.dotfileSync.syncCodexSessions = true;
+
   networking.edgeFirewall.extraPublicTcpPorts = ["2221"];
 
   containers.mutagen-sync = {

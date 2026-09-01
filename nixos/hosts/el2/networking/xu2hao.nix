@@ -1,4 +1,8 @@
-{config, ...}: let
+{
+  config,
+  el2WanAddresses,
+  ...
+}: let
   homeRouter = config.networking.homeRouter;
   chinanetInterface = homeRouter.wans.chinanet.interface;
   chinanetMark = toString homeRouter.wans.chinanet.routingTable;
@@ -10,7 +14,7 @@ in {
     content = ''
       chain prerouting-dnat {
         type nat hook prerouting priority dstnat; policy accept;
-        iifname "${chinanetInterface}" ip daddr 202.141.162.72 meta l4proto { tcp, udp } th dport 10300 dnat ip to 100.64.2.30
+        iifname "${chinanetInterface}" ip daddr ${el2WanAddresses.chinanet.ipv4} meta l4proto { tcp, udp } th dport 10300 dnat ip to 100.64.2.30
       }
 
       chain force-chinanet {

@@ -34,7 +34,7 @@
 
     [Peer]
     PublicKey = $(wg pubkey <"$base/server.key")
-    Endpoint = 202.38.93.98:2197
+    Endpoint = wg.gaof.net:2197
     AllowedIPs = 0.0.0.0/0
     PersistentKeepalive = 25
     EOF
@@ -94,6 +94,11 @@ in {
   ];
 
   networking.wg-quick.interfaces.wg0.configFile = "${stateDir}/wg0.conf";
+
+  networking.edgeFirewall = {
+    extraTrustedInterfaces = ["wg0"];
+    extraPublicUdpPorts = ["2197"];
+  };
 
   networking.nftables.tables.wg0-forward-firewall = {
     family = "inet";

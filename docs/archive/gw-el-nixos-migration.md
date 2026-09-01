@@ -6,7 +6,7 @@
 
 计划于 2026-08-09 修订，基础运行盘点来自 2026-08-07；正式切换前仍必须重采集一次。方案依据仓库当前主线以及 `nixos/hosts/el2` 的实现重新整理。相似功能优先使用仓库已有的 NixOS 原生模块和 `homeRouter` 设计；旧机上“正在运行”不等于“仍有迁移价值”。
 
-本次复核直接对照了 `nixos/hosts/el2/networking.nix`、`services.nix`、`tailscale.nix`、`wg-iplc.nix`，以及 `nixos/optional/home-router`、`nylon.nix`、`diverge.nix`。主线相关变更包括多 WAN edge routing（`73bbed2`）、原生 diverge/WLT（`7667ce8`）、主机 DNS 经 diverge（`0504ca0`）和海外 IPv6 拒绝策略（`933403c`）；flake 当前锁定的 `diverge-rs` 为 `c0c97b52ac83d6dbc53062637e766934e4f86aa0`。这些实现是目标设计的依据，不把旧 Debian 的 systemd、Docker 或 FRR 配置当作规范。
+本次复核直接对照了 `nixos/hosts/el2/networking/home-router.nix`、`networking/tailscale.nix`、`services/`，以及 `nixos/optional/home-router/wg-iplc.nix`、`nylon.nix`、`diverge.nix`。主线相关变更包括多 WAN edge routing（`73bbed2`）、原生 diverge/WLT（`7667ce8`）、主机 DNS 经 diverge（`0504ca0`）和海外 IPv6 拒绝策略（`933403c`）；flake 当前锁定的 `diverge-rs` 为 `c0c97b52ac83d6dbc53062637e766934e4f86aa0`。这些实现是目标设计的依据，不把旧 Debian 的 systemd、Docker 或 FRR 配置当作规范。
 
 ## 迁移结论
 
@@ -20,7 +20,7 @@
 | Tailscale | NixOS module，迁移 `/var/lib/tailscale` | 保留节点身份、端口 6627、`NetfilterMode=off`/`NoSNAT`/advertised routes 等已确认语义；flags 放在主机配置中 |
 | WLT | `networking.homeRouter.wlt` 原生实现 | 与 `el2` 对齐，提供客户端 outlet 选择和持久化 selector 状态；默认海外 IPv4 走 wg-iplc，IPv6 禁用 |
 | FRP Server | 不迁移，切换后停用 | 该服务不在新的 NixOS 主机职责内；不迁移配置、token、客户端代理端口或 7000 防火墙规则 |
-| light-single | 一个 host-network OCI container | 参照 `el2/services.nix`，由 ACME 证书目录只读挂载；不复制 Docker graph |
+| light-single | 一个 host-network OCI container | 参照 `el2/services/light-server.nix`，由 ACME 证书目录只读挂载；不复制 Docker graph |
 | Fail2ban、OpenSSH | NixOS 原生模块 | 当前 sshd jail 仍有效，SSH 主机密钥需保留 |
 | vnStat | 不迁移 | 目标机暂不启用 homeRouter monitoring，也不迁移 `/var/lib/vnstat` 历史库 |
 | Restic | 不在目标机启用 | `system-manager/restic.nix` 是非 NixOS 主机方案；只在切换前使用旧机做最后一次安全备份 |
@@ -130,7 +130,7 @@ services.nylon = {
 
 ### Tailscale
 
-使用 `nixos/optional/tailscale-gnet.nix`，主机文件仿照 `el2/tailscale.nix` 定义 flags 和 `port = 6627`。广告路由以切换前 `tailscale status`/控制面批准结果为准，当前需要覆盖：`10.254.0.0/21`、`100.64.0.0/24`、`100.64.1.0/24`、`192.168.93.0/24`、`192.168.174.0/24`、`202.38.93.0/24`、`202.141.162.0/24`、`202.141.178.0/24` 以及 exit-node 语义。保留 `RouteAll=true`、`NoSNAT=true`、`NetfilterMode=off` 的现有意图，并迁移 `/var/lib/tailscale` 以避免注册新节点。
+使用 `nixos/optional/tailscale-gnet.nix`，主机文件仿照 `el2/networking/tailscale.nix` 定义 flags 和 `port = 6627`。广告路由以切换前 `tailscale status`/控制面批准结果为准，当前需要覆盖：`10.254.0.0/21`、`100.64.0.0/24`、`100.64.1.0/24`、`192.168.93.0/24`、`192.168.174.0/24`、`202.38.93.0/24`、`202.141.162.0/24`、`202.141.178.0/24` 以及 exit-node 语义。保留 `RouteAll=true`、`NoSNAT=true`、`NetfilterMode=off` 的现有意图，并迁移 `/var/lib/tailscale` 以避免注册新节点。
 
 ## 服务和数据实现
 
@@ -201,7 +201,7 @@ nixos/hosts/el/
 | --- | --- |
 | TCP DNAT 80/8501 → `100.64.1.25` | 删除；目标已验证无监听且仓库无消费者 |
 | TCP DNAT 8000/8883 → `100.64.1.20` | 删除；目标已验证无监听且仓库无消费者 |
-| UDP DNAT 2197 → `202.38.93.98` | 保留；`el2/wg0.nix` 仍使用该地址作为 wg0 endpoint，验收时从外部测试 |
+| UDP DNAT 2197 → `202.38.93.98` | 保留；`el2/networking/wg0.nix` 使用 `wg.gaof.net` 作为 wg0 endpoint，验收时从外部测试 |
 | ttr 的源地址 redirect → 10080 | 删除；ttr 弃用 |
 | Shadowsocks 27481、Exim 25 | 删除服务和端口 |
 | TCP/UDP 5201 | 保留，用于 iperf3 |

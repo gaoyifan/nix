@@ -1,22 +1,26 @@
 {
   lib,
   pkgs,
-  username,
   ...
-}: {
+}: let
+  encryptedDatasets = [
+    "pool0/backup"
+    "pool1/services"
+    "pool0/footage"
+    "pool0/kopia"
+    "pool0/media0"
+    "pool0/media1"
+    "pool0/playground"
+    "pool0/syncthing"
+  ];
+in {
   imports = [
-    ../../optional/bitmagnet.nix
+    ../../optional/zfs-unlock.nix
     ./disk-config.nix
     ./hardware-configuration.nix
-    ./backup-services.nix
-    ./media-services.nix
-    ./mutagen-sync.nix
-    ./networking.nix
-    ./services.nix
-    ./tailscale.nix
+    ./services
+    ./networking
     ./virtualisation.nix
-    ./wg0.nix
-    ./xu2hao.nix
   ];
 
   networking.hostName = "el2";
@@ -41,27 +45,28 @@
 
   environment.systemPackages = [pkgs.mbuffer];
 
-  services.resticBackup = {
-    extraPaths = ["/var/lib/wireguard"];
-    extraExcludes = ["!/home/${username}/.syncd-dotfiles"];
+  programs.zfsUnlock.datasets = encryptedDatasets;
+
+  systemd.services.zfs-unlock-mount = {
+    after = [
+      "zfs-import-pool0.service"
+      "zfs-import-pool1.service"
+    ];
+    requires = [
+      "zfs-import-pool0.service"
+      "zfs-import-pool1.service"
+    ];
+    preStart = ''
+      ${pkgs.zfs}/bin/zfs set readonly=on pool0/backup pool0/footage
+    '';
+    serviceConfig.ExecStartPost = "${lib.getExe' pkgs.systemd "systemctl"} --no-ask-password --no-block start el2-services.target";
   };
-
-  services.postgresql.dataDir = "/pool1/services/bitmagnet-postgres";
-
-  home-manager.users.${username}.services.mutagen.dotfileSync.syncCodexSessions = true;
 
   systemd.targets.el2-services = {
     description = "Services using manually unlocked datasets";
     requires = ["zfs-unlock-mount.service"];
     after = ["zfs-unlock-mount.service"];
   };
-
-  systemd.targets.postgresql.wantedBy = lib.mkForce ["el2-services.target"];
-  systemd.services.postgresql = {
-    requires = ["zfs-unlock-mount.service"];
-    after = ["zfs-unlock-mount.service"];
-  };
-  systemd.services.bitmagnet.wantedBy = lib.mkForce ["el2-services.target"];
 
   system.stateVersion = "26.05";
 }

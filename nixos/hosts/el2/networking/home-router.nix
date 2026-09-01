@@ -1,11 +1,7 @@
-{
-  config,
-  lib,
-  ...
-}: {
+{config, ...}: {
   imports = [
-    ../../optional/el-router.nix
-    ../../optional/home-router
+    ../../../optional/el-router.nix
+    ../../../optional/home-router
   ];
 
   networking.homeRouter = {
@@ -135,26 +131,4 @@
   };
 
   networking.elRouter.enable = true;
-
-  services.bitmagnet.settings.dht_server.local_address =
-    lib.removeSuffix "/25" (lib.head config.networking.homeRouter.wans.chinanet.addresses);
-
-  networking.edgeFirewall = {
-    extraTrustedInterfaces = ["wg0"];
-    extraPublicTcpPorts = [
-      "8501"
-      "10000"
-      "29979-29980"
-    ];
-    extraPublicUdpPorts = [
-      "2197"
-      "3334"
-      "3478"
-    ];
-    extraInputRules = [
-      ''iifname "podman*" meta l4proto { tcp, udp } th dport 53 accept''
-      ''iifname "podman*" tcp dport 8000 accept''
-    ];
-    extraForwardRules = [''iifname "podman*" accept''];
-  };
 }
