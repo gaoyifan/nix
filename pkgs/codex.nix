@@ -6,17 +6,17 @@
       x86_64-linux = {
         arch = "x86_64";
         os = "unknown-linux-musl";
-        hash = "sha256-bjWsYLhsDox/i895e+i5IgYZn2JTIAtm/wVHJ2+M+lw=";
+        hash = "sha256-NSwk+9xa76/96cHfmRtTS2vHKgbklwh5T8aF/DVWyFU=";
       };
       aarch64-linux = {
         arch = "aarch64";
         os = "unknown-linux-musl";
-        hash = "sha256-xkrW5PgmCVUqNwaTZbUFKO9J6YauqySlOHgaGKQCdz0=";
+        hash = "sha256-r5d3qNYu3uoxrf7LqipbKWvFekoMPtacAuOcI3RPX+s=";
       };
       aarch64-darwin = {
         arch = "aarch64";
         os = "apple-darwin";
-        hash = "sha256-y25466gMG8MQpTP28cbJSDd3M7wG+eg3lJM04Eq96cY=";
+        hash = "sha256-UoelFCE/gTQhBnfM5Rsj4urq/xklNi8YMY5CaKWrHRs=";
       };
     }
     .${
@@ -26,7 +26,7 @@
 in
   stdenv.mkDerivation rec {
     pname = "codex";
-    version = "0.151.0";
+    version = "0.152.0";
 
     src = fetchurl {
       url = "https://github.com/openai/codex/releases/download/rust-v${version}/codex-package-${platform.arch}-${platform.os}.tar.gz";
