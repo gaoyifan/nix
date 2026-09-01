@@ -120,7 +120,7 @@ class ReconcileTests(unittest.TestCase):
             self.assertEqual(planned["changes"], [])
             self.assertEqual(planned["preimage_rrsets"], desired["rrsets"])
 
-            result = reconcile.apply(server.client(), planned)
+            result = reconcile.apply(server.client(), planned, desired)
 
             self.assertFalse(result["changed"])
             self.assertEqual(server.patch_bodies, [])
@@ -134,7 +134,18 @@ class ReconcileTests(unittest.TestCase):
             planned["preimage_rrsets"][0]["records"][0]["content"] = "10.250.10.99"
 
             with self.assertRaises(reconcile.InvalidPlan):
-                reconcile.apply(server.client(), planned)
+                reconcile.apply(server.client(), planned, desired)
+
+            self.assertEqual(server.patch_bodies, [])
+
+    def test_apply_rejects_a_plan_for_an_earlier_desired_snapshot(self) -> None:
+        desired = snapshot(rrset("node.ny.gaof.net.", "A", "10.250.10.23"))
+        current_desired = snapshot(rrset("node.ny.gaof.net.", "A", "10.250.10.24"))
+        with FakePowerDNS([rrset("node.ny.gaof.net.", "A", "10.250.10.22")]) as server:
+            planned = reconcile.plan(server.client(), desired)
+
+            with self.assertRaises(reconcile.DesiredSnapshotChanged):
+                reconcile.apply(server.client(), planned, current_desired)
 
             self.assertEqual(server.patch_bodies, [])
 
@@ -162,7 +173,7 @@ class ReconcileTests(unittest.TestCase):
                 ],
             )
 
-            result = reconcile.apply(server.client(), planned)
+            result = reconcile.apply(server.client(), planned, desired)
 
             self.assertTrue(result["changed"])
             self.assertEqual(result["changes_applied"], 4)
@@ -190,7 +201,7 @@ class ReconcileTests(unittest.TestCase):
                 "ns1.gaof.net. hostmaster.gaof.net. 2 10800 3600 604800 3600"
             )
 
-            result = reconcile.apply(server.client(), planned)
+            result = reconcile.apply(server.client(), planned, desired)
 
             self.assertTrue(result["changed"])
             self.assertEqual(result["changes_applied"], 1)
@@ -216,7 +227,7 @@ class ReconcileTests(unittest.TestCase):
                     server.zone["rrsets"][0]["records"][0]["content"] = changed
 
                     with self.assertRaises(reconcile.PreimageChanged):
-                        reconcile.apply(server.client(), planned)
+                        reconcile.apply(server.client(), planned, desired)
 
                     self.assertEqual(server.patch_bodies, [])
 
@@ -227,7 +238,7 @@ class ReconcileTests(unittest.TestCase):
             server.ignore_patches = True
 
             with self.assertRaises(reconcile.ReadBackMismatch):
-                reconcile.apply(server.client(), planned)
+                reconcile.apply(server.client(), planned, desired)
 
             self.assertEqual(len(server.patch_bodies), 1)
 
@@ -247,7 +258,7 @@ class ReconcileTests(unittest.TestCase):
             server.zone["rrsets"][0]["comments"] = [{"content": "added after plan", "account": "ops", "modified_at": 2}]
 
             with self.assertRaises(reconcile.UnsafeCommentDeletion):
-                reconcile.apply(server.client(), planned)
+                reconcile.apply(server.client(), planned, snapshot())
 
             self.assertEqual(server.patch_bodies, [])
 
@@ -265,7 +276,7 @@ class ReconcileTests(unittest.TestCase):
                     client.patch_zone(changes)
                     raise reconcile.ReconcileError("simulated lost PATCH response")
 
-            result = reconcile.apply(LostResponseClient(), planned)
+            result = reconcile.apply(LostResponseClient(), planned, desired)
 
             self.assertTrue(result["patch_response_lost"])
             self.assertEqual(result["read_back_digest"], planned["desired_digest"])

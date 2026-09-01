@@ -57,7 +57,7 @@ DNS controller 的 Nix generation 提供 desired snapshot，但不会自动写 P
 
 ```sh
 sudo systemctl start nylon-powerdns-plan
-sudo jq . /var/lib/nylon-powerdns/plan.json
+sudo jq . /run/nylon-powerdns/plan.json
 ```
 
 只有 `changes` 精确符合已批准的 topology diff 时才应用：
@@ -66,8 +66,9 @@ sudo jq . /var/lib/nylon-powerdns/plan.json
 sudo systemctl start nylon-powerdns-apply
 ```
 
-apply 会重新检查 preimage，并在写入后读取 zone 验证 desired digest。随后再次运行 plan；
-`changes` 必须为空，且 `preimage_digest` 与 `desired_digest` 必须相同。
+apply 会拒绝不属于当前 Nix generation 的旧 plan，重新检查 preimage，并在写入后读取 zone
+验证 desired digest；成功后会删除 plan。随后再次运行 plan；`changes` 必须为空，且
+`preimage_digest` 与 `desired_digest` 必须相同。
 
 ## 运行时验收
 

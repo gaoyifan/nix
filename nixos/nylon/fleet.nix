@@ -70,12 +70,13 @@ in {
             powerdnsCredentials
             // {
               Type = "oneshot";
-              StateDirectory = "nylon-powerdns";
-              StateDirectoryMode = "0700";
+              RuntimeDirectory = "nylon-powerdns";
+              RuntimeDirectoryMode = "0700";
+              RuntimeDirectoryPreserve = true;
             };
           script = ''
             set -euo pipefail
-            plan=/var/lib/nylon-powerdns/plan.json
+            plan=/run/nylon-powerdns/plan.json
             candidate=$(mktemp "$plan.new.XXXXXX")
             trap 'rm -f "$candidate"' EXIT
             ${powerdns} plan \
@@ -94,17 +95,24 @@ in {
             "agenix-install-secrets.service"
             "network-online.target"
           ];
-          unitConfig.ConditionPathExists = "/var/lib/nylon-powerdns/plan.json";
+          unitConfig.ConditionPathExists = "/run/nylon-powerdns/plan.json";
           serviceConfig =
             powerdnsCredentials
             // {
               Type = "oneshot";
+              RuntimeDirectory = "nylon-powerdns";
+              RuntimeDirectoryMode = "0700";
+              RuntimeDirectoryPreserve = true;
             };
           script = ''
-            exec ${powerdns} apply \
+            set -euo pipefail
+            plan=/run/nylon-powerdns/plan.json
+            ${powerdns} apply \
               --url ${lib.escapeShellArg active.dns.apiUrl} \
               --api-key-file "$CREDENTIALS_DIRECTORY/api-key" \
-              --plan /var/lib/nylon-powerdns/plan.json
+              --snapshot /etc/nylon/dns-desired.json \
+              --plan "$plan"
+            rm -f "$plan"
           '';
         };
       };

@@ -35,6 +35,10 @@ class PreimageChanged(ReconcileError):
     """Managed records changed after the plan was created."""
 
 
+class DesiredSnapshotChanged(ReconcileError):
+    """The plan belongs to an earlier desired snapshot."""
+
+
 class ReadBackMismatch(ReconcileError):
     """PowerDNS did not retain the requested managed snapshot."""
 
@@ -242,8 +246,16 @@ def _snapshots_from_plan(
     return raw_plan, preimage, desired
 
 
-def apply(client: PowerDNSClient, raw_plan: object) -> dict[str, Any]:
+def apply(client: PowerDNSClient, raw_plan: object, raw_snapshot: object) -> dict[str, Any]:
     saved_plan, preimage, desired = _snapshots_from_plan(raw_plan)
+    current_desired = canonical_snapshot(raw_snapshot)
+    current_desired_digest = snapshot_digest(current_desired)
+    if desired != current_desired:
+        raise DesiredSnapshotChanged(
+            f"planned desired snapshot changed: planned {saved_plan['desired_digest']}, "
+            f"current {current_desired_digest}"
+        )
+
     zone_document = client.get_zone()
     current = managed_snapshot(zone_document, desired["zone"])
     current_digest = snapshot_digest(current)
@@ -390,6 +402,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     apply_parser = subparsers.add_parser("apply", help="compare the preimage, patch, and verify read-back")
     _add_connection_arguments(apply_parser)
     apply_parser.add_argument("--plan", required=True, help="plan JSON file or -")
+    apply_parser.add_argument("--snapshot", required=True, help="current desired snapshot JSON file")
 
     args = parser.parse_args(argv)
     try:
@@ -397,7 +410,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "plan":
             result = plan(client, _read_json(args.snapshot))
         else:
-            result = apply(client, _read_json(args.plan))
+            result = apply(client, _read_json(args.plan), _read_json(args.snapshot))
     except (OSError, json.JSONDecodeError, ReconcileError) as exc:
         print(f"nylon-powerdns-reconcile: {exc}", file=sys.stderr)
         return 1
