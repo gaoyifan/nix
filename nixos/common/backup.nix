@@ -90,6 +90,7 @@ in {
       services.restic.backups.incus-state = {
         environmentFile = "/home/${username}/.config/restic/env";
         paths = ["/var/lib/incus"];
+        exclude = ["/var/lib/incus/storage-pools"];
         extraBackupArgs = ["--one-file-system"];
         timerConfig = {
           OnCalendar = "*-*-* 02:00:00";
