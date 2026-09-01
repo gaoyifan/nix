@@ -47,6 +47,8 @@ in {
     virtualHosts = caddySecrets.virtualHosts or {};
   };
 
+  services.resticBackup.extraPaths = ["/var/lib/caddy"];
+
   networking.edgeFirewall = {
     enable = true;
     extraPublicTcpPorts = [

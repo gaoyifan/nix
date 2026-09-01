@@ -26,10 +26,13 @@
     memoryPercent = 50;
   };
 
-  services.resticBackup.extraExcludes = [
-    "/srv/docker/bitmagnet-postgres"
-    "/srv/github"
-  ];
+  services.resticBackup = {
+    extraPaths = ["/var/lib/github-backup-tailscale"];
+    extraExcludes = [
+      "/srv/docker/bitmagnet-postgres"
+      "/srv/github"
+    ];
+  };
 
   system.stateVersion = "26.05";
 }

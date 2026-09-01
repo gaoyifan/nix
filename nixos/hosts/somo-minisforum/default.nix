@@ -62,7 +62,15 @@ in {
   };
 
   services.resticBackup.extraPaths =
-    map
+    [
+      "/var/lib/codex-api"
+      "/var/lib/honcho"
+      "/var/lib/new-api"
+      "/var/lib/postgresql"
+      "/var/lib/redis-honcho"
+      "/var/lib/telegram-bot-api"
+    ]
+    ++ map
     (name: "/var/lib/nixos-containers/hermes-nix-${name}/var/lib/hermes")
     (lib.attrNames config.services.hermes-nspawn.containers);
 

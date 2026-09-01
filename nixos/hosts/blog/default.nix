@@ -64,6 +64,7 @@ in {
         "podman-light-single"
       ];
     };
+    resticBackup.extraPaths = ["/var/lib/blog"];
     tmate-ssh-server = {
       enable = true;
       host = "tmate.yfgao.com";
