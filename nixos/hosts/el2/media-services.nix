@@ -1,4 +1,5 @@
 {
+  config,
   lib,
   pkgs,
   ...
@@ -13,8 +14,13 @@
     "pool0/playground"
     "pool0/syncthing"
   ];
+  immichDatabaseEnvironmentFile = "/run/agenix/immich-database-env";
 in {
   imports = [../../optional/zfs-unlock.nix];
+
+  age.secrets.immich-database-env = lib.mkIf config.services.secrets.hasRealFiles {
+    file = config.services.secrets.filesDir + "/nixos/el2/immich-database-env.age";
+  };
 
   programs.zfsUnlock.datasets = encryptedDatasets;
 
@@ -78,7 +84,7 @@ in {
         POSTGRES_USER = "postgres";
         DB_STORAGE_TYPE = "SSD";
       };
-      environmentFiles = ["/var/lib/private/immich/database.env"];
+      environmentFiles = [immichDatabaseEnvironmentFile];
       volumes = ["/pool1/services/immich-postgres:/var/lib/postgresql/data"];
       extraOptions = [
         "--network=immich"
@@ -111,7 +117,7 @@ in {
         REDIS_HOSTNAME = "redis";
         IMMICH_MACHINE_LEARNING_URL = "http://100.127.110.112:3003";
       };
-      environmentFiles = ["/var/lib/private/immich/database.env"];
+      environmentFiles = [immichDatabaseEnvironmentFile];
       ports = ["127.0.0.1:2283:2283"];
       volumes = [
         "/pool1/services/immich/library:/data"
