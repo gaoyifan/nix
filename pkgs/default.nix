@@ -32,6 +32,7 @@ rec {
   agent-browser = import ./agent-browser.nix {inherit pkgs;};
 }
 // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
+  bitmagnet = import ./bitmagnet.nix {inherit pkgs;};
   jip = import ./jip.nix {inherit pkgs;};
   lightningstream = import ./lightningstream.nix {inherit pkgs;};
   nylon = import ./nylon.nix {inherit pkgs;};

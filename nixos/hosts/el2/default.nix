@@ -1,9 +1,11 @@
 {
+  lib,
   pkgs,
   username,
   ...
 }: {
   imports = [
+    ../../optional/bitmagnet.nix
     ./disk-config.nix
     ./hardware-configuration.nix
     ./backup-services.nix
@@ -44,6 +46,8 @@
     extraExcludes = ["!/home/${username}/.syncd-dotfiles"];
   };
 
+  services.postgresql.dataDir = "/pool1/services/bitmagnet-postgres";
+
   home-manager.users.${username}.services.mutagen.dotfileSync.syncCodexSessions = true;
 
   systemd.targets.el2-services = {
@@ -51,6 +55,13 @@
     requires = ["zfs-unlock-mount.service"];
     after = ["zfs-unlock-mount.service"];
   };
+
+  systemd.targets.postgresql.wantedBy = lib.mkForce ["el2-services.target"];
+  systemd.services.postgresql = {
+    requires = ["zfs-unlock-mount.service"];
+    after = ["zfs-unlock-mount.service"];
+  };
+  systemd.services.bitmagnet.wantedBy = lib.mkForce ["el2-services.target"];
 
   system.stateVersion = "26.05";
 }

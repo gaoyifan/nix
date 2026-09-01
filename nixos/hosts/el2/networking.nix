@@ -1,4 +1,8 @@
-{config, ...}: {
+{
+  config,
+  lib,
+  ...
+}: {
   imports = [
     ../../optional/el-router.nix
     ../../optional/home-router
@@ -132,6 +136,9 @@
 
   networking.elRouter.enable = true;
 
+  services.bitmagnet.settings.dht_server.local_address =
+    lib.removeSuffix "/25" (lib.head config.networking.homeRouter.wans.chinanet.addresses);
+
   networking.edgeFirewall = {
     extraTrustedInterfaces = ["wg0"];
     extraPublicTcpPorts = [
@@ -141,6 +148,7 @@
     ];
     extraPublicUdpPorts = [
       "2197"
+      "3334"
       "3478"
     ];
     extraInputRules = [

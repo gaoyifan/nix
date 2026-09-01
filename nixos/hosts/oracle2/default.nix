@@ -1,4 +1,4 @@
-{username, ...}: {
+{...}: {
   imports = [
     ../../optional/tailscale-gnet-vm-exit.nix
     ../../optional/vm-oracle-cloud.nix
@@ -24,17 +24,6 @@
     enable = true;
     algorithm = "lz4";
     memoryPercent = 50;
-  };
-
-  users.users.${username}.extraGroups = ["docker"];
-
-  virtualisation.docker = {
-    enable = true;
-    daemon.settings = {
-      iptables = false;
-      ip6tables = false;
-      bridge = "none";
-    };
   };
 
   services.resticBackup.extraExcludes = [

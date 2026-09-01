@@ -3,7 +3,6 @@
   inputs,
   lib,
   pkgs,
-  username,
   ...
 }: let
   certDir = "${config.services.acmeCertificates.directory}/yfgao";
@@ -11,6 +10,7 @@ in {
   imports = [
     inputs.codex-capacity-proxy.nixosModules.default
     ../../optional/acme-certificates.nix
+    ../../optional/bitmagnet.nix
   ];
 
   age.secrets = lib.mkIf config.services.secrets.hasRealFiles {
@@ -19,6 +19,7 @@ in {
 
   services = {
     codex-capacity-proxy.enable = true;
+    postgresql.dataDir = "/srv/docker/bitmagnet-postgres";
     acmeCertificates = {
       enable = true;
       restartServices = ["tailscale-serve"];
@@ -28,7 +29,7 @@ in {
       configFile = pkgs.writeText "oracle2-tailscale-serve.json" (builtins.toJSON {
         version = "0.0.1";
         services = {
-          "svc:bitmagnet".endpoints."tcp:80" = "http://127.0.0.1:3333";
+          "svc:bitmagnet".endpoints."tcp:80" = "http://${config.services.bitmagnet.settings.http_server.port}";
           "svc:codex-capacity-proxy" = {
             certificate = {
               certFile = "${certDir}/fullchain.pem";
@@ -43,21 +44,6 @@ in {
           };
         };
       });
-    };
-  };
-
-  systemd.services.bitmagnet-oracle2 = {
-    description = "Bitmagnet Compose project";
-    wants = ["docker.service" "network-online.target"];
-    after = ["docker.service" "network-online.target"];
-    wantedBy = ["multi-user.target"];
-    environment.DOCKER_BUILDKIT = "1";
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      WorkingDirectory = "${config.users.users.${username}.home}/docker-run-scripts/bitmagnet-oracle2";
-      ExecStart = "${pkgs.docker}/bin/docker compose up -d --build";
-      ExecStop = "${pkgs.docker}/bin/docker compose stop";
     };
   };
 }
