@@ -91,6 +91,15 @@ jobs:
           nix build --accept-flake-config --max-jobs 32 --no-link \
             .#packages.${{ matrix.system }}.hermes-npm-deps
 
+      - name: Build Hermes terminal image
+        if: matrix.system == 'x86_64-linux'
+        run: |
+          set -euo pipefail
+
+          nix build --accept-flake-config --no-link --print-out-paths \
+            .#packages.${{ matrix.system }}.hermes-terminal-image \
+            | tee -a cache-store-paths
+
       - name: Build NixOS host configurations
         if: runner.os == 'Linux'
         run: |

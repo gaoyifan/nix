@@ -213,6 +213,11 @@ in {
       })
     cfg.containers;
 
+    # Every Hermes container uses the same terminal image. Expose one copy as
+    # a host build output so CI can build it before the full host closure.
+    system.build.hermesTerminalImage =
+      config.containers.${containerNameFor (builtins.head (builtins.attrNames cfg.containers))}.config.system.build.hermesTerminalImage;
+
     systemd.network.networks = lib.mapAttrs' (userName: container: let
       containerName = containerNameFor userName;
     in

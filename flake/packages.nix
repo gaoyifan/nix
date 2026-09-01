@@ -46,6 +46,7 @@
     }
     // nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
       hermes-npm-deps = inputs.hermes-agent.packages.${system}.web.npmDeps;
+      hermes-terminal-image = self.nixosConfigurations.somo-minisforum.config.system.build.hermesTerminalImage;
     });
 
   apps = forAllSystems (system: cliApps.mkApps self.packages.${system});

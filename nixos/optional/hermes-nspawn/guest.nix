@@ -85,6 +85,8 @@ in {
 
   nixpkgs.pkgs = hostPkgs;
 
+  system.build.hermesTerminalImage = terminal.image;
+
   networking.hostName = containerName;
   networking.useHostResolvConf = false;
   networking.interfaces.eth0.useDHCP = true;
