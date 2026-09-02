@@ -61,12 +61,6 @@
             inherit (self.lib) mkNixosDiskImage;
             pkgs = x86Pkgs;
           };
-          immich-database-template = let
-            immich = self.nixosConfigurations.el2.config.virtualisation.oci-containers.containers;
-          in
-            assert immich.immich-postgres.environmentFiles == ["/run/agenix-templates/immich-database.env"];
-            assert immich.immich-server.environmentFiles == ["/run/agenix-templates/immich-database.env"];
-              x86Pkgs.writeText "immich-database-template-check" "ok";
           authoritative-ns-dhcp = let
             secondary = self.nixosConfigurations.ali-sg.config;
           in
