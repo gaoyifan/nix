@@ -67,6 +67,13 @@
             assert immich.immich-postgres.environmentFiles == ["/run/agenix-templates/immich-database.env"];
             assert immich.immich-server.environmentFiles == ["/run/agenix-templates/immich-database.env"];
               x86Pkgs.writeText "immich-database-template-check" "ok";
+          authoritative-ns-dhcp = let
+            secondary = self.nixosConfigurations.ali-sg.config;
+          in
+            assert secondary.services.resolved.enable;
+            assert secondary.services.resolved.settings.Resolve.DNSStubListener == false;
+            assert secondary.environment.etc."resolv.conf".source == "/run/systemd/resolve/resolv.conf";
+              x86Pkgs.writeText "authoritative-ns-dhcp-check" "ok";
           nylon-health-runner = self.packages.x86_64-linux.nylon-health-runner;
           nylon-powerdns-reconcile = self.packages.x86_64-linux.nylon-powerdns-reconcile;
           nylon-config-parser = x86Pkgs.runCommand "nylon-config-parser-check" {} ''

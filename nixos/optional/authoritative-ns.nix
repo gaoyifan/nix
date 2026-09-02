@@ -74,10 +74,16 @@ in {
         enable-lua-records=yes
       '';
     };
-    resolved.enable = false;
+    resolved = {
+      enable = true;
+      settings.Resolve.DNSStubListener = false;
+    };
   };
 
-  environment.etc."lightningstream.yaml".source = lightningstreamConfig;
+  environment.etc = {
+    "lightningstream.yaml".source = lightningstreamConfig;
+    "resolv.conf".source = lib.mkForce "/run/systemd/resolve/resolv.conf";
+  };
 
   systemd.services = {
     pdns.serviceConfig.StateDirectory = "powerdns";
