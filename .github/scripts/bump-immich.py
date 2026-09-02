@@ -14,7 +14,7 @@ import yaml
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-TARGET = ROOT / "nixos/hosts/el2/media-services.nix"
+TARGET = ROOT / "nixos/hosts/el2/services/immich.nix"
 RELEASE_API = "https://api.github.com/repos/immich-app/immich/releases/latest"
 IMAGE_PATTERNS = {
     "server": re.compile(r'(?m)^(\s*image = ")(?=ghcr\.io/immich-app/immich-server:)[^"]+(";)'),
