@@ -4,11 +4,19 @@
   pkgs,
   ...
 }: let
-  immichDatabaseEnvironmentFile = "/run/agenix/immich-database-env";
+  hasSecrets = config.services.secrets.hasRealFiles;
+  immichDatabaseEnvironmentFile = config.age.templates."immich-database.env".path;
 in {
-  age.secrets.immich-database-env = lib.mkIf config.services.secrets.hasRealFiles {
-    file = config.services.secrets.filesDir + "/nixos/el2/immich-database-env.age";
+  age.secrets.immich-database-password = lib.mkIf hasSecrets {
+    file = config.services.secrets.filesDir + "/nixos/el2/immich-database-password.age";
   };
+  age.templates."immich-database.env".content = ''
+    DB_PASSWORD=${config.age.placeholder.immich-database-password or ""}
+    POSTGRES_PASSWORD=${config.age.placeholder.immich-database-password or ""}
+  '';
+
+  systemd.services.podman-immich-postgres.restartTriggers = lib.optional hasSecrets config.age.secrets.immich-database-password.file;
+  systemd.services.podman-immich-server.restartTriggers = lib.optional hasSecrets config.age.secrets.immich-database-password.file;
 
   virtualisation.oci-containers.containers = {
     immich-postgres = {
