@@ -15,6 +15,7 @@
     ./open-webui.nix
     ./openlist.nix
     ./powerdns.nix
+    ./py-kms.nix
     ./restic.nix
     ./znapzend.nix
   ];
