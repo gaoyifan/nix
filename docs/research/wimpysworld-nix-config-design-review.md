@@ -367,8 +367,8 @@ inventory resolver 和 platform constructors，不要把 packages、theme、devS
 
 事实：本仓库三个 updater 的尾端仍直接 push 当前分支：CLI updater
 （[`bump-cli-packages.yml`](../../.github/workflows/bump-cli-packages.yml#L66-L84)）、Hermes
-（[`bump-hermes.yml`](../../.github/workflows/bump-hermes.yml#L44-L59)）和 Immich
-（[`bump-immich.yml`](../../.github/workflows/bump-immich.yml#L47-L62)）。其中 Hermes/Immich
+（[`bump-hermes.yml`](../../.github/workflows/bump-hermes.yml#L44-L59)）和容器镜像
+（[`bump-container-images.yml`](../../.github/workflows/bump-container-images.yml#L47-L62)）。其中 Hermes/容器镜像
 只求值 checks 的 `drvPath`，没有运行真实测试。
 
 推断：更新经 PR 能把“修改、构建/测试、合并”变成可观察的闭环，失败不会先污染 `main`。

@@ -1,4 +1,4 @@
-name: Bump Immich
+name: Bump Container Images
 
 on:
   schedule:
@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: bump-immich-${{ github.ref }}
+  group: bump-container-images-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -27,11 +27,11 @@ jobs:
       - name: Install Nix
         uses: nixbuild/nix-quick-install-action@v35
 
-      - name: Bump Immich
+      - name: Bump container images
         id: bump
         env:
           GH_TOKEN: ${{ github.token }}
-        run: uv run --script .github/scripts/bump-immich.py
+        run: uv run --script .github/scripts/bump-container-images.py
 
       - name: Format changed files
         if: steps.bump.outputs.changed == 'true'
