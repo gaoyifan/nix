@@ -11,6 +11,11 @@
     zetup.services = {
       dataset = "pool1/services";
       plan = "1d=>1h,2w=>1d,8w=>1w,1y=>1m";
+      destinations."0" = {
+        host = "root@nfs.s.gaof.net";
+        dataset = "pool0/el2/services";
+        plan = "1d=>1h,2w=>1d,8w=>1w,1y=>1m";
+      };
     };
     zetup.kingdee = {
       dataset = "pool1/incus/virtual-machines/kingdee.block";

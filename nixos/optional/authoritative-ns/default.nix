@@ -171,10 +171,6 @@ in {
           '';
         };
         tailscale.serve.services.pdns-ui.endpoints."tcp:80" = "http://127.0.0.1:8082";
-        resticBackup.extraPaths = [
-          cfg.dataDirectory
-          zoneRepository
-        ];
       })
     ];
 
