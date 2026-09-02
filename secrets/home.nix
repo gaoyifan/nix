@@ -63,8 +63,18 @@ in {
     (lib.mkIf (pkgs.stdenv.isDarwin && (hasAtuinSecrets || hasResticSecrets)) {
       # launchd ORs KeepAlive conditions, so agenix's additional
       # Crashed = false condition restarts the agent after successful exits.
-      launchd.agents.activate-agenix.config.KeepAlive = lib.mkForce {
-        SuccessfulExit = false;
+      launchd.agents.activate-agenix.config = {
+        KeepAlive = lib.mkForce {
+          SuccessfulExit = false;
+        };
+        # Refresh the temporary generation before macOS removes files older
+        # than three days from DARWIN_USER_TEMP_DIR.
+        StartCalendarInterval = [
+          {
+            Hour = 0;
+            Minute = 0;
+          }
+        ];
       };
     })
     (lib.mkIf (cfg.atuin.enable && cfg.atuin.available) {
