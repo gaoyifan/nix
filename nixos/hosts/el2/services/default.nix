@@ -12,6 +12,7 @@
     ./mutagen-sync.nix
     ./ncps.nix
     ./new-api.nix
+    ./open-webui.nix
     ./openlist.nix
     ./powerdns.nix
     ./restic.nix
