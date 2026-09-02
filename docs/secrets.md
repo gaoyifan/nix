@@ -90,11 +90,13 @@ just home
 
 ### Step 1: Add an encrypted file
 
-Add a recipient rule in `secrets/files/secrets.nix`, then create the encrypted file from any directory with `just edit-secret`. The path is relative to the directory where `just` is invoked:
+Host-specific secrets at `secrets/files/nixos/<host>/*.age` automatically use that host plus the operator recipients. Create the encrypted file from any directory with `just edit-secret`; the path is relative to the directory where `just` is invoked:
 
 ```bash
-just edit-secret secrets/files/home/myapp-token.age
+just edit-secret secrets/files/nixos/el2/myapp-token.age
 ```
+
+Shared, Home Manager, and nested secrets still need a recipient rule in `secrets/files/secrets.nix`.
 
 No dummy secret file is needed in `secrets/files-example/`; keep only the non-secret metadata required to evaluate the host modules.
 

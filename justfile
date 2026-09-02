@@ -267,7 +267,7 @@ push:
 [group('secrets')]
 [working-directory("secrets/files")]
 edit-secret path:
-    RULES=./secrets.nix agenix -e "{{ trim_start_match(clean(invocation_directory() / path), justfile_directory() / 'secrets/files/') }}"
+    secret="{{ trim_start_match(clean(invocation_directory() / path), justfile_directory() / 'secrets/files/') }}"; AGENIX_EDIT_FILE="$secret" RULES=./secrets.nix agenix -e "$secret"
 
 # Re-encrypt all agenix secrets for the current recipients
 [group('secrets')]
