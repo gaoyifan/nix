@@ -1,6 +1,7 @@
 {
   imports = [
     ./acme.nix
+    ./atuin.nix
     ./bitmagnet.nix
     ./derp.nix
     ./immich.nix
