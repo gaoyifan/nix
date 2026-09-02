@@ -42,6 +42,10 @@
     nixpkgs.lib.recursiveUpdate deployChecks {
       x86_64-linux =
         {
+          agenix-templates = x86Pkgs.testers.runNixOSTest (import ../nixos/tests/agenix-templates.nix {
+            inherit inputs;
+            pkgs = x86Pkgs;
+          });
           home-router = x86Pkgs.testers.runNixOSTest (import ../nixos/tests/home-router.nix {inherit inputs;});
           nylon-exit = x86Pkgs.testers.runNixOSTest (import ../nixos/tests/nylon-exit.nix {pkgs = x86Pkgs;});
           low-memory-disk-image = import ../nixos/tests/low-memory-disk-image.nix {
