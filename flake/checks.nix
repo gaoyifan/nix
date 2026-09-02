@@ -76,6 +76,30 @@
               x86Pkgs.writeText "authoritative-ns-dhcp-check" "ok";
           nylon-health-runner = self.packages.x86_64-linux.nylon-health-runner;
           nylon-powerdns-reconcile = self.packages.x86_64-linux.nylon-powerdns-reconcile;
+          powerdns-syncers = self.nixosConfigurations.el2.config.system.build.powerdnsSyncersTest;
+          authoritative-ns = let
+            primary = self.nixosConfigurations.el2.config;
+            secondary = self.nixosConfigurations.ali-sg.config;
+          in
+            assert primary.services.authoritativeNs.role == "primary";
+            assert secondary.services.authoritativeNs.role == "secondary";
+            assert primary.systemd.services.pdns.wantedBy == ["el2-services.target"];
+            assert secondary.systemd.services.pdns.wantedBy == ["multi-user.target"];
+            assert builtins.hasAttr "powerdns-tailscale-syncer" primary.systemd.services;
+            assert !builtins.hasAttr "powerdns-tailscale-syncer" secondary.systemd.services;
+            assert primary.services.powerdns.secretFile == "/run/agenix-templates/powerdns.env";
+            assert primary.systemd.services.powerdns-tailscale-syncer.serviceConfig.EnvironmentFile == "/run/agenix-templates/powerdns.env";
+            assert nixpkgs.lib.hasInfix "local-port=5354" primary.services.powerdns.extraConfig;
+            assert !(nixpkgs.lib.hasInfix "local-port=5354" secondary.services.powerdns.extraConfig);
+            assert nixpkgs.lib.hasInfix "lmdb-filename=/pool1/services/powerdns/pdns.lmdb" primary.services.powerdns.extraConfig;
+            assert builtins.hasAttr "http://:8082" primary.services.caddy.virtualHosts;
+            assert nixpkgs.lib.hasInfix "bind 127.0.0.1" primary.services.caddy.virtualHosts."http://:8082".extraConfig;
+            assert builtins.hasAttr "powerdns-ui" self.packages.x86_64-linux;
+            assert builtins.hasAttr "ns-wg-healthcheck" self.packages.x86_64-linux;
+              x86Pkgs.writeText "authoritative-ns-check.json" (builtins.toJSON {
+                primary = primary.networking.hostName;
+                secondary = secondary.networking.hostName;
+              });
           nylon-config-parser = x86Pkgs.runCommand "nylon-config-parser-check" {} ''
             test "$(printf '%s\n' ${nixpkgs.lib.escapeShellArg nylonFixture.privateKey} \
               | ${nixpkgs.lib.getExe x86Pkgs.nylon} pubkey)" = \

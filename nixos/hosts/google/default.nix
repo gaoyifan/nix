@@ -5,7 +5,7 @@
 }: {
   imports = [
     (modulesPath + "/profiles/qemu-guest.nix")
-    ../../optional/authoritative-ns.nix
+    ../../optional/authoritative-ns
     ../../optional/tailscale-gnet-vm-exit.nix
     ./disk-config.nix
     ./networking.nix

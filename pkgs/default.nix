@@ -35,9 +35,11 @@ rec {
   bitmagnet = import ./bitmagnet.nix {inherit pkgs;};
   jip = import ./jip.nix {inherit pkgs;};
   lightningstream = import ./lightningstream.nix {inherit pkgs;};
+  ns-wg-healthcheck = import ./ns-wg-healthcheck.nix {inherit pkgs;};
   nylon = import ./nylon.nix {inherit pkgs;};
   nylon-health-runner = import ./nylon-health-runner.nix {inherit pkgs;};
   nylon-powerdns-reconcile = import ./nylon-powerdns-reconcile.nix {inherit pkgs;};
+  powerdns-ui = import ./powerdns-ui.nix {inherit pkgs;};
   prosafe-vlan-manager = import ./prosafe-vlan-manager.nix {inherit pkgs;};
   znapzend = import ./znapzend.nix {inherit pkgs;};
 }

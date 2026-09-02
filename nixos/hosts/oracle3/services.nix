@@ -8,7 +8,7 @@
   postgresEnvironmentFile = "/run/agenix/emotion-hrv-postgres-env";
 in {
   imports = [
-    ../../optional/authoritative-ns.nix
+    ../../optional/authoritative-ns
     ../../optional/edge-firewall.nix
   ];
 

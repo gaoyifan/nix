@@ -11,6 +11,7 @@
     ./mutagen-sync.nix
     ./ncps.nix
     ./openlist.nix
+    ./powerdns.nix
     ./restic.nix
     ./znapzend.nix
   ];
