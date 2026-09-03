@@ -102,6 +102,7 @@ in {
     {
       NH_FLAKE = "${config.home.homeDirectory}/nix";
       BUN_INSTALL = "${config.home.homeDirectory}/.bun";
+      COLLIE_MUX = "herdr";
     }
     // lib.optionalAttrs isLinux {
       XDG_RUNTIME_DIR = "\${XDG_RUNTIME_DIR:-/run/user/\$(id -u)}";
