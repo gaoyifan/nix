@@ -18,6 +18,14 @@ tailscale_syncer = load("tailscale_syncer", sys.argv[1])
 view_syncer = load("view_syncer", sys.argv[2])
 
 assert tailscale_syncer.normalize_name("node.example.ts.net.", "example.ts.net", "ts.gaof.net.") == "node.ts.gaof.net."
+assert (
+    tailscale_syncer.normalize_name("gw-edge-01", "el2-gateway-headscale-router", "lib.gaof.net.")
+    == "gw-edge-01.lib.gaof.net."
+)
+assert (
+    tailscale_syncer.normalize_name("ring-backend.tailnet.auramont.cn.", "tailnet.auramont.cn", "kxing.gaof.net.")
+    == "ring-backend.kxing.gaof.net."
+)
 assert tailscale_syncer.normalize_name("outside.example.net.", "example.ts.net", "ts.gaof.net.") is None
 
 

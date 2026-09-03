@@ -7,5 +7,10 @@
     dataDirectory = "/pool1/services/powerdns";
     wantedBy = ["el2-services.target"];
     requiredUnits = ["zfs-unlock-mount.service"];
+    tailscaleSyncers.main = {
+      zone = "ts.gaof.net.";
+      socketPath = "/run/tailscale/tailscaled.sock";
+      sourceUnit = "tailscaled.service";
+    };
   };
 }

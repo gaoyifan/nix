@@ -7,9 +7,10 @@
   hostPkgs = pkgs;
   chinanetMark = toString config.networking.homeRouter.wans.chinanet.routingTable;
 
-  headscaleRouters = [
-    {
+  headscaleRouters = {
+    auramont = {
       containerName = "hs-router-auramont";
+      syncZone = "kxing.gaof.net.";
       hostname = "el2-headscale-router";
       loginServer = "https://headscale.auramont.cn";
       ipv4Route = "100.124.0.0/16";
@@ -21,9 +22,10 @@
       port = 41641;
       authKeySecret = "headscale-router-auth-key";
       caCertificate = null;
-    }
-    {
+    };
+    library = {
       containerName = "hs-router-library";
+      syncZone = "lib.gaof.net.";
       hostname = "el2-gateway-headscale-router";
       loginServer = "https://gw-hs.lib.ustc.edu.cn";
       ipv4Route = "100.64.74.0/24";
@@ -35,8 +37,8 @@
       port = 41642;
       authKeySecret = null;
       caCertificate = ../gateway-headscale-ca.crt;
-    }
-  ];
+    };
+  };
 
   primaryAdvertisedRoutes =
     [
@@ -54,11 +56,12 @@
       "192.168.93.151/32"
       "192.168.225.50/32"
     ]
-    ++ lib.concatMap (router: [router.ipv4Route router.ipv6Route]) headscaleRouters;
+    ++ lib.concatMap (router: [router.ipv4Route router.ipv6Route]) (lib.attrValues headscaleRouters);
 
-  mkHeadscaleRouter = router: let
+  mkHeadscaleRouter = name: router: let
     authKeyPath = "/run/agenix/${router.authKeySecret}";
     containerAuthKeyPath = "/run/${router.authKeySecret}";
+    hostTailscaleRuntimeDirectory = "/run/${router.containerName}-tailscale";
     hostVethName = "ve-${router.containerName}";
     # nspawn shortens long veth names to the first 11 characters plus a hash.
     # networkd resolves the full alternative name, while nftables needs the
@@ -73,6 +76,12 @@
       "--snat-subnet-routes=false"
     ];
   in {
+    services.authoritativeNs.tailscaleSyncers.${name} = {
+      zone = router.syncZone;
+      socketPath = "${hostTailscaleRuntimeDirectory}/tailscaled.sock";
+      sourceUnit = "container@${router.containerName}.service";
+    };
+
     age.secrets = lib.optionalAttrs (router.authKeySecret != null) {
       ${router.authKeySecret} = lib.mkIf config.services.secrets.hasRealFiles {
         file = config.services.secrets.filesDir + "/nixos/el2/${router.authKeySecret}.age";
@@ -101,6 +110,10 @@
       bindMounts =
         {
           "/dev/net/tun".isReadOnly = false;
+          "/run/tailscale" = {
+            hostPath = hostTailscaleRuntimeDirectory;
+            isReadOnly = false;
+          };
         }
         // lib.optionalAttrs (router.authKeySecret != null) {
           ${containerAuthKeyPath} = {
@@ -188,6 +201,8 @@
     # post-start commands must not add the same addresses and routes again.
     systemd.services."container@${router.containerName}".postStart = lib.mkForce "";
 
+    systemd.tmpfiles.rules = ["d ${hostTailscaleRuntimeDirectory} 0755 root root -"];
+
     systemd.network.networks."05-${router.containerName}" = {
       matchConfig.Name = hostVethName;
       address = [
@@ -267,5 +282,5 @@ in
         };
       }
     ]
-    ++ map mkHeadscaleRouter headscaleRouters
+    ++ lib.mapAttrsToList mkHeadscaleRouter headscaleRouters
   )

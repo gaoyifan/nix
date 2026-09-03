@@ -29,11 +29,11 @@
         ${./view-syncer.py}
       touch $out
     '';
-  syncerService = description: executable: {
+  syncerService = description: executable: requiredUnits: {
     inherit description;
     wantedBy = cfg.wantedBy;
-    requires = ["pdns.service"];
-    after = ["pdns.service"];
+    requires = ["pdns.service"] ++ requiredUnits;
+    after = ["pdns.service"] ++ requiredUnits;
     restartTriggers = lib.optional hasSecrets config.age.secrets.nylon-powerdns-api-key.file;
     serviceConfig = {
       DynamicUser = true;
@@ -47,6 +47,19 @@
       RestartSec = 5;
     };
   };
+  tailscaleSyncerServices = lib.mapAttrs' (name: instance:
+    lib.nameValuePair "powerdns-tailscale-syncer-${name}" (
+      (syncerService "Synchronize ${instance.zone} from Tailscale" tailscaleSyncer [instance.sourceUnit])
+      // {
+        environment = {
+          PDNS_API_URL = "http://127.0.0.1:8081/api/v1";
+          SYNC_INTERVAL = "60";
+          TS_BASE_DOMAIN = instance.zone;
+          TS_SOCKET = instance.socketPath;
+        };
+      }
+    ))
+  cfg.tailscaleSyncers;
   viewsConfig = (pkgs.formats.yaml {}).generate "powerdns-views.yaml" {
     managed_only = true;
     views =
@@ -67,38 +80,44 @@
       };
   };
 in {
+  options.services.authoritativeNs.tailscaleSyncers = lib.mkOption {
+    type = lib.types.attrsOf (lib.types.submodule {
+      options = {
+        zone = lib.mkOption {
+          type = lib.types.nonEmptyStr;
+          description = "PowerDNS zone populated by this Tailscale syncer.";
+        };
+
+        socketPath = lib.mkOption {
+          type = lib.types.nonEmptyStr;
+          description = "Path to the tailscaled LocalAPI Unix socket.";
+        };
+
+        sourceUnit = lib.mkOption {
+          type = lib.types.nonEmptyStr;
+          description = "Unit that provides the tailscaled LocalAPI socket.";
+        };
+      };
+    });
+    default = {};
+    description = "Named Tailscale-to-PowerDNS synchronizer instances.";
+  };
+
   config = lib.mkIf (cfg.role == "primary") {
     system.build.powerdnsSyncersTest = syncersTest;
 
-    systemd.services = {
-      powerdns-view-syncer =
-        (syncerService "Synchronize PowerDNS views" viewSyncer)
-        // {
-          environment = {
-            PDNS_API_URL = "http://127.0.0.1:8081/api/v1";
-            SYNC_CONFIG_PATH = viewsConfig;
-            SYNC_INTERVAL = "86400";
+    systemd.services =
+      {
+        powerdns-view-syncer =
+          (syncerService "Synchronize PowerDNS views" viewSyncer [])
+          // {
+            environment = {
+              PDNS_API_URL = "http://127.0.0.1:8081/api/v1";
+              SYNC_CONFIG_PATH = viewsConfig;
+              SYNC_INTERVAL = "86400";
+            };
           };
-        };
-
-      powerdns-tailscale-syncer =
-        (syncerService "Synchronize Tailscale nodes into PowerDNS" tailscaleSyncer)
-        // {
-          requires = [
-            "pdns.service"
-            "tailscaled.service"
-          ];
-          after = [
-            "pdns.service"
-            "tailscaled.service"
-          ];
-          environment = {
-            PDNS_API_URL = "http://127.0.0.1:8081/api/v1";
-            SYNC_INTERVAL = "60";
-            TS_BASE_DOMAIN = "ts.gaof.net.";
-            TS_SOCKET = "/run/tailscale/tailscaled.sock";
-          };
-        };
-    };
+      }
+      // tailscaleSyncerServices;
   };
 }

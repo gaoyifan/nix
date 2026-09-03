@@ -36,6 +36,9 @@ def normalize_name(name, suffix, base):
     suffix_trimmed = suffix.rstrip(".") if suffix else ""
     if trimmed.endswith(base_trimmed):
         fqdn = f"{trimmed}."
+    elif "." not in trimmed:
+        # Headscale returns bare DNSName values when MagicDNS is disabled.
+        fqdn = f"{trimmed}.{base_trimmed}."
     elif suffix_trimmed and trimmed.endswith(suffix_trimmed):
         relative = trimmed[: -len(suffix_trimmed)].rstrip(".")
         fqdn = f"{relative}.{base_trimmed}." if relative else f"{base_trimmed}."
