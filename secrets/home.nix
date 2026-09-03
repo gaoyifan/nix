@@ -22,6 +22,8 @@
     && builtins.pathExists (realSecretsDir + "/home/restic-env.age");
   cfg = config.services.secrets;
 in {
+  imports = lib.optional hasRealSecrets (realSecretsDir + "/home/ssh.nix");
+
   options.services.secrets = {
     hasRealFiles = lib.mkOption {
       type = lib.types.bool;
