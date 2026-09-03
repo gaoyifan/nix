@@ -159,7 +159,7 @@ in
   assert fleet.manifest.value.counts
   == {
     peers = 16;
-    exits = 24;
+    exits = 25;
     selectors = 5;
     dnsRrsets = 32;
   };
@@ -181,7 +181,7 @@ in
   assert map (bind: bind.source) misc1SzNode.value.binds == ["58.84.55.69" "14.215.130.15"];
   assert map (bind: bind.source) fleet.perHost.el.publicNode.value.binds
   == ["202.38.93.152" "202.141.162.122" "202.141.178.12" "2001:da8:d800:931::152"];
-  assert warpHosts == ["ali-sg" "misc1-sh" "oracle2"];
+  assert warpHosts == ["ali-sg" "hhost-jp" "misc1-sh" "oracle2"];
   assert fleet.perHost.ali-sg.cloudflareWarp.interface == "wg-cloudflare";
   assert blogExit.mark == 352;
   assert blogExit.markHex == "0x160";
