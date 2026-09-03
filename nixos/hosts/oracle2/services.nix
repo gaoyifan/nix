@@ -2,7 +2,6 @@
   config,
   inputs,
   lib,
-  pkgs,
   ...
 }: let
   certDir = "${config.services.acmeCertificates.directory}/yfgao";
@@ -26,24 +25,16 @@ in {
     };
     tailscale.serve = {
       enable = true;
-      configFile = pkgs.writeText "oracle2-tailscale-serve.json" (builtins.toJSON {
-        version = "0.0.1";
-        services = {
-          "svc:bitmagnet".endpoints."tcp:80" = "http://${config.services.bitmagnet.settings.http_server.port}";
-          "svc:codex-capacity-proxy" = {
-            certificate = {
-              certFile = "${certDir}/fullchain.pem";
-              keyFile = "${certDir}/privkey.pem";
-            };
-            endpoints = {
-              "tcp:443" = {
-                target = "http://127.0.0.1:${toString config.services.codex-capacity-proxy.port}";
-                tls = true;
-              };
-            };
+      services = {
+        bitmagnet.endpoints."tcp:80" = "http://${config.services.bitmagnet.settings.http_server.port}";
+        codex-capacity-proxy = {
+          certificate = {
+            certFile = "${certDir}/fullchain.pem";
+            keyFile = "${certDir}/privkey.pem";
           };
+          tlsEndpoints."tcp:443" = "http://127.0.0.1:${toString config.services.codex-capacity-proxy.port}";
         };
-      });
+      };
     };
   };
 }
