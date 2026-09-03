@@ -3,6 +3,7 @@
     ./acme.nix
     ./atuin.nix
     ./bitmagnet.nix
+    ./collie.nix
     ./derp.nix
     ./immich.nix
     ./kopia.nix

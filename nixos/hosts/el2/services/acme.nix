@@ -14,6 +14,7 @@
     restartServices = [
       "derp"
       "podman-light-single"
+      "tailscale-serve"
     ];
   };
 }
