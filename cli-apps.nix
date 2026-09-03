@@ -12,6 +12,10 @@
       codex = {};
       codex-reindex = {};
       codex-usage = {};
+      colliepwa = {
+        program = "collie";
+        wrapperName = "collie";
+      };
       copilot = {
         packagePath = ["copilot-cli"];
         wrapperArgs = ["--yolo"];
