@@ -37,10 +37,6 @@ jobs:
         if: steps.bump.outputs.changed == 'true'
         run: nix fmt --accept-flake-config -- ${{ steps.bump.outputs.files }}
 
-      - name: Evaluate el2
-        if: steps.bump.outputs.changed == 'true'
-        run: nix eval .#nixosConfigurations.el2.config.system.build.toplevel.drvPath --accept-flake-config >/dev/null
-
       - name: Commit and push
         if: steps.bump.outputs.changed == 'true'
         env:
