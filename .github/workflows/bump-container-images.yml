@@ -37,12 +37,9 @@ jobs:
         if: steps.bump.outputs.changed == 'true'
         run: nix fmt --accept-flake-config -- ${{ steps.bump.outputs.files }}
 
-      - name: Evaluate checks
+      - name: Evaluate el2
         if: steps.bump.outputs.changed == 'true'
-        run: |
-          nix eval --accept-flake-config --json .#checks \
-            --apply 'builtins.mapAttrs (_: builtins.mapAttrs (_: check: check.drvPath))' \
-            >/dev/null
+        run: nix eval .#nixosConfigurations.el2.config.system.build.toplevel.drvPath --accept-flake-config >/dev/null
 
       - name: Commit and push
         if: steps.bump.outputs.changed == 'true'
