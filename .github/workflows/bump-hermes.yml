@@ -30,9 +30,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: python3 .github/scripts/bump-hermes.py
 
-      - name: Evaluate NixOS hosts
+      - name: Evaluate related hosts
         if: steps.bump.outputs.changed == 'true'
-        run: nix eval .#packages.x86_64-linux.nixos-hosts-cache.drvPath --accept-flake-config >/dev/null
+        run: nix eval .#nixosConfigurations.somo-minisforum.config.system.build.toplevel.drvPath --accept-flake-config >/dev/null
 
       - name: Commit and push
         if: steps.bump.outputs.changed == 'true'
