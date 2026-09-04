@@ -58,6 +58,7 @@
       npx = from ["nodejs-slim" "npm"];
       nvtop = from ["nvtopPackages" "full"];
       nylon-health = from "nylon-health-runner";
+      openapi-tui = {};
       pi = from "pi-coding-agent";
       playwright-cli = {};
       pv = {};
