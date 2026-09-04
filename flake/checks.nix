@@ -74,15 +74,24 @@
           authoritative-ns = let
             primary = self.nixosConfigurations.el2.config;
             secondary = self.nixosConfigurations.ali-sg.config;
+            tailscaleSyncerServices = config:
+              builtins.filter
+              (nixpkgs.lib.hasPrefix "powerdns-tailscale-syncer-")
+              (builtins.attrNames config.systemd.services);
           in
             assert primary.services.authoritativeNs.role == "primary";
             assert secondary.services.authoritativeNs.role == "secondary";
             assert primary.systemd.services.pdns.wantedBy == ["el2-services.target"];
             assert secondary.systemd.services.pdns.wantedBy == ["multi-user.target"];
-            assert builtins.hasAttr "powerdns-tailscale-syncer" primary.systemd.services;
-            assert !builtins.hasAttr "powerdns-tailscale-syncer" secondary.systemd.services;
+            assert tailscaleSyncerServices primary
+            == [
+              "powerdns-tailscale-syncer-auramont"
+              "powerdns-tailscale-syncer-library"
+              "powerdns-tailscale-syncer-main"
+            ];
+            assert tailscaleSyncerServices secondary == [];
             assert primary.services.powerdns.secretFile == "/run/agenix-templates/powerdns.env";
-            assert primary.systemd.services.powerdns-tailscale-syncer.serviceConfig.EnvironmentFile == "/run/agenix-templates/powerdns.env";
+            assert primary.systemd.services.powerdns-tailscale-syncer-main.serviceConfig.EnvironmentFile == "/run/agenix-templates/powerdns.env";
             assert nixpkgs.lib.hasInfix "local-port=5354" primary.services.powerdns.extraConfig;
             assert !(nixpkgs.lib.hasInfix "local-port=5354" secondary.services.powerdns.extraConfig);
             assert nixpkgs.lib.hasInfix "lmdb-filename=/pool1/services/powerdns/pdns.lmdb" primary.services.powerdns.extraConfig;
