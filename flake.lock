@@ -1276,11 +1276,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1788474279,
-        "narHash": "sha256-o391MX697OTy+nPXSQGOloGMmJOB/bdJMOomPB3RKsk=",
+        "lastModified": 1788513567,
+        "narHash": "sha256-vXWZXGT4FfpBpz+oXtYoi2ght/GPxJtXzi5Sga6z0hY=",
         "owner": "gaoyifan",
         "repo": "wlt",
-        "rev": "76fa8499ed48be067fcc7a2bfc81ff12bf8ac476",
+        "rev": "c8e21e047e133bf590bc3a9e3e14360d737a2bcc",
         "type": "github"
       },
       "original": {
