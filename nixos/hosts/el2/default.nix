@@ -39,6 +39,8 @@ in {
   boot.zfs.forceImportRoot = false;
   boot.zfs.requestEncryptionCredentials = false;
 
+  services.zfs.autoScrub.enable = true;
+
   users.users.root.openssh.authorizedKeys.keys = [
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIE0YEmRhF27t46boAwcyDGn1VrEuK9ydNhu24o7RO4Sr root@nfs"
   ];
