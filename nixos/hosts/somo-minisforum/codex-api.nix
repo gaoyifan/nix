@@ -42,6 +42,8 @@ in {
           state.path = "/var/lib/codex-api/state.sqlite3";
           state.file_mode = "0640";
           upstream.auth_file = config.age.secrets.somo-minisforum-codex-api-auth.path;
+          upstream.supports_websockets = true;
+          server.enable_websockets = true;
           model_prices."gpt-5.6-sol".max_reasoning_effort = "high";
           api_keys =
             map (id: {
