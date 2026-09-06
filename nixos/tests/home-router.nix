@@ -530,9 +530,15 @@
   };
 
   nodes.storage = {
-    imports = [../optional/smart-monitoring];
+    imports = [../optional/smart-monitoring ../optional/zfs-monitoring];
     services.smartMonitoring.enable = true;
-    virtualisation.memorySize = 1024;
+    services.zfsMonitoring.enable = true;
+    boot.supportedFilesystems = ["zfs"];
+    networking.hostId = "00000001";
+    virtualisation = {
+      memorySize = 2048;
+      emptyDiskImages = [1024 1024];
+    };
   };
 
   testScript = {nodes, ...}: ''
@@ -540,6 +546,25 @@
     import shlex
 
     start_all()
+    storage.wait_for_unit("multi-user.target")
+    storage.succeed("zpool create tank mirror /dev/vdb /dev/vdc")
+    storage.succeed("zfs create tank/data; dd if=/dev/urandom of=/tank/data/test bs=1M count=1; zfs snapshot tank/data@monitoring")
+    storage.succeed("zpool scrub tank; zpool wait -t scrub tank")
+    storage.wait_for_open_port(9134)
+    storage.wait_for_open_port(9700)
+    storage.wait_until_succeeds("curl -fsS http://127.0.0.1:9134/metrics | grep 'zfs_pool_health{pool=\"tank\"} 0'")
+    storage.succeed("curl -fsS http://127.0.0.1:9700/metrics | grep 'zfs_pool_scan_state{zpool=\"tank\"} 2'")
+    storage.wait_until_succeeds("curl -fsS http://127.0.0.1:3001/api/dashboards/uid/zfs-overview")
+    zfs_dashboard = json.loads(storage.succeed("curl -fsS http://127.0.0.1:3001/api/dashboards/uid/zfs-overview"))
+    assert zfs_dashboard["meta"]["provisioned"]
+    for panel in zfs_dashboard["dashboard"]["panels"]:
+        for target in panel["targets"]:
+            query = target["expr"].replace("$pool", "tank").replace("$dataset", ".*").replace("$__rate_interval", "5m")
+            result = json.loads(storage.succeed("curl -fsSG --data-urlencode " + shlex.quote("query=" + query) + " http://127.0.0.1:9090/api/v1/query"))
+            assert result["status"] == "success", query
+    storage.succeed("zpool offline tank /dev/vdc")
+    storage.wait_until_succeeds("curl -fsS http://127.0.0.1:9134/metrics | grep 'zfs_pool_health{pool=\"tank\"} 1'")
+    storage.succeed("zpool online tank /dev/vdc")
     for machine in [router, storage]:
         machine.wait_for_open_port(9633)
         machine.wait_for_open_port(9090)

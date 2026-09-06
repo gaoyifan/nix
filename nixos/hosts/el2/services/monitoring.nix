@@ -7,6 +7,10 @@
     modules.default.collectors = ["ipmi"];
   };
 in {
+  imports = [../../../optional/zfs-monitoring];
+
+  services.zfsMonitoring.enable = true;
+
   services.prometheus = {
     exporters = {
       ipmi = {

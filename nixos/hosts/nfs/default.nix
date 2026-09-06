@@ -2,6 +2,7 @@
   imports = [
     ../../optional/bare-metal.nix
     ../../optional/smart-monitoring
+    ../../optional/zfs-monitoring
     ./hardware-configuration.nix
     ./networking.nix
     ./storage.nix
@@ -31,6 +32,7 @@
   environment.systemPackages = [pkgs.mbuffer];
 
   services.smartMonitoring.enable = true;
+  services.zfsMonitoring.enable = true;
   # Access is restricted by this host's edge firewall.
   services.grafana.settings.server.http_addr = "";
 
