@@ -21,6 +21,7 @@ rec {
   pi-coding-agent = import ./pi-coding-agent.nix {inherit pkgs;};
   nft-geo-sets = import ./nft-geo-sets.nix {inherit pkgs inputs;};
   playwright-cli = import ./playwright-cli.nix {inherit pkgs;};
+  wrangler = import ./wrangler.nix {inherit pkgs;};
   loft = inputs.loft.packages.${pkgs.stdenv.hostPlatform.system}.default;
   pve-edk2-firmware-ovmf = import ./pve-edk2-firmware-ovmf.nix {inherit pkgs;};
   tssh = import ./tssh.nix {inherit pkgs;};
