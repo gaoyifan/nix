@@ -529,8 +529,31 @@
     virtualisation.memorySize = 1024;
   };
 
+  nodes.storage = {
+    imports = [../optional/smart-monitoring];
+    services.smartMonitoring.enable = true;
+    virtualisation.memorySize = 1024;
+  };
+
   testScript = {nodes, ...}: ''
+    import json
+    import shlex
+
     start_all()
+    for machine in [router, storage]:
+        machine.wait_for_open_port(9633)
+        machine.wait_for_open_port(9090)
+        machine.wait_for_open_port(3001)
+        machine.wait_until_succeeds("curl -fsS http://127.0.0.1:3001/api/dashboards/uid/disk-smart")
+        dashboard = json.loads(machine.succeed("curl -fsS http://127.0.0.1:3001/api/dashboards/uid/disk-smart"))
+        assert dashboard["meta"]["provisioned"]
+        datasources = json.loads(machine.succeed("curl -fsS http://127.0.0.1:3001/api/datasources"))
+        assert [ds["uid"] for ds in datasources] == ["home-router-prometheus"]
+        for panel in dashboard["dashboard"]["panels"]:
+            for target in panel.get("targets", []):
+                query = target["expr"].replace("$device", ".*").replace("$__rate_interval", "5m")
+                result = json.loads(machine.succeed("curl -fsSG --data-urlencode " + shlex.quote("query=" + query) + " http://127.0.0.1:9090/api/v1/query"))
+                assert result["status"] == "success", query
     router.wait_for_unit("systemd-networkd.service")
     router.wait_for_open_port(9090)
     router.wait_for_open_port(9100)

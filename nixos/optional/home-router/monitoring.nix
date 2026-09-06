@@ -157,7 +157,10 @@
     ];
   }));
 in {
+  imports = [../local-monitoring.nix];
+
   config = lib.mkIf (cfg.enable && monitoringCfg.enable) {
+    services.localMonitoring.enable = true;
     assertions = [
       {
         assertion = lib.all (wan: !wan.sharedInterface || wan.addresses != []) monitoredWans;
@@ -166,10 +169,6 @@ in {
     ];
 
     services.prometheus = {
-      enable = true;
-      listenAddress = "127.0.0.1";
-      retentionTime = lib.mkDefault "90d";
-      globalConfig.scrape_interval = "15s";
       scrapeConfigs =
         [
           {
@@ -276,25 +275,11 @@ in {
     };
 
     services.grafana = {
-      enable = true;
       settings = {
         server.http_addr = "";
-        server.http_port = 3001;
-        auth.disable_login_form = true;
-        "auth.anonymous".enabled = true;
-        "auth.basic".enabled = false;
         security.secret_key = "SW2YcwTIb9zpOOhoPsMm";
       };
       provision = {
-        enable = true;
-        datasources.settings.datasources = [
-          {
-            name = "Prometheus";
-            uid = "home-router-prometheus";
-            type = "prometheus";
-            url = "http://127.0.0.1:${toString config.services.prometheus.port}";
-          }
-        ];
         dashboards.settings.providers = [
           {
             name = "home-router-overview";

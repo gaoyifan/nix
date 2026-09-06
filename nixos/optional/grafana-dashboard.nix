@@ -74,6 +74,10 @@ let
         options = statOptions // value.options;
         fieldDefaults = {};
       };
+      table = {
+        options = value.options;
+        fieldDefaults = {};
+      };
       timeseries = {
         options = timeseriesOptions value;
         fieldDefaults.custom = {
@@ -94,7 +98,7 @@ let
       inherit (typeConfig) options;
       fieldConfig = {
         defaults = value.fieldDefaults // typeConfig.fieldDefaults;
-        overrides = [];
+        overrides = value.overrides or [];
       };
     };
   };
@@ -110,7 +114,7 @@ let
           kind = "QueryGroup";
           spec = {
             queries = map panelQuery value.queries;
-            transformations = [];
+            transformations = value.transformations or [];
             queryOptions = {};
           };
         };

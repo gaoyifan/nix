@@ -1,6 +1,7 @@
 {pkgs, ...}: {
   imports = [
     ../../optional/bare-metal.nix
+    ../../optional/smart-monitoring
     ./hardware-configuration.nix
     ./networking.nix
     ./storage.nix
@@ -28,6 +29,10 @@
   ];
 
   environment.systemPackages = [pkgs.mbuffer];
+
+  services.smartMonitoring.enable = true;
+  # Access is restricted by this host's edge firewall.
+  services.grafana.settings.server.http_addr = "";
 
   system.stateVersion = "26.05";
 }

@@ -8,6 +8,7 @@ in {
   imports = [
     ../edge-firewall.nix
     ../policy-routing.nix
+    ../smart-monitoring
     ./options.nix
     ./networkd.nix
     ./firewall.nix
@@ -19,6 +20,8 @@ in {
   ];
 
   config = lib.mkIf cfg.enable {
+    services.smartMonitoring.enable = lib.mkDefault true;
+
     boot.kernelModules = ["br_netfilter"];
     boot.kernel.sysctl = {
       "net.bridge.bridge-nf-call-arptables" = 0;
