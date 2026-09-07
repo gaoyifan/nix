@@ -350,7 +350,8 @@ sync-and-rebuild target:
     rsync -az --delete --delete-excluded \
         --exclude='result' \
         ./ "$host:.cache/nixos-deploy/"
-    ssh -A "$host" bash -s -- "$target" <<'REMOTE'
+    # A reused SSH master may forward a stale agent instead of the current one.
+    ssh -S none -A "$host" bash -s -- "$target" <<'REMOTE'
     set -euo pipefail
     target="$1"
     repo="$HOME/.cache/nixos-deploy"
