@@ -65,6 +65,7 @@ in
     # Home Manager repoints this stable path when the forwarded agent changes.
     postFixup = ''
       wrapProgram "$out/bin/codex" \
+        ${lib.optionalString stdenv.hostPlatform.isLinux "--prefix PATH : ${lib.makeBinPath [pkgs.bubblewrap]}"} \
         --run 'if [ -S "$HOME/.ssh/agent.sock" ]; then export SSH_AUTH_SOCK="$HOME/.ssh/agent.sock"; fi'
     '';
 
