@@ -39,6 +39,18 @@
   };
   networking.homeRouter.dnsmasq.domain = lib.mkForce "somo2.gaof.net";
 
+  # MITV: keep LAN access, but block every routed exit, including existing
+  # connections and IPv6. Match the MAC so DHCP address changes do not bypass it.
+  networking.nftables.tables.mitv-lan-only = {
+    family = "inet";
+    content = ''
+      chain forward {
+        type filter hook forward priority filter - 10; policy accept;
+        ether saddr 20:72:a9:37:4d:d6 oifname != { ${lib.concatMapStringsSep ", " (lan: ''"${lan.interface}"'') (lib.attrValues config.networking.homeRouter.lans)} } counter drop
+      }
+    '';
+  };
+
   systemd.network.wait-online.anyInterface = true;
   systemd.network.networks."11-usb-wan".linkConfig.RequiredForOnline = "routable";
 }
