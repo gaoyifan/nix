@@ -72,6 +72,7 @@
 
     # AI Tools
     "chatgpt"
+    "grok-bot"
     "typeless"
 
     # Development
@@ -79,6 +80,9 @@
     "iterm2"
     "xquartz" # X11 server
     "macfuse" # User-space filesystem
+
+    # Communication
+    "voov-meeting"
 
     # Browsers
     "firefox"
