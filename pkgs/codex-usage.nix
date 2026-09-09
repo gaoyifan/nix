@@ -1,29 +1,12 @@
 {pkgs}:
-pkgs.stdenvNoCC.mkDerivation {
+pkgs.rustPlatform.buildRustPackage {
   pname = "codex-usage";
-  version = "0-unstable-2026-09-09";
+  version = "2.0.0";
 
   src = ./codex-usage;
   strictDeps = true;
-  dontBuild = true;
 
-  nativeBuildInputs = [pkgs.makeWrapper];
-  nativeCheckInputs = [pkgs.python3];
-
-  doCheck = true;
-  checkPhase = ''
-    runHook preCheck
-    ${pkgs.python3.interpreter} -m unittest discover -s tests -v
-    runHook postCheck
-  '';
-
-  installPhase = ''
-    runHook preInstall
-    install -Dm755 codex_usage.py "$out/libexec/codex-usage.py"
-    makeWrapper ${pkgs.python3.interpreter} "$out/bin/codex-usage" \
-      --add-flags "$out/libexec/codex-usage.py"
-    runHook postInstall
-  '';
+  cargoLock.lockFile = ./codex-usage/Cargo.lock;
 
   meta = {
     description = "Summarize recent Codex token usage and its USD equivalent";
