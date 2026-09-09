@@ -14,10 +14,9 @@
   ...
 }: let
   inherit (import ../../common/ssh-keys.nix) sshKeys;
-  hermesBasePackage = inputs.hermes-agent.packages.${pkgs.stdenv.hostPlatform.system}.minimal.override {
+  hermesPackage = inputs.hermes-agent.packages.${pkgs.stdenv.hostPlatform.system}.minimal.override {
     extraDependencyGroups = ["exa" "honcho" "messaging"];
   };
-  hermesPackage = hermesBasePackage;
   newApiCodexPlugin = pkgs.runCommand "newapi-codex" {} ''
     mkdir -p $out
     cp -r ${./newapi-codex}/. $out/
