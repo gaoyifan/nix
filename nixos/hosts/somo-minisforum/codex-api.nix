@@ -45,7 +45,29 @@ in {
           upstream.auth_file = config.age.secrets.somo-minisforum-codex-api-auth.path;
           upstream.supports_websockets = true;
           server.enable_websockets = true;
-          model_prices."gpt-5.6-sol".max_reasoning_effort = "high";
+          model_prices = {
+            "gpt-6-astra" = {
+              input_usd_per_million = "10.00";
+              cached_input_usd_per_million = "1.00";
+              output_usd_per_million = "50.00";
+            };
+            "gpt-5.6-sol" = {
+              input_usd_per_million = "4.00";
+              cached_input_usd_per_million = "0.40";
+              output_usd_per_million = "20.00";
+              max_reasoning_effort = "high";
+            };
+            "gpt-5.6-terra" = {
+              input_usd_per_million = "2.00";
+              cached_input_usd_per_million = "0.20";
+              output_usd_per_million = "12.00";
+            };
+            "gpt-5.6-luna" = {
+              input_usd_per_million = "0.20";
+              cached_input_usd_per_million = "0.02";
+              output_usd_per_million = "1.20";
+            };
+          };
           api_keys =
             map (id: {
               inherit id;

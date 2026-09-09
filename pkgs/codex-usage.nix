@@ -1,7 +1,7 @@
 {pkgs}:
 pkgs.stdenvNoCC.mkDerivation {
   pname = "codex-usage";
-  version = "0-unstable-2026-08-30";
+  version = "0-unstable-2026-09-09";
 
   src = ./codex-usage;
   strictDeps = true;

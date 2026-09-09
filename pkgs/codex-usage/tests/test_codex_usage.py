@@ -30,6 +30,17 @@ def usage(input_tokens, cached_tokens, output_tokens, cache_write_tokens=0):
 
 
 class AnalyzeTest(unittest.TestCase):
+    def test_prices_gpt_6_astra_without_long_context_surcharge(self):
+        long_usage = usage(300_000, 200_000, 1_000)
+
+        self.assertAlmostEqual(codex_usage.request_cost("gpt-6-astra", None, long_usage), 1.25)
+        self.assertAlmostEqual(codex_usage.request_cost("gpt-6-astra", "priority", long_usage), 3.125)
+
+    def test_prices_gpt_5_6_terra_with_long_context_surcharge(self):
+        long_usage = usage(300_000, 200_000, 1_000)
+
+        self.assertAlmostEqual(codex_usage.request_cost("gpt-5.6-terra", None, long_usage), 0.498)
+
     def test_deduplicates_notifications_and_prices_long_fast_requests(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "2026" / "08" / "01" / "rollout.jsonl"

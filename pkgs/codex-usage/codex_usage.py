@@ -11,11 +11,14 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 
 VERSION = "2"
-PRICE_DATE = "2026-08-30"
+PRICE_DATE = "2026-09-09"
 LONG_CONTEXT_THRESHOLD = 272_000
+LONG_CONTEXT_MODELS = {"gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"}
 FAST_MULTIPLIER = 2.5
 PRICES = {
+    "gpt-6-astra": (10.0, 1.0, 50.0),
     "gpt-5.6-sol": (4.0, 0.4, 20.0),
+    "gpt-5.6-terra": (2.0, 0.2, 12.0),
     "gpt-5.6-luna": (0.2, 0.02, 1.2),
 }
 USAGE_FIELDS = (
@@ -73,7 +76,7 @@ def request_cost(model, tier, usage):
     cache_write_tokens = usage.get("cache_write_input_tokens", 0)
     billable_input_tokens = input_tokens - cached_tokens - cache_write_tokens
 
-    if input_tokens > LONG_CONTEXT_THRESHOLD:
+    if model in LONG_CONTEXT_MODELS and input_tokens > LONG_CONTEXT_THRESHOLD:
         input_price *= 2
         cached_price *= 2
         output_price *= 1.5
