@@ -28,6 +28,7 @@ static RELEVANT_MARKERS: LazyLock<AhoCorasick> = LazyLock::new(|| {
     AhoCorasick::new([
         "session_meta",
         "thread_settings_applied",
+        "thread_goal_updated",
         "turn_context",
         "token_count",
         "user_message",
@@ -386,6 +387,17 @@ fn analyze_file(path: &Path, start: DateTime<Utc>, end: DateTime<Utc>, timezone:
         {
             event_user_prompt(payload).map(|prompt| (prompt, false))
         } else if is_root_thread
+            && event_type == Some("event_msg")
+            && payload_type == Some("thread_goal_updated")
+        {
+            payload
+                .get("goal")
+                .and_then(|goal| goal.get("objective"))
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .filter(|objective| !objective.is_empty())
+                .map(|objective| (objective.to_owned(), false))
+        } else if is_root_thread
             && event_type == Some("response_item")
             && payload_type == Some("message")
             && payload.get("role").and_then(Value::as_str) == Some("user")
@@ -394,7 +406,8 @@ fn analyze_file(path: &Path, start: DateTime<Utc>, end: DateTime<Utc>, timezone:
             prompt.map(|prompt| (prompt, uncertain))
         } else {
             None
-        };
+        }
+        .filter(|(prompt, _)| !prompt.trim_start().starts_with("$context-file"));
         if let (Some(session_id), Some((prompt, uncertain)), Some(timestamp)) = (
             root_session_id.as_ref(),
             prompt,
@@ -862,6 +875,23 @@ mod tests {
                 "response_item",
             ),
             event(
+                "2026-08-23T23:59:58.500Z",
+                json!({
+                    "type": "message", "role": "user",
+                    "content": [{"type": "input_text", "text": "  $context-file:context-file docs/*.md"}],
+                    "internal_chat_message_metadata_passthrough": {"content_item_kinds": ["user.text"]},
+                }),
+                "response_item",
+            ),
+            event(
+                "2026-08-23T23:59:58.750Z",
+                json!({
+                    "type": "thread_goal_updated",
+                    "goal": {"objective": "Goal task"},
+                }),
+                "event_msg",
+            ),
+            event(
                 "2026-08-23T23:59:59Z",
                 json!({
                     "type": "message", "role": "user",
@@ -952,7 +982,7 @@ mod tests {
         let session = &result.sessions["root-session"];
         assert_eq!(session.stats.tokens, 301_165);
         assert_eq!(session.rollouts.len(), 2);
-        assert_eq!(result.prompts["root-session"].prompt, "Real task");
+        assert_eq!(result.prompts["root-session"].prompt, "Goal task");
         assert!(!result.prompts["root-session"].uncertain);
     }
 
