@@ -7,6 +7,7 @@
 }: let
   hermesUsers = builtins.attrNames config.services.hermes-nspawn.containers;
   apiKeyIds = ["honcho" "immersive-translation"] ++ map (user: "hermes-${user}") hermesUsers;
+  weeklyLimitOverrides = import (config.services.secrets.filesDir + "/nixos/somo-minisforum/codex-api-weekly-limits.nix");
 in {
   imports = [inputs.codex-api.nixosModules.default];
 
@@ -49,7 +50,7 @@ in {
             map (id: {
               inherit id;
               secret_file = config.age.secrets."new-api-tokens/${id}".path;
-              weekly_limit_usd = "500.00";
+              weekly_limit_usd = weeklyLimitOverrides.${id} or "500.00";
             })
             apiKeyIds;
         };
