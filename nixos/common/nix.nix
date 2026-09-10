@@ -14,10 +14,15 @@ in {
 
   nix.settings = {
     experimental-features = ["nix-command" "flakes"];
-    extra-substituters =
+    substituters = lib.mkForce (
       internalSubstituters
-      ++ cacheSettings.extra-substituters;
-    extra-trusted-public-keys = cacheSettings.extra-trusted-public-keys;
+      ++ cacheSettings.extra-substituters
+      ++ [cacheSettings.official-substituter]
+    );
+    trusted-public-keys = lib.mkForce (
+      cacheSettings.extra-trusted-public-keys
+      ++ [cacheSettings.official-public-key]
+    );
     trusted-users = [username];
     # Free disk space automatically when the store partition runs low.
     min-free = lib.mkDefault (2 * 1024 * 1024 * 1024);
