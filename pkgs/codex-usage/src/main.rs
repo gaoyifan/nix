@@ -11,7 +11,7 @@ use aho_corasick::AhoCorasick;
 use chrono::{DateTime, Days, NaiveDate, TimeZone, Utc};
 use chrono_tz::Tz;
 use clap::Parser;
-use comfy_table::{Cell, CellAlignment, Table, modifiers, presets};
+use comfy_table::{Cell, CellAlignment, ContentArrangement, Row, Table, modifiers, presets};
 use rayon::prelude::*;
 use serde_json::Value;
 use walkdir::WalkDir;
@@ -121,7 +121,7 @@ impl Usage {
 #[derive(Debug, Default)]
 struct SessionStats {
     stats: Stats,
-    rollouts: HashSet<Option<String>>,
+    threads: HashSet<Option<String>>,
 }
 
 #[derive(Debug)]
@@ -165,7 +165,7 @@ impl Analysis {
         for (session_id, session) in other.sessions {
             let target = self.sessions.entry(session_id).or_default();
             target.stats.merge(session.stats);
-            target.rollouts.extend(session.rollouts);
+            target.threads.extend(session.threads);
         }
         for (session_id, candidate) in other.prompts {
             self.consider_prompt(session_id, candidate);
@@ -475,7 +475,7 @@ fn analyze_file(path: &Path, start: DateTime<Utc>, end: DateTime<Utc>, timezone:
         if let Some(session_id) = root_session_id.as_ref() {
             let session = result.sessions.entry(session_id.clone()).or_default();
             session.stats.add_usage(usage, cost);
-            session.rollouts.insert(thread_id.clone());
+            session.threads.insert(thread_id.clone());
         }
 
         let is_fast = tier.as_deref() == Some("priority");
@@ -588,17 +588,6 @@ fn percentage(part: f64, whole: f64) -> f64 {
     }
 }
 
-fn truncate_prompt(prompt: &str, length: usize) -> String {
-    let normalized = prompt.split_whitespace().collect::<Vec<_>>().join(" ");
-    if normalized.chars().count() <= length {
-        normalized
-    } else {
-        let mut truncated = normalized.chars().take(length - 3).collect::<String>();
-        truncated.push_str("...");
-        truncated
-    }
-}
-
 fn print_top_sessions(result: &Analysis, count: usize) {
     if count == 0 {
         return;
@@ -607,38 +596,56 @@ fn print_top_sessions(result: &Analysis, count: usize) {
     ranked.sort_unstable_by(|(left_id, left), (right_id, right)| {
         right
             .stats
-            .tokens
-            .cmp(&left.stats.tokens)
+            .cost
+            .total_cmp(&left.stats.cost)
             .then_with(|| left_id.cmp(right_id))
     });
     ranked.truncate(count);
 
-    println!();
-    println!("Top {} sessions by tokens", ranked.len());
+    let mut table = report_table();
+    table
+        .load_preset(presets::UTF8_FULL_CONDENSED)
+        .apply_modifier(modifiers::UTF8_ROUND_CORNERS)
+        .set_content_arrangement(ContentArrangement::Dynamic)
+        .set_header([
+            right_cell("#"),
+            Cell::new("First prompt"),
+            right_cell("Requests"),
+            right_cell("Threads"),
+            right_cell("Tokens"),
+            right_cell("USD"),
+        ]);
+
     for (index, (session_id, session)) in ranked.into_iter().enumerate() {
-        println!(
-            "{:>2}. {}  {} requests  {} rollouts  {}  ${}",
-            index + 1,
-            session_id,
-            format_u64(session.stats.requests),
-            format_u64(session.rollouts.len() as u64),
-            format_millions(session.stats.tokens as i64),
-            format_decimal(session.stats.cost, 2),
-        );
-        if let Some(candidate) = result.prompts.get(session_id) {
-            let suffix = if candidate.uncertain {
-                " [heuristic]"
-            } else {
-                ""
-            };
-            println!(
-                "    First prompt{suffix}: {}",
-                truncate_prompt(&candidate.prompt, 180)
-            );
-        } else {
-            println!("    First prompt: [not found]");
-        }
+        let prompt = match result.prompts.get(session_id) {
+            Some(candidate) => {
+                let prefix = if candidate.uncertain {
+                    "[heuristic] "
+                } else {
+                    ""
+                };
+                let prompt = candidate
+                    .prompt
+                    .split_whitespace()
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                format!("{prefix}{prompt}")
+            }
+            None => "[not found]".to_owned(),
+        };
+        let mut row = Row::from(vec![
+            right_cell(index + 1),
+            Cell::new(prompt).set_delimiter('\n'),
+            right_cell(format_u64(session.stats.requests)),
+            right_cell(format_u64(session.threads.len() as u64)),
+            right_cell(format_millions(session.stats.tokens as i64)),
+            right_cell(format!("${}", format_decimal(session.stats.cost, 2))),
+        ]);
+        row.max_height(1);
+        table.add_row(row);
     }
+
+    println!("\nTop {} sessions by USD\n{table}", table.row_count());
 }
 
 fn right_cell(value: impl ToString) -> Cell {
@@ -981,7 +988,7 @@ mod tests {
         );
         let session = &result.sessions["root-session"];
         assert_eq!(session.stats.tokens, 301_165);
-        assert_eq!(session.rollouts.len(), 2);
+        assert_eq!(session.threads.len(), 2);
         assert_eq!(result.prompts["root-session"].prompt, "Goal task");
         assert!(!result.prompts["root-session"].uncertain);
     }
@@ -991,7 +998,6 @@ mod tests {
         assert_eq!(format_u64(1_234_567), "1,234,567");
         assert_eq!(format_millions(1_234_567), "1.235M");
         assert_eq!(format_decimal(1234.5, 2), "1,234.50");
-        assert_eq!(truncate_prompt("a  b\n c", 180), "a b c");
         assert_eq!(cache_write_report_line(0), None);
         assert_eq!(
             cache_write_report_line(20).as_deref(),
