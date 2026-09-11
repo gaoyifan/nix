@@ -41,6 +41,11 @@ in {
             dataset = "pool0/footage";
             plan = "30d=>1d,1y=>1w";
           };
+          destinations."1" = {
+            host = "root@nfs3.cjia.gaof.net";
+            dataset = "pool0/footage";
+            plan = "15d=>1d";
+          };
         };
       };
     };
