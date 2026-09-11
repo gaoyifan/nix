@@ -32,6 +32,7 @@ rec {
   lark-cli = import ./lark-cli.nix {inherit inputs pkgs;};
   node-docx = import ./node-docx.nix {inherit pkgs;};
   agent-browser = import ./agent-browser.nix {inherit pkgs;};
+  agentreach = import ./agentreach.nix {inherit pkgs;};
 }
 // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
   bitmagnet = import ./bitmagnet.nix {inherit pkgs;};

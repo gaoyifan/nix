@@ -27,6 +27,7 @@
   dynamicCli = cliApps.mkHomeManager pkgs;
   codexWrapperPath = "${dynamicCli.relBinDir}/codex";
   codexReindexWrapperPath = "${dynamicCli.relBinDir}/codex-reindex";
+  reachWrapperPath = "${dynamicCli.relBinDir}/reach";
   zsh-codex-mode = pkgs.fetchFromGitHub {
     owner = "gaoyifan";
     repo = "zsh-codex-mode";
@@ -95,6 +96,14 @@ in {
           export CODEX_HOME=${lib.escapeShellArg "${config.home.homeDirectory}/.syncd-dotfiles/.codex"}
         fi
         exec ${dynamicCli.wrapperFiles.${codexReindexWrapperPath}.source} "$@"
+      '';
+      # AgentReach copies Codex auth and config before it launches codex, so it
+      # must see the same default CODEX_HOME as the codex wrapper.
+      "${reachWrapperPath}".source = pkgs.writeShellScript "reach" ''
+        if [[ ! -v CODEX_HOME ]]; then
+          export CODEX_HOME=${lib.escapeShellArg "${config.home.homeDirectory}/.syncd-dotfiles/.codex"}
+        fi
+        exec ${dynamicCli.wrapperFiles.${reachWrapperPath}.source} "$@"
       '';
     };
 

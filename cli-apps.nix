@@ -62,6 +62,7 @@
       pi = from "pi-coding-agent";
       playwright-cli = {};
       pv = {};
+      reach = from "agentreach";
       redis-cli = from "redis";
       rsync = {};
       ruby = {};
