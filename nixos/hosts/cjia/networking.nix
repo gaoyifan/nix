@@ -93,7 +93,7 @@ in {
     content = ''
       chain forward {
         type filter hook forward priority filter - 10; policy accept;
-        ether saddr ${pppoeOnlyClientMac} oifname != "ppp0" counter drop
+        ct direction original ether saddr ${pppoeOnlyClientMac} oifname != "ppp0" counter drop
       }
     '';
   };
