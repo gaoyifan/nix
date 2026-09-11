@@ -2,6 +2,7 @@
   dhcpHosts = import (config.services.secrets.filesDir + "/nixos/cjia/dhcp-hosts.nix");
   pppMark = "0x001";
   nylonEl2CernetMark = "0x200";
+  pppoeOnlyClientMac = "20:26:06:09:a7:08";
 in {
   imports = [
     ../../optional/home-router
@@ -70,6 +71,7 @@ in {
     egress.classification = {
       extraIngressInterfaces = ["tailscale0"];
       extraRules = [
+        ''ether saddr ${pppoeOnlyClientMac} ip daddr != @private_v4 meta mark set ${pppMark} ct mark set meta mark return''
         ''meta nfproto ipv4 udp dport { 3478-3497, 16384-16387, 16393-16402 } meta mark set ${pppMark} ct mark set meta mark return''
       ];
       destinationAddressSetRules = [
@@ -84,6 +86,18 @@ in {
       ];
     };
   };
+
+  # Routed traffic initiated by this client may only leave through PPPoE.
+  networking.nftables.tables.pppoe-only-client = {
+    family = "inet";
+    content = ''
+      chain forward {
+        type filter hook forward priority filter - 10; policy accept;
+        ether saddr ${pppoeOnlyClientMac} oifname != "ppp0" counter drop
+      }
+    '';
+  };
+
   systemd.network = {
     config.routeTables.ppp = 1000;
     networks."10-wan-ppp" = {
