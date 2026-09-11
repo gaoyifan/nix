@@ -120,7 +120,10 @@
   };
 
   nix = {
-    settings.max-jobs = 0;
+    settings = {
+      max-jobs = 0;
+      builders-use-substitutes = true;
+    };
     distributedBuilds = true;
     buildMachines = [
       {
