@@ -57,7 +57,7 @@
       ip -n upstream address add 2001:db8:931::1/64 dev upstream0
       ip -n upstream address add 2606:4700:4408::1/128 dev lo
       ip -n upstream address add 223.5.5.5/32 dev lo
-      ip -n upstream address add 223.6.6.6/32 dev lo
+      ip -n upstream address add 119.29.29.29/32 dev lo
       ip -n upstream link add link upstream0 name upstream0.22 type vlan id 22
       ip -n upstream address add 192.0.2.1/24 dev upstream0.22
       ip -n upstream address add 203.0.113.10/32 dev upstream0.22
@@ -68,7 +68,7 @@
         --no-resolv \
         --bind-interfaces \
         --listen-address=223.5.5.5 \
-        --listen-address=223.6.6.6 \
+        --listen-address=119.29.29.29 \
         --host-record=el2.gaof.net,223.5.5.5 \
         --host-record=fixture.el2.gaof.net,203.0.113.123,2001:db8::123 \
         --host-record=maplebot.el2.gaof.net,100.64.2.119 \

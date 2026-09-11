@@ -98,7 +98,7 @@ in {
           dhcpServer = {
             range = "set:guest,${ipv4Address 2}.100,${ipv4Address 2}.200,24h";
             settings.dhcp-option = [
-              "tag:guest,option:dns-server,223.5.5.5,223.6.6.6"
+              "tag:guest,option:dns-server,223.5.5.5,119.29.29.29"
             ];
           };
           ipv6.enable = false;

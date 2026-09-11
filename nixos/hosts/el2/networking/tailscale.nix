@@ -128,7 +128,7 @@
         networking = {
           useNetworkd = true;
           useHostResolvConf = false;
-          nameservers = ["223.5.5.5"];
+          nameservers = ["223.5.5.5" "119.29.29.29"];
           firewall.enable = false;
           nftables = {
             enable = true;
