@@ -4,10 +4,6 @@
       name = "anomalyco/tap";
       trusted = true;
     }
-    {
-      name = "lucasgelfond/zerobrew";
-      trusted = true;
-    }
   ];
 
   brews = [
@@ -39,7 +35,6 @@
     "tuios" # Terminal multiplexer (alternative to tmux)
     "watch" # Execute command periodically
     "zsh"
-    "lucasgelfond/zerobrew/zerobrew" # Run Homebrew formulae in isolated environments
 
     # Text & data processing
     "gawk" # GNU awk
@@ -58,7 +53,6 @@
     "anomalyco/tap/opencode"
 
     # Other tools
-    "gemini-cli" # Google Gemini AI CLI
     "huggingface-cli" # Hugging Face CLI
     "parallel" # Shell command parallelization
     "ffmpeg" # Audio/video processing toolkit
