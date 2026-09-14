@@ -50,7 +50,10 @@ in {
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIE0YEmRhF27t46boAwcyDGn1VrEuK9ydNhu24o7RO4Sr root@nfs"
   ];
 
-  environment.systemPackages = [pkgs.mbuffer];
+  environment.systemPackages = [
+    pkgs.mbuffer
+    pkgs.python3
+  ];
 
   programs.zfsUnlock.datasets = encryptedDatasets;
 
