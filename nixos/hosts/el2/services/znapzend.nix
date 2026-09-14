@@ -28,9 +28,24 @@
     };
   };
 
+  services.resolved.dnsDelegates.znapzendNfs.Delegate = {
+    DNS = [
+      "223.5.5.5"
+      "119.29.29.29"
+    ];
+    Domains = ["nfs.s.gaof.net"];
+  };
+
   systemd.services.znapzend = {
-    after = ["zfs-import-pool1.service"];
-    requires = ["zfs-import-pool1.service"];
+    wantedBy = lib.mkForce ["el2-services.target"];
+    after = [
+      "zfs-import-pool1.service"
+      "zfs-unlock-mount.service"
+    ];
+    requires = [
+      "zfs-import-pool1.service"
+      "zfs-unlock-mount.service"
+    ];
     preStart = lib.mkBefore ''
       zfs set org.znapzend:enabled=off pool0/backup pool0/footage
     '';
