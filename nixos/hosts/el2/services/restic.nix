@@ -122,6 +122,11 @@
     requires = ["zfs-unlock-mount.service"];
     after = ["zfs-unlock-mount.service"];
   };
+  systemd.services.restic-123pan-restic-backup = {
+    wantedBy = lib.mkForce ["el2-services.target"];
+    requires = ["zfs-unlock-mount.service"];
+    after = ["zfs-unlock-mount.service"];
+  };
   systemd.services.restic-123pan-pool0-restic = {
     wantedBy = ["el2-services.target"];
     requires = ["zfs-unlock-mount.service"];
