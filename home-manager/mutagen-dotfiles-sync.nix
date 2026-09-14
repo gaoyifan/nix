@@ -93,7 +93,6 @@
       set -euo pipefail
       ${mutagenSshEnv}
 
-      session_name=${lib.escapeShellArg sessionName}
       service_selector=${lib.escapeShellArg sessionSelector}
       desired_hash="${specHash}"
 
@@ -111,10 +110,11 @@
       fi
 
       managed_count="$(mutagen sync list --label-selector "$service_selector" 2>/dev/null | grep -c '^Identifier: ' || true)"
+      # Loaded sessions reconnect automatically; transient endpoint failures
+      # must not fall through to session replacement below.
       if [ -f ${lib.escapeShellArg specHashPath} ] \
         && [ "$(cat ${lib.escapeShellArg specHashPath})" = "$desired_hash" ] \
-        && [ "$managed_count" -eq 1 ] \
-        && mutagen sync resume "$session_name" >/dev/null 2>&1; then
+        && [ "$managed_count" -eq 1 ]; then
         exit 0
       fi
 
