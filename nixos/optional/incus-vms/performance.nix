@@ -1,4 +1,11 @@
-{
+let
+  vmSelector = ''job="incus",type="virtual-machine",name=~"$vm"'';
+  agentReady = ''incus_boot_time_seconds{${vmSelector}} > 0'';
+  cpuRate = ''rate(incus_cpu_seconds_total{${vmSelector}}[$__rate_interval]) and on(name, project, type) (${agentReady})'';
+  idleCpuRate = ''rate(incus_cpu_seconds_total{${vmSelector},mode="idle"}[$__rate_interval]) and on(name, project, type) (${agentReady})'';
+  availableMemory = ''incus_memory_MemAvailable_bytes{${vmSelector}} and on(name, project, type) (${agentReady})'';
+  totalMemory = ''incus_memory_MemTotal_bytes{${vmSelector}} and on(name, project, type) (${agentReady})'';
+in {
   name = "incus-vm-performance";
   panels = [
     {
@@ -41,7 +48,7 @@
       queries = [
         {
           query = {
-            expr = ''100 * (1 - sum(rate(incus_cpu_seconds_total{job="incus",type="virtual-machine",name=~"$vm",mode="idle"}[$__rate_interval])) / sum(rate(incus_cpu_seconds_total{job="incus",type="virtual-machine",name=~"$vm"}[$__rate_interval])))'';
+            expr = ''100 * (1 - sum(${idleCpuRate}) / sum(${cpuRate}))'';
             instant = true;
             legendFormat = "CPU";
             range = false;
@@ -86,7 +93,7 @@
       queries = [
         {
           query = {
-            expr = ''100 * (1 - sum(incus_memory_MemAvailable_bytes{job="incus",type="virtual-machine",name=~"$vm"}) / sum(incus_memory_MemTotal_bytes{job="incus",type="virtual-machine",name=~"$vm"}))'';
+            expr = ''100 * (1 - sum(${availableMemory}) / sum(${totalMemory}))'';
             instant = true;
             legendFormat = "Memory";
             range = false;
@@ -176,7 +183,7 @@
       queries = [
         {
           query = {
-            expr = ''100 * (1 - sum by (name) (rate(incus_cpu_seconds_total{job="incus",type="virtual-machine",name=~"$vm",mode="idle"}[$__rate_interval])) / sum by (name) (rate(incus_cpu_seconds_total{job="incus",type="virtual-machine",name=~"$vm"}[$__rate_interval])))'';
+            expr = ''100 * (1 - sum by (name) (${idleCpuRate}) / sum by (name) (${cpuRate}))'';
             instant = false;
             legendFormat = "{{name}}";
             range = true;
@@ -202,7 +209,7 @@
       queries = [
         {
           query = {
-            expr = ''100 * (1 - incus_memory_MemAvailable_bytes{job="incus",type="virtual-machine",name=~"$vm"} / incus_memory_MemTotal_bytes{job="incus",type="virtual-machine",name=~"$vm"})'';
+            expr = ''100 * (1 - (${availableMemory}) / (${totalMemory}))'';
             instant = false;
             legendFormat = "{{name}}";
             range = true;
