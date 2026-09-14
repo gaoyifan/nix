@@ -27,6 +27,7 @@
 
 ## Remote Commands
 
+- Before triggering or scheduling any NixOS reboot (local or remote, including through other workflows), explicitly call `request_user_input`, name the target host, and obtain approval for that specific reboot. Deployment or maintenance approval does not count. If the tool is unavailable or explicit approval is missing, do not reboot.
 - Before using SSH, verify the target hostname, FQDN, and addresses are not local; run local targets directly, using `sudo` when needed.
 - For remote deployments to devices without unrestricted internet access, prefer `just sync-and-rebuild <target>` so builds happen on the target through its configured substituters.
 - Avoid nested escaped shell strings across SSH, containers, or VMs. Pass complex scripts through standard input with a quoted heredoc at each boundary.
