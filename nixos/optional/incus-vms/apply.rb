@@ -27,6 +27,10 @@ def apply_profile(profile)
     "description" => profile.fetch("description", ""),
     "devices" => profile.fetch("devices")
   }
+  unless JSON.parse(incus("profile", "list", "-f", "json")).any? { |item| item.fetch("name") == name }
+    incus("profile", "create", name)
+  end
+
   current = JSON.parse(incus("query", "/1.0/profiles/#{name}"))
   current = desired.keys.to_h { |key| [key, current[key]] }
   return if current == desired

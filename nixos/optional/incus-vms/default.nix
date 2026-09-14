@@ -45,10 +45,8 @@
       profile = {
         name = "nixos-${name}";
         config =
-          vm.config
-          // {
-            "boot.autostart" = "last-state";
-          }
+          {"boot.autostart" = "last-state";}
+          // vm.config
           // lib.optionalAttrs vm.headless {
             "raw.qemu.conf" = headlessQemuConfig;
           };
@@ -234,26 +232,24 @@ in {
               };
             })
             cfg.pools;
-          profiles =
-            [
-              {
-                name = "default";
-                devices = {
-                  eth0 = {
-                    type = "nic";
-                    name = "eth0";
-                    nictype = "bridged";
-                    parent = config.networking.homeRouter.switch.name;
-                  };
-                  root = {
-                    type = "disk";
-                    path = "/";
-                    pool = "default";
-                  };
+          profiles = [
+            {
+              name = "default";
+              devices = {
+                eth0 = {
+                  type = "nic";
+                  name = "eth0";
+                  nictype = "bridged";
+                  parent = config.networking.homeRouter.switch.name;
                 };
-              }
-            ]
-            ++ map (vm: vm.profile) (lib.attrValues managedVms);
+                root = {
+                  type = "disk";
+                  path = "/";
+                  pool = "default";
+                };
+              };
+            }
+          ];
         };
       };
 
@@ -270,7 +266,7 @@ in {
         description = "Create and configure declarative Incus VMs";
         wants = ["incus.service" "network-online.target"];
         after = ["incus.service" "incus-preseed.service" "network-online.target"] ++ cfg.requiredUnits;
-        requires = cfg.requiredUnits;
+        requires = ["incus-preseed.service"] ++ cfg.requiredUnits;
         wantedBy = ["multi-user.target"];
         serviceConfig = {
           Type = "oneshot";
