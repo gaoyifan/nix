@@ -11,6 +11,7 @@
     secureBoot = true;
     fdSize2MB = true;
   };
+  macosStateDir = "/var/lib/incus-macos";
   incusEdk2 = pkgs.linkFarm "incus-pve-ovmf" [
     {
       name = "OVMF_CODE.fd";
@@ -259,6 +260,30 @@ in {
         tpm.type = "tpm";
       };
     };
+
+    instances.hackintosh = {
+      vlan = 642;
+      macAddress = "00:16:CB:64:02:80";
+      dhcpAddress = "100.64.2.80";
+      rootSize = "128GiB";
+      rootConfig = {
+        "io.bus" = "virtio-blk";
+      };
+      extraDevices.photos = {
+        type = "disk";
+        pool = "pool0";
+        source = "hackintosh-photos";
+      };
+      config = {
+        "boot.autostart" = "true";
+        "limits.cpu" = "sockets=1,cores=4,threads=1";
+        "limits.memory" = "8GiB";
+        "limits.memory.hotplug" = "false";
+        "raw.apparmor" = "/dev/zero k,";
+        "raw.qemu.scriptlet" = builtins.readFile ./hackintosh-qemu-scriptlet.py;
+        "security.secureboot" = "false";
+      };
+    };
   };
 
   users.users.${username}.extraGroups = [
@@ -267,9 +292,92 @@ in {
   ];
 
   virtualisation.docker.enable = true;
-  environment.systemPackages = [pkgs.docker-compose];
+  environment.systemPackages = [
+    pkgs.docker-compose
+    pkgs.x11vnc
+  ];
+
+  systemd.tmpfiles.rules = [
+    "d ${macosStateDir} 0700 root root -"
+    "z ${macosStateDir}/OpenCore.raw 0600 root root -"
+    "z ${macosStateDir}/smbios.json 0600 root root -"
+    "z ${macosStateDir}/vnc.pass 0600 root root -"
+  ];
+
+  services.resticBackup = {
+    extraPaths = [macosStateDir];
+    extraExcludes = ["${macosStateDir}/BaseSystem.img"];
+  };
 
   systemd.services.incus.environment.INCUS_EDK2_PATH = lib.mkForce incusEdk2;
+
+  systemd.services.hackintosh-vnc = {
+    description = "VNC bridge for the Hackintosh Incus console";
+    wantedBy = ["multi-user.target"];
+    requires = ["incus.service"];
+    after = ["incus.service"];
+    path = [
+      pkgs.coreutils
+      pkgs.openbox
+      pkgs.spice-gtk
+      pkgs.x11vnc
+      pkgs.xauth
+      pkgs.xdpyinfo
+      pkgs.xorg-server
+    ];
+    environment.DISPLAY = ":91";
+    serviceConfig = {
+      Restart = "always";
+      RestartSec = "5s";
+      RuntimeDirectory = "hackintosh-vnc";
+      RuntimeDirectoryMode = "0700";
+      ExecStartPre = "${pkgs.coreutils}/bin/test -r ${macosStateDir}/vnc.pass";
+    };
+    script = ''
+      set -euo pipefail
+
+      export HOME="$RUNTIME_DIRECTORY"
+      export XAUTHORITY="$HOME/Xauthority"
+      xauth -f "$XAUTHORITY" add "$DISPLAY" MIT-MAGIC-COOKIE-1 \
+        "$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
+      chmod 0600 "$XAUTHORITY"
+
+      Xvfb "$DISPLAY" -auth "$XAUTHORITY" -screen 0 1280x800x24 -nolisten tcp &
+      xvfb_pid=$!
+      trap 'kill "''${x11vnc_pid:-}" "''${spicy_pid:-}" "''${openbox_pid:-}" "$xvfb_pid" 2>/dev/null || true' EXIT
+
+      until xdpyinfo -display "$DISPLAY" >/dev/null 2>&1; do
+        kill -0 "$xvfb_pid"
+        sleep 0.1
+      done
+
+      openbox --sm-disable &
+      openbox_pid=$!
+
+      until [[ -S /run/incus/hackintosh/qemu.spice ]]; do
+        sleep 2
+      done
+
+      spicy --uri="spice+unix:///run/incus/hackintosh/qemu.spice" --full-screen &
+      spicy_pid=$!
+      sleep 2
+
+      x11vnc \
+        -display "$DISPLAY" \
+        -forever \
+        -shared \
+        -rfbauth ${macosStateDir}/vnc.pass \
+        -rfbport 5900 \
+        -rfbportv6 -1 \
+        -listen 100.64.2.254 \
+        -no6 \
+        -noxdamage \
+        -xkb &
+      x11vnc_pid=$!
+
+      wait -n "$x11vnc_pid" "$spicy_pid" "$openbox_pid" "$xvfb_pid"
+    '';
+  };
 
   systemd.services.start-pool0-dependent-vms = {
     description = "Restore Incus VMs that require manually unlocked pool0 datasets";
@@ -285,7 +393,7 @@ in {
     serviceConfig.Type = "oneshot";
     script = ''
       set -euo pipefail
-      for instance in windows60; do
+      for instance in hackintosh windows60; do
         if [[ "$(${config.virtualisation.incus.package}/bin/incus config get "$instance" volatile.last_state.power)" == RUNNING ]] \
           && [[ "$(${config.virtualisation.incus.package}/bin/incus list "$instance" --format csv -c s)" == STOPPED ]]; then
           ${config.virtualisation.incus.package}/bin/incus start "$instance"

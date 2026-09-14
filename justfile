@@ -47,7 +47,11 @@ ensure-nix:
     set -euo pipefail
     if ! command -v nix >/dev/null 2>&1 && [ ! -f "{{ nix_profile }}" ]; then
         echo "Nix not found, installing..."
-        just install-nix
+        if [ "$(uname)" = "Darwin" ] && [ "$(uname -m)" = "x86_64" ]; then
+            just install-nix-x86-macos
+        else
+            just install-nix
+        fi
     else
         echo "Nix is already installed."
     fi
@@ -67,6 +71,33 @@ install-nix:
     else
         sudo systemctl restart nix-daemon 2>/dev/null || true
     fi
+    {{ self_just }} trust-flake-config
+    echo "Nix installation complete!"
+
+# Install upstream Nix on Intel macOS, which Determinate no longer supports.
+[group('setup')]
+install-nix-x86-macos:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ "$(uname)" != "Darwin" ] || [ "$(uname -m)" != "x86_64" ]; then
+        echo "install-nix-x86-macos requires Intel macOS." >&2
+        exit 1
+    fi
+    echo "Installing upstream Nix on Intel macOS..."
+    curl --proto '=https' --tlsv1.2 -sSf -L https://nixos.org/nix/install | \
+        sh -s -- --daemon --yes
+    for path in /etc/bashrc /etc/zshrc; do
+        if [ -f "$path" ] && [ ! -L "$path" ]; then
+            sudo mv "$path" "$path.before-nix-darwin.$(date +%Y%m%d-%H%M%S)"
+        fi
+    done
+    if ! sudo grep -Eq '^!?include /etc/nix/nix\.custom\.conf$' /etc/nix/nix.conf; then
+        echo '!include /etc/nix/nix.custom.conf' | sudo tee -a /etc/nix/nix.conf >/dev/null
+    fi
+    echo "Configuring trusted-users for flake substituters..."
+    printf 'experimental-features = nix-command flakes\nextra-trusted-users = %s\n' "$(whoami)" | \
+        sudo tee /etc/nix/nix.custom.conf >/dev/null
+    sudo launchctl kickstart -k system/org.nixos.nix-daemon
     {{ self_just }} trust-flake-config
     echo "Nix installation complete!"
 
@@ -111,11 +142,12 @@ darwin:
     #!/usr/bin/env bash
     set -euo pipefail
     source <({{ self_just }} _emit_nix_env)
+    export NIX_CONFIG="${NIX_CONFIG:+$NIX_CONFIG$'\n'}experimental-features = nix-command flakes"
     source <({{ self_just }} _emit_flake_ref)
     {{ self_just }} _write_username
     if [ -f /etc/nix/nix.custom.conf ] && [ ! -L /etc/nix/nix.custom.conf ]; then
         backup="/etc/nix/nix.custom.conf.before-nix-darwin.$(date +%Y%m%d-%H%M%S)"
-        echo "Moving the existing Determinate Nix custom configuration to $backup..."
+        echo "Moving the existing Nix custom configuration to $backup..."
         sudo mv /etc/nix/nix.custom.conf "$backup"
     fi
     if command -v nh >/dev/null 2>&1; then
@@ -123,7 +155,11 @@ darwin:
     else
         nix run --accept-flake-config nixpkgs#nh -- darwin switch --accept-flake-config "$FLAKE_REF" -- --option eval-cache false
     fi
-    sudo launchctl kickstart -k system/systems.determinate.nix-daemon
+    if sudo launchctl print system/systems.determinate.nix-daemon >/dev/null 2>&1; then
+        sudo launchctl kickstart -k system/systems.determinate.nix-daemon
+    else
+        sudo launchctl kickstart -k system/org.nixos.nix-daemon
+    fi
 
 # Switch this machine's standalone Home Manager configuration
 home:
@@ -232,6 +268,7 @@ check-all:
         arch="$(uname -m)"
         case "$arch" in
             arm64) check_system="aarch64-darwin" ;;
+            x86_64) check_system="x86_64-darwin" ;;
             *) echo "Unsupported macOS arch: $arch" >&2; exit 1 ;;
         esac
         nix flake check --accept-flake-config --system "$check_system" --no-build
