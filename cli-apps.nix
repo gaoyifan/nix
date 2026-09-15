@@ -241,7 +241,7 @@ in {
           exec "$program"${appArgs} "$@"
         fi
 
-        resolution="$(nix eval ${lib.escapeShellArgs nixCacheOptions} --impure --raw --expr ${lib.escapeShellArg resolveExpression})" || exit $?
+        resolution="$(nix eval ${lib.escapeShellArgs nixCacheOptions} --refresh --impure --raw --expr ${lib.escapeShellArg resolveExpression})" || exit $?
         read -r program installable <<< "$resolution"
 
         if [[ ! -x "$program" ]]; then
