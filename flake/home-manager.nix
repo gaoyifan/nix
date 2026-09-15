@@ -8,7 +8,6 @@
   ...
 }: let
   codexSessionSyncHosts = [
-    "debian41"
     "debian42"
   ];
 in {
