@@ -76,8 +76,12 @@ in {
       inputs.witr.packages.${stdenv.hostPlatform.system}.default
     ]
     ++ lib.optionals isDarwin [
+      pkgs.gnugrep
+      pkgs.gnused
       pkgs.lazyssh
+      pkgs.tailscale
       pkgs.tssh
+      pkgs.watch
     ]
     ++ lib.optionals isLinux [jip];
 

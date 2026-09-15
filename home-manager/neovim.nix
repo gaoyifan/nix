@@ -48,32 +48,12 @@ in {
     text = neovimExtraConfig;
   };
 
-  # On non-Darwin: use programs.neovim (closure is small, ~40MB with gcc-lib)
-  programs.neovim = lib.mkIf (!isDarwin) {
+  programs.neovim = {
     enable = true;
     defaultEditor = true;
     viAlias = true;
     vimAlias = true;
     vimdiffAlias = true;
     extraConfig = neovimExtraConfig;
-  };
-
-  # On Darwin: manually implement config (neovim installed via Homebrew, see hosts/darwin.nix)
-  # This avoids the 800MB+ nix neovim closure on macOS
-  xdg.configFile."nvim/init.vim" = lib.mkIf isDarwin {
-    text = neovimExtraConfig;
-  };
-
-  # Set default editor (matches programs.neovim.defaultEditor behavior)
-  # On non-Darwin, programs.neovim handles this; on Darwin, we set it manually
-  home.sessionVariables = lib.mkIf isDarwin {
-    EDITOR = "nvim";
-    VISUAL = "nvim";
-  };
-
-  # Add aliases for Darwin
-  home.shellAliases = lib.mkIf isDarwin {
-    vi = "nvim";
-    vim = "nvim";
   };
 }

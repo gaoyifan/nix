@@ -8,53 +8,22 @@
 
   brews = [
     # Network diagnostics
-    "arping" # Check if MAC addresses are taken on LAN
-    "bandwhich" # Terminal bandwidth monitor by process
-    "bmon" # Interface bandwidth monitor
-    "croc" # Secure file transfer between computers
     "iftop" # Display interface bandwidth usage
-    "iperf3" # Network bandwidth testing
     "iproute2mac" # Linux 'ip' command wrapper for macOS
-    "mosh" # Mobile shell, more stable than SSH
-    "mtr" # Traceroute + ping combined
     "nali" # IP geolocation and CDN provider lookup
-    "netcat" # Network connection utility
-    "nmap" # Port scanner and network discovery
     "proxychains-ng" # Force apps through proxy
-    "socat" # Multipurpose network relay (netcat++)
-    "tailscale" # WireGuard-based VPN mesh
-    "telnet" # Telnet client
-    "wakeonlan" # Send WOL magic packets
-    "wireshark" # Network packet analyzer (CLI)
 
     # Development
-    "fnm" # Fast Node.js version manager
     "git-lfs" # Git large file storage
-
-    # Shell & terminal
-    "tuios" # Terminal multiplexer (alternative to tmux)
-    "watch" # Execute command periodically
-    "zsh"
-
-    # Text & data processing
-    "gawk" # GNU awk
-    "gnu-sed" # GNU sed
-    "grep" # GNU grep
-    "pandoc" # Document format converter
-    "restic" # Backup program with deduplication and encryption
 
     # System monitoring
     "mactop" # Apple Silicon Monitor Top written in Go Lang
-
-    # Editors (neovim via Homebrew to avoid large nix closure on macOS)
-    "neovim"
 
     # AI Tools
     "anomalyco/tap/opencode"
 
     # Other tools
     "huggingface-cli" # Hugging Face CLI
-    "parallel" # Shell command parallelization
     "ffmpeg" # Audio/video processing toolkit
     "yt-dlp" # Video downloader (YouTube, etc.)
   ];

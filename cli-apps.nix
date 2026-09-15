@@ -6,7 +6,9 @@
     {
       agy = {};
       agenix = {};
+      arping = {};
       asciinema = {};
+      bandwhich = {};
       bmon = {};
       cargo-binstall = {};
       codex = {};
@@ -24,6 +26,7 @@
         enableWrapper = false;
         program = "copilot";
       };
+      croc = {};
       cursor-agent = {
         packagePath = ["cursor-cli"];
         wrapperArgs = ["--disable-auto-update"];
@@ -41,6 +44,8 @@
       exiftool = {};
       fd = {};
       file = {};
+      fnm = {};
+      gawk = {};
       gh = {};
       go = from "go";
       gofmt = from "go";
@@ -48,31 +53,50 @@
       hf = from ["python3Packages" "huggingface-hub"];
       herdr = {};
       iostat = from "sysstat";
+      iperf3 = {};
       loft = {};
       mcat = {
         preferWrapper = true;
       };
+      mosh = {};
+      mtr = {};
+      nc = {
+        packagePath = ["netcat"];
+        preferWrapper = true;
+      };
       ncdu = {};
+      nmap = {};
       node = from "nodejs-slim";
       npm = from ["nodejs-slim" "npm"];
       npx = from ["nodejs-slim" "npm"];
       nvtop = from ["nvtopPackages" "full"];
       nylon-health = from "nylon-health-runner";
       openapi-tui = {};
+      pandoc = {};
+      parallel = {};
       pi = from "pi-coding-agent";
       playwright-cli = {};
       pv = {};
       reach = from "agentreach";
       redis-cli = from "redis";
+      restic = {};
       rsync = {};
       ruby = {};
       smartctl = from "smartmontools";
+      socat = {};
       sqlite3 = from "sqlite";
       step = from "step-cli";
       telnet = from "inetutils";
       tig = {};
       tmate = {};
       tokei = {};
+      tuios = {};
+      wakeonlan = {};
+      wireshark = {
+        packagePath = ["wireshark-cli"];
+        program = "tshark";
+        wrapperName = "tshark";
+      };
       wrangler = {};
       yazi = from "yazi-unwrapped";
       yarn = {};
