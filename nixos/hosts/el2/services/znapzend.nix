@@ -12,7 +12,7 @@
       dataset = "pool1/services";
       plan = "1d=>1h,2w=>1d,8w=>1w,1y=>1m";
       destinations."0" = {
-        host = "root@nfs.s.gaof.net";
+        host = "root@nfs.ts.gaof.net";
         dataset = "pool0/el2/services";
         plan = "1d=>1h,2w=>1d,8w=>1w,1y=>1m";
       };
@@ -21,7 +21,7 @@
       dataset = "pool1/incus/virtual-machines/kingdee.block";
       plan = "1hours=>10minutes,1days=>8hours,30days=>7days";
       destinations."0" = {
-        host = "root@nfs.s.gaof.net";
+        host = "root@nfs.ts.gaof.net";
         dataset = "pool0/pve-backup/vm-200-disk-0";
         plan = "1hours=>10minutes,1days=>8hours,30days=>7days";
       };
@@ -33,7 +33,7 @@
       "223.5.5.5"
       "119.29.29.29"
     ];
-    Domains = ["nfs.s.gaof.net"];
+    Domains = ["nfs.ts.gaof.net"];
   };
 
   systemd.services.znapzend = {
