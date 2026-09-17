@@ -85,6 +85,9 @@ in {
         }
       ];
     };
+
+    # The optical modem has no return route for the LAN subnet.
+    egress.masquerade.extraInterfaces = ["end0"];
   };
 
   # Routed traffic initiated by this client may only leave through PPPoE.
