@@ -1,7 +1,11 @@
 # Shared secret source selection for NixOS.
 # Individual consumers declare their own age.secrets entries next to the
 # service configuration that uses them.
-{lib, ...}: let
+{
+  config,
+  lib,
+  ...
+}: let
   hasRealFiles = builtins.pathExists ./files/.gitkeep;
   filesDir =
     if hasRealFiles
@@ -9,6 +13,10 @@
     else ./files-example;
   mail = import (filesDir + "/nixos/mail.nix");
 in {
+  # Public/CI builds may evaluate with example metadata, but must not replace
+  # a running host's configuration without its encrypted secrets submodule.
+  config.system.switch.enable = config.services.secrets.hasRealFiles;
+
   options.services.secrets = {
     hasRealFiles = lib.mkOption {
       type = lib.types.bool;

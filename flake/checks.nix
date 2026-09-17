@@ -21,6 +21,16 @@
       self.deploy;
     deployChecks = builtins.mapAttrs (_system: deployLib: deployLib.deployChecks deployForChecks) deploy-rs.lib;
     x86Pkgs = (pkgsFor "x86_64-linux").extend overlay;
+    secretsSwitchCheck = pkgs: let
+      hasRealFiles = builtins.pathExists ../secrets/files/.gitkeep;
+      hosts = builtins.removeAttrs self.nixosConfigurations ["nanopi-r4s-bootstrap"];
+    in
+      assert nixpkgs.lib.all (host:
+        host.config.services.secrets.hasRealFiles
+        == hasRealFiles
+        && host.config.system.switch.enable == hasRealFiles)
+      (builtins.attrValues hosts);
+        pkgs.writeText "secrets-switch-check" (builtins.toJSON {inherit hasRealFiles;});
     lowMemoryGptHost = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       modules = [inputs.disko.nixosModules.disko ../nixos/tests/low-memory-gpt-host.nix];
@@ -40,12 +50,14 @@
     nylonFixtureNode = x86Pkgs.writeText "nylon-fixture-node.yaml" nylonFixture.nodeConfigText;
   in
     nixpkgs.lib.recursiveUpdate deployChecks {
+      aarch64-linux.secrets-switch = secretsSwitchCheck (pkgsFor "aarch64-linux");
       aarch64-linux.agenix-templates-activation = import ../nixos/tests/agenix-templates-activation.nix {
         inherit inputs;
         pkgs = (pkgsFor "aarch64-linux").extend overlay;
       };
       x86_64-linux =
         {
+          secrets-switch = secretsSwitchCheck x86Pkgs;
           agenix-templates-activation = import ../nixos/tests/agenix-templates-activation.nix {
             inherit inputs;
             pkgs = x86Pkgs;
