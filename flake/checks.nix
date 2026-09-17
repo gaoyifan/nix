@@ -40,8 +40,16 @@
     nylonFixtureNode = x86Pkgs.writeText "nylon-fixture-node.yaml" nylonFixture.nodeConfigText;
   in
     nixpkgs.lib.recursiveUpdate deployChecks {
+      aarch64-linux.agenix-templates-activation = import ../nixos/tests/agenix-templates-activation.nix {
+        inherit inputs;
+        pkgs = (pkgsFor "aarch64-linux").extend overlay;
+      };
       x86_64-linux =
         {
+          agenix-templates-activation = import ../nixos/tests/agenix-templates-activation.nix {
+            inherit inputs;
+            pkgs = x86Pkgs;
+          };
           agenix-templates = x86Pkgs.testers.runNixOSTest (import ../nixos/tests/agenix-templates.nix {
             inherit inputs;
             pkgs = x86Pkgs;

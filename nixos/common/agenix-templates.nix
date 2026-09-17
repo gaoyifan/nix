@@ -14,7 +14,7 @@
     usedSecrets = lib.filter (secret: lib.hasInfix placeholders.${secret} template.content) (lib.attrNames cfg.secrets);
   in ''
     target=${target}
-    install -m 0400 ${pkgs.writeText "agenix-template-${name}" template.content} "$target"
+    install -m 0600 ${pkgs.writeText "agenix-template-${name}" template.content} "$target"
     ${lib.concatMapStringsSep "\n" (secret: ''
         ${lib.getExe pkgs.replace-secret} ${lib.escapeShellArg placeholders.${secret}} ${lib.escapeShellArg cfg.secrets.${secret}.path} "$target"
       '')
@@ -23,17 +23,18 @@
       echo "agenix template ${lib.escapeShellArg name} contains an unresolved placeholder" >&2
       exit 1
     fi
+    chmod 0400 "$target"
   '';
   render = ''
     export PATH=${lib.makeBinPath [pkgs.coreutils]}:$PATH
     umask 077
     install -d -m 0751 ${generationsDir}
     new_generation=$(mktemp -d ${generationsDir}/.new.XXXXXX)
-    trap 'test -z "''${new_generation:-}" || rm -rf -- "$new_generation"' EXIT
+    trap 'rm -rf -- "$new_generation"' EXIT
     ${lib.concatStringsSep "\n" (lib.mapAttrsToList renderTemplate cfg.templates)}
     old_generation=$(readlink ${templatesDir} 2>/dev/null || true)
     ln -sfn "$new_generation" ${templatesDir}
-    new_generation=
+    trap - EXIT
     case "$old_generation" in
       ${generationsDir}/*) rm -rf -- "$old_generation" ;;
     esac
@@ -77,7 +78,14 @@ in {
 
     system.activationScripts.agenixTemplates = {
       deps = lib.optional (cfg.secrets != {}) "agenixChown";
-      text = render;
+      # Activation snippets share a shell. Keep the restrictive umask, cleanup
+      # trap and temporary variables local, including when rendering fails.
+      text = ''
+        (
+          set -e
+          ${render}
+        )
+      '';
     };
   };
 }
