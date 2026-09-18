@@ -46,6 +46,7 @@ rec {
   nylon-powerdns-reconcile = import ./nylon-powerdns-reconcile.nix {inherit pkgs;};
   powerdns-ui = import ./powerdns-ui.nix {inherit pkgs;};
   prosafe-vlan-manager = import ./prosafe-vlan-manager.nix {inherit pkgs;};
+  tcp-transparent-repeater = import ./tcp-transparent-repeater.nix {inherit pkgs;};
   znapzend = import ./znapzend.nix {inherit pkgs;};
 }
 // pkgs.lib.optionalAttrs (pkgs.stdenv.hostPlatform.system == "aarch64-linux") {

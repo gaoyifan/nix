@@ -14,6 +14,7 @@ in {
     ./firewall.nix
     ./services.nix
     ./monitoring.nix
+    ./ttr.nix
     ./wlt.nix
     ./wlt-dns.nix
     ./wg-iplc.nix

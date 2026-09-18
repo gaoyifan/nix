@@ -1,4 +1,8 @@
-{config, ...}: let
+{
+  config,
+  lib,
+  ...
+}: let
   dhcpHosts = import (config.services.secrets.filesDir + "/nixos/cjia/dhcp-hosts.nix");
   pppMark = "0x001";
   nylonEl2CernetMark = "0x200";
@@ -17,6 +21,7 @@ in {
 
   networking.homeRouter = {
     enable = true;
+    ttr.enable = true;
     wgIplc = {
       enable = true;
       ip = "11.13.112.43/24";
@@ -89,6 +94,12 @@ in {
     # The optical modem has no return route for the LAN subnet.
     egress.masquerade.extraInterfaces = ["end0"];
   };
+
+  # Proxying would bypass this client's MAC-based forward restriction below.
+  # The native ruleset runs after table definitions, within the same transaction.
+  networking.nftables.ruleset = lib.mkIf (config.networking.homeRouter.enable && config.networking.homeRouter.ttr.enable) ''
+    insert rule inet home-router tcp-repeater-prerouting ether saddr ${pppoeOnlyClientMac} return
+  '';
 
   # Routed traffic initiated by this client may only leave through PPPoE.
   networking.nftables.tables.pppoe-only-client = {
