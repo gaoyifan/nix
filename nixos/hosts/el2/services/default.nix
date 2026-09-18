@@ -18,6 +18,7 @@
     ./powerdns.nix
     ./py-kms.nix
     ./restic.nix
+    ./ulogd.nix
     ./znapzend.nix
   ];
 }
