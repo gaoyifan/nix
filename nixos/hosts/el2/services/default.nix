@@ -5,6 +5,7 @@
     ./bitmagnet.nix
     ./collie.nix
     ./derp.nix
+    ./dnsmonster.nix
     ./immich.nix
     ./kopia.nix
     ./light-server.nix

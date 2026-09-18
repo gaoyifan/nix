@@ -37,6 +37,7 @@ rec {
 }
 // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
   bitmagnet = import ./bitmagnet.nix {inherit pkgs;};
+  dnsmonster = import ./dnsmonster.nix {inherit pkgs;};
   jip = import ./jip.nix {inherit pkgs;};
   lightningstream = import ./lightningstream.nix {inherit pkgs;};
   ns-wg-healthcheck = import ./ns-wg-healthcheck.nix {inherit pkgs;};

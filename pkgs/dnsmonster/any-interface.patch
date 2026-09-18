@@ -1,0 +1,51 @@
+diff --git a/internal/capture/afpacket_linux.go b/internal/capture/afpacket_linux.go
+index e92b367..581be6d 100644
+--- a/internal/capture/afpacket_linux.go
++++ b/internal/capture/afpacket_linux.go
+@@ -107,0 +108,7 @@ func (config captureConfig) initializeLiveAFpacket(devName, filter string) *afpa
++	socketType := afpacket.SocketRaw
++	if config.NoEthernetframe {
++		socketType = afpacket.SocketDgram
++	}
++	if devName == "any" {
++		devName = ""
++	}
+@@ -114 +121 @@ func (config captureConfig) initializeLiveAFpacket(devName, filter string) *afpa
+-		afpacket.SocketRaw,
++		socketType,
+@@ -124,4 +131,4 @@ func (config captureConfig) initializeLiveAFpacket(devName, filter string) *afpa
+-	if err := handle.TPacket.SetPromiscuous(!config.NoPromiscuous); err != nil {
+-		log.Fatal("Error setting the interface to promiscuous.. exiting")
+-	} else {
+-		log.Infof("Promiscuous mode: %v", !config.NoPromiscuous)
++	if !config.NoPromiscuous {
++		if err := handle.TPacket.SetPromiscuous(true); err != nil {
++			log.Fatal("Error setting the interface to promiscuous.. exiting")
++		}
+diff --git a/internal/capture/compilebpf.go b/internal/capture/compilebpf.go
+index b4b5955..5fddf7e 100644
+--- a/internal/capture/compilebpf.go
++++ b/internal/capture/compilebpf.go
+@@ -25,0 +26 @@ import (
++	log "github.com/sirupsen/logrus"
+@@ -31 +32,5 @@ func tcpdumpToPcapgoBpf(filter string) []bpf.RawInstruction {
+-	bytecodes, err := pcap.CompileBPFFilter(layers.LinkTypeEthernet, 1024, filter)
++	linkType := layers.LinkTypeEthernet
++	if GlobalCaptureConfig.NoEthernetframe {
++		linkType = layers.LinkType(pcap.DatalinkNameToVal("RAW"))
++	}
++	bytecodes, err := pcap.CompileBPFFilter(linkType, 65536, filter)
+@@ -36 +41 @@ func tcpdumpToPcapgoBpf(filter string) []bpf.RawInstruction {
+-		return nil
++		log.Fatalf("Could not compile BPF filter: %v", err)
+diff --git a/internal/capture/packet.go b/internal/capture/packet.go
+index f26cbc0..8b5db3d 100644
+--- a/internal/capture/packet.go
++++ b/internal/capture/packet.go
+@@ -126 +126,5 @@ func (config captureConfig) inputHandlerWorker(ctx context.Context, p chan *rawP
+-						reconstructedPacket := gopacket.NewPacket(packet.bytes, layers.LayerTypeEthernet, gopacket.Default)
++						firstLayer := layers.LayerTypeEthernet
++						if config.NoEthernetframe {
++							firstLayer = layers.LayerTypeIPv6
++						}
++						reconstructedPacket := gopacket.NewPacket(packet.bytes, firstLayer, gopacket.Default)
