@@ -86,7 +86,6 @@
       socat = {};
       sqlite3 = from "sqlite";
       step = from "step-cli";
-      telnet = from "inetutils";
       tig = {};
       tmate = {};
       tokei = {};

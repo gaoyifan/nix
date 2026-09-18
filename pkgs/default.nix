@@ -26,6 +26,7 @@ rec {
   pve-edk2-firmware-ovmf = import ./pve-edk2-firmware-ovmf.nix {inherit pkgs;};
   tssh = import ./tssh.nix {inherit pkgs;};
   htop = import ./htop.nix {inherit pkgs;};
+  inetutils-minimal = import ./inetutils-minimal.nix {inherit pkgs;};
   tailscale = import ./tailscale.nix {inherit pkgs;};
   telegram-bot-api = import ./telegram-bot-api.nix {inherit pkgs;};
   whisper-large-v3-turbo = import ./whisper-large-v3-turbo.nix {inherit pkgs;};

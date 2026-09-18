@@ -65,6 +65,7 @@ in {
       ripgrep
       just
       fzf
+      inetutils-minimal
 
       # lowPrio to avoid conflict with nix-darwin's nh
       (lib.lowPrio nh)
