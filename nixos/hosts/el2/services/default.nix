@@ -11,6 +11,7 @@
     ./light-server.nix
     ./media.nix
     ./monitoring.nix
+    ./multica.nix
     ./mutagen-sync.nix
     ./ncps.nix
     ./new-api.nix
