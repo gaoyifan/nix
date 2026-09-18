@@ -11,9 +11,6 @@ pkgs.inetutils.overrideAttrs (old: {
       "--disable-clients"
       "--disable-servers"
       "--enable-telnet"
-    ]
-    ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
-      "--enable-ping"
     ];
   postInstall = null;
 })
