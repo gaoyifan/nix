@@ -98,6 +98,33 @@
           ../nixos/hosts/nanopi-r4s-bootstrap
         ];
       };
+      nanopi-r5c-bootstrap = nixpkgs.lib.nixosSystem {
+        system = "aarch64-linux";
+        modules = [
+          ({lib, ...}: {
+            nixpkgs = {
+              overlays = [overlay];
+              config.allowUnfreePredicate = package:
+                lib.getName package == "rkbin";
+            };
+          })
+          ../nixos/hosts/nanopi-r5c-bootstrap
+        ];
+      };
+      nanopi-r5c-emmc-flasher = nixpkgs.lib.nixosSystem {
+        system = "aarch64-linux";
+        specialArgs.bootstrapImage = configs.nanopi-r5c-bootstrap.config.system.build.sdImage;
+        modules = [
+          ({lib, ...}: {
+            nixpkgs = {
+              overlays = [overlay];
+              config.allowUnfreePredicate = package:
+                lib.getName package == "rkbin";
+            };
+          })
+          ../nixos/hosts/nanopi-r5c-emmc-flasher
+        ];
+      };
     };
   mkNixosDiskImage = {host}: let
     diskNames = builtins.attrNames (host.config.disko.devices.disk or {});

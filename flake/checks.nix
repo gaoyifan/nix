@@ -23,7 +23,11 @@
     x86Pkgs = (pkgsFor "x86_64-linux").extend overlay;
     secretsSwitchCheck = pkgs: let
       hasRealFiles = builtins.pathExists ../secrets/files/.gitkeep;
-      hosts = builtins.removeAttrs self.nixosConfigurations ["nanopi-r4s-bootstrap"];
+      hosts = builtins.removeAttrs self.nixosConfigurations [
+        "nanopi-r4s-bootstrap"
+        "nanopi-r5c-bootstrap"
+        "nanopi-r5c-emmc-flasher"
+      ];
     in
       assert nixpkgs.lib.all (host:
         host.config.services.secrets.hasRealFiles

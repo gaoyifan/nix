@@ -323,9 +323,9 @@ build-disk-image target:
     nix build --accept-flake-config \
         "$FLAKE_REF#nixosConfigurations.$target.diskImage"
 
-# Build the universal NanoPi R4S bootstrap SD image
+# Build a universal NanoPi bootstrap SD image (R4S or R5C)
 [group('build')]
-build-nanopi-bootstrap-image:
+build-nanopi-bootstrap-image model="r4s":
     #!/usr/bin/env bash
     set -euo pipefail
     source <({{ self_just }} _emit_nix_env)
@@ -333,7 +333,19 @@ build-nanopi-bootstrap-image:
     sudo --preserve-env=SSH_AUTH_SOCK "$(command -v nix)" build \
         --store local \
         --accept-flake-config \
-        "$FLAKE_REF#packages.aarch64-linux.nanopi-r4s-bootstrap-image"
+        "$FLAKE_REF#packages.aarch64-linux.nanopi-{{ model }}-bootstrap-image"
+
+# Build the NanoPi R5C TF card for manual eMMC installation over SSH
+[group('build')]
+build-nanopi-r5c-emmc-flasher-image:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source <({{ self_just }} _emit_nix_env)
+    source <({{ self_just }} _emit_flake_ref)
+    sudo --preserve-env=SSH_AUTH_SOCK "$(command -v nix)" build \
+        --store local \
+        --accept-flake-config \
+        "$FLAKE_REF#packages.aarch64-linux.nanopi-r5c-emmc-flasher-image"
 
 # Deploy a NixOS configuration with deploy-rs
 [group('deploy')]
@@ -352,7 +364,7 @@ deploy target:
         -c deploy "$FLAKE_REF#{{ target }}" --skip-checks -- \
         --accept-flake-config
 
-# Install a NanoPi R4S target profile and activate it on reboot
+# Install a NanoPi target profile and activate it on reboot
 [group('deploy')]
 deploy-nanopi-from-bootstrap target address="198.51.100.254":
     #!/usr/bin/env bash
@@ -361,6 +373,7 @@ deploy-nanopi-from-bootstrap target address="198.51.100.254":
     source <({{ self_just }} _emit_flake_ref)
     nix develop --accept-flake-config "$FLAKE_REF" \
         -c deploy \
+        --skip-checks \
         --hostname "{{ address }}" \
         --ssh-user root \
         --fast-connection true \

@@ -52,4 +52,5 @@ rec {
 }
 // pkgs.lib.optionalAttrs (pkgs.stdenv.hostPlatform.system == "aarch64-linux") {
   nanopi-r4s-uboot = import ./nanopi-r4s-uboot.nix {inherit pkgs;};
+  nanopi-r5c-uboot = import ./nanopi-r5c-uboot.nix {inherit pkgs;};
 }
