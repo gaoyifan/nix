@@ -46,7 +46,7 @@ in {
     after = [carrierDevice];
   };
 
-  networking.homeRouter.switch.ports.enp1s0.tagged = [650];
+  networking.homeRouter.switch.ports.lan1.tagged = [650];
 
   systemd.network.netdevs."25-vlan650" = {
     netdevConfig = {
@@ -73,7 +73,7 @@ in {
   };
 
   systemd.network.networks."09-unused-wan" = {
-    matchConfig.Name = "end0";
+    matchConfig.Name = "wan0";
     networkConfig = {
       DHCP = "no";
       IPv6AcceptRA = false;

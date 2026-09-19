@@ -15,7 +15,7 @@ in {
 
   services.oobSsh = {
     enable = true;
-    parentInterface = "end0";
+    parentInterface = "wan0";
     address = "198.18.233.233/24";
   };
 
@@ -28,7 +28,7 @@ in {
       privateKeyFile = config.services.secrets.filesDir + "/nixos/cjia/wg-iplc-private-key.age";
     };
 
-    switch.ports.enp1s0.untagged = 651;
+    switch.ports.lan1.untagged = 651;
 
     lans.cjia = {
       vlan = 651;
