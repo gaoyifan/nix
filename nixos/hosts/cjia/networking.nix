@@ -8,16 +8,7 @@
   nylonEl2CernetMark = "0x200";
   pppoeOnlyClientMac = "20:26:06:09:a7:08";
 in {
-  imports = [
-    ../../optional/home-router
-    ../../optional/oob-ssh.nix
-  ];
-
-  services.oobSsh = {
-    enable = true;
-    parentInterface = "wan0";
-    address = "198.18.233.233/24";
-  };
+  imports = [../../optional/home-router];
 
   networking.homeRouter = {
     enable = true;
@@ -29,6 +20,7 @@ in {
     };
 
     switch.ports.lan1.untagged = 651;
+    switch.ports.wan0.untagged = 651;
 
     lans.cjia = {
       vlan = 651;

@@ -21,9 +21,11 @@ cjia 的非可信接口为：
 
 - PPPoE 公网接口 `ppp0`
 - 管理 VLAN 接口 `br-core.650`（`192.168.125.254/24`）
-- 独立 OOB 口 `wan0`（仅在 OOB 命名空间中使用 `198.18.233.233/24`）
 - 海外出口 `wg-iplc`
 - 其他未明确列入可信集合的接口
+
+`lan1` 与 `wan0` 均接入 `br-core`，承载 tagged VLAN 650 和 untagged VLAN 651；
+防火墙按桥上的 VLAN 接口处理流量。
 
 已经确认的访问语义：
 
@@ -69,7 +71,7 @@ chain forward {
 }
 ```
 
-这允许 LAN、Tailscale 和 Nylon 主动访问其他网络，同时禁止 `ppp0`、`br-core.650`、`wan0` 和
+这允许 LAN、Tailscale 和 Nylon 主动访问其他网络，同时禁止 `ppp0`、`br-core.650` 和
 `wg-iplc` 主动转发到 LAN 或其他网络。当前针对 `ppp0`、`wg-iplc`、`nylon0` 到 LAN
 的两条特殊规则应删除，因为 default-deny 已覆盖这些情况。
 

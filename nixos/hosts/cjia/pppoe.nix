@@ -47,6 +47,7 @@ in {
   };
 
   networking.homeRouter.switch.ports.lan1.tagged = [650];
+  networking.homeRouter.switch.ports.wan0.tagged = [650];
 
   systemd.network.netdevs."25-vlan650" = {
     netdevConfig = {
@@ -68,17 +69,6 @@ in {
       DHCP = "no";
       IPv6AcceptRA = false;
       LinkLocalAddressing = false;
-    };
-    linkConfig.RequiredForOnline = "no";
-  };
-
-  systemd.network.networks."09-unused-wan" = {
-    matchConfig.Name = "wan0";
-    networkConfig = {
-      DHCP = "no";
-      IPv6AcceptRA = false;
-      LinkLocalAddressing = false;
-      KeepConfiguration = false;
     };
     linkConfig.RequiredForOnline = "no";
   };
