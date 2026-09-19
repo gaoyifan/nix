@@ -22,9 +22,8 @@ in {
     networks = {
       "10-end0" = {
         matchConfig.Name = "end0";
-        address = ["192.0.2.254/24"];
         networkConfig = {
-          DHCP = "no";
+          DHCP = "ipv4";
           IPv6AcceptRA = false;
           LinkLocalAddressing = false;
         };

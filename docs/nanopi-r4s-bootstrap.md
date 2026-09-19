@@ -7,12 +7,13 @@ configuration.
 
 ## Network
 
-Connect a workstation directly to either port and configure the workstation
-address shown below.
+For direct access, connect a workstation to LAN and set its address below.
+WAN obtains an IPv4 address from DHCP; connect it to a network with a DHCP
+server and look up its lease before using SSH on that port.
 
-| R4S port | R4S address | Workstation address |
+| R4S port | R4S address | Workstation/network |
 | --- | --- | --- |
-| WAN (`end0`) | `192.0.2.254/24` | `192.0.2.1/24` |
+| WAN (`end0`) | IPv4 DHCP | DHCP-enabled network |
 | LAN (`enp1s0`) | `198.51.100.254/24` | `198.51.100.1/24` |
 
 SSH is available as `root` using the repository's authorized keys. Password
@@ -61,10 +62,10 @@ copy:
 just deploy-nanopi-from-bootstrap TARGET
 ```
 
-When connected to the WAN port instead, pass its bootstrap address:
+When connected through WAN instead, pass the address assigned by DHCP:
 
 ```console
-just deploy-nanopi-from-bootstrap TARGET 192.0.2.254
+just deploy-nanopi-from-bootstrap TARGET WAN_DHCP_ADDRESS
 ```
 
 Reboot only after the deployment succeeds:
