@@ -60,7 +60,6 @@
       };
       mosh = {};
       mtr = {};
-      multica = {};
       nc = {
         packagePath = ["netcat"];
         preferWrapper = true;

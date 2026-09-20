@@ -9,7 +9,6 @@ rec {
   dcv = import ./dcv.nix {inherit pkgs;};
   restic = import ./restic.nix {inherit pkgs;};
   mcat = import ./mcat.nix {inherit pkgs;};
-  multica = import ./multica.nix {inherit pkgs;};
   agy = import ./antigravity-cli.nix {inherit pkgs;};
   copilot-cli = import ./copilot-cli.nix {inherit pkgs;};
   codex = import ./codex.nix {inherit pkgs;};
