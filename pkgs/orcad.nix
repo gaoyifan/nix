@@ -18,13 +18,13 @@
 in
   pkgs.stdenv.mkDerivation (finalAttrs: {
     pname = "orcad";
-    version = "0.1.0-unstable-2026-09-21";
+    version = "1.4.206-unstable-2026-09-21";
 
     src = pkgs.fetchFromGitHub {
       owner = "stablyai";
       repo = "orca";
-      rev = "1b77838d1c0e80729bf574c16436bdc7f5154d77";
-      hash = "sha256-kD+UUt+IbchfrEIfxPyXzsIAd645lWuGoXTbxox8dA8=";
+      rev = "963da57cc39f95ea1df756ed2b49ab8e6e2e16db";
+      hash = "sha256-sZrOkBDEylkkxrT9uPpc7sS0ayfSPC7ge9MznVpeHqM=";
     };
 
     pnpmDeps = pkgs.fetchPnpmDeps {
