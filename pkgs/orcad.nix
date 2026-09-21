@@ -18,13 +18,13 @@
 in
   pkgs.stdenv.mkDerivation (finalAttrs: {
     pname = "orcad";
-    version = "1.4.206-unstable-2026-09-21";
+    version = "1.4.206";
 
     src = pkgs.fetchFromGitHub {
       owner = "stablyai";
       repo = "orca";
-      rev = "963da57cc39f95ea1df756ed2b49ab8e6e2e16db";
-      hash = "sha256-sZrOkBDEylkkxrT9uPpc7sS0ayfSPC7ge9MznVpeHqM=";
+      tag = "v${finalAttrs.version}";
+      hash = "sha256-TTcHOf2SB8LYNCtA4A488k6aKW1HXjxcoWy5VlXn+FQ=";
     };
 
     pnpmDeps = pkgs.fetchPnpmDeps {
@@ -41,6 +41,7 @@ in
       pnpm
       pkgs.pnpmConfigHook
       pkgs.python3
+      pkgs.jq
       pkgs.makeBinaryWrapper
       (pkgs.node-gyp.override {inherit nodejs;})
     ];
@@ -58,6 +59,9 @@ in
       node config/scripts/build-orcad.mjs
       node node_modules/typescript/bin/tsc -p config/tsconfig.cli.json --outDir out --composite false --incremental false
       node config/scripts/verify-cli-bin.mjs --fix-executable --fix-package-json
+      jq --arg version ${lib.escapeShellArg finalAttrs.version} '.version = $version' \
+        out/package.json > out/package.json.new
+      mv out/package.json.new out/package.json
       # Worktree creation loads this development dependency's dataset dynamically.
       install -Dm644 node_modules/emojibase-data/en/shortcodes/emojibase.json \
         out/orcad/node_modules/emojibase-data/en/shortcodes/emojibase.json
@@ -79,7 +83,8 @@ in
       cp -r native/windows-registry "$out/lib/orcad/native/"
       makeWrapper ${nodejs}/bin/node "$out/bin/orcad" \
         --add-flags "$out/lib/orcad/orcad.js" \
-        --set ORCA_VERSION ${finalAttrs.version}
+        --set ORCA_VERSION ${finalAttrs.version} \
+        --set ORCA_APP_VERSION ${finalAttrs.version}
       makeWrapper ${nodejs}/bin/node "$out/bin/orca-ide" \
         --add-flags "$out/lib/orcad/out/cli/index.js"
       runHook postInstall

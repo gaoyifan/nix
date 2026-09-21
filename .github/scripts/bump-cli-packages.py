@@ -109,16 +109,13 @@ def current_source_version(name):
         [
             "nix",
             "eval",
-            "--json",
-            f".#{name}",
-            "--apply",
-            "p: { inherit (p) version; rev = p.src.rev; }",
+            "--raw",
+            f".#{name}.version",
         ],
         cwd=ROOT,
         text=True,
     )
-    package = json.loads(output)
-    return f"{package['version']} ({package['rev'][:12]})"
+    return output.strip()
 
 
 def latest_github_release(config):
@@ -196,6 +193,7 @@ def update_package(name, config, version):
                 "nixpkgs#nix-update",
                 "--",
                 "--flake",
+                "--use-github-releases",
                 name,
                 "--version",
                 version,
@@ -272,11 +270,10 @@ def main():
     for name in selected:
         config = PACKAGES[name]
         if config.get("nix_update"):
-            # Source snapshots can change more than once on the same date.
             # Read the evaluated package, not the nested pnpm tool's version.
             current = current_source_version(name)
             before = config["path"].read_text()
-            update_package(name, config, args.version or "branch=main")
+            update_package(name, config, args.version or "stable")
             latest = current_source_version(name)
             summaries.append(format_summary(name, current, latest))
             if config["path"].read_text() != before:
