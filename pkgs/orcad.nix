@@ -45,6 +45,13 @@ in
       (pkgs.node-gyp.override {inherit nodejs;})
     ];
 
+    # A disconnected parent reports async send errors via the callback, not try/catch.
+    # Without it, the upstream watcher smoke check can fail with an unhandled EPIPE.
+    postPatch = ''
+      substituteInPlace src/main/ipc/parcel-watcher-process-entry.ts \
+        --replace-fail 'process.send?.(message)' 'process.send?.(message, () => {})'
+    '';
+
     buildPhase = ''
       runHook preBuild
       node-gyp rebuild --directory node_modules/node-pty
