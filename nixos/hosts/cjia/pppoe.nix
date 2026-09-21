@@ -8,7 +8,7 @@
   pppIpUp = pkgs.writeShellScript "cjia-ppp-ip-up" ''
     ${lib.getExe' pkgs.systemd "systemctl"} restart nylon.service
   '';
-  carrier = "br-core.650";
+  carrier = "br-core.41";
   carrierDevice = "sys-subsystem-net-devices-${utils.escapeSystemdPath carrier}.device";
 in {
   age.secrets = lib.mkIf config.services.secrets.hasRealFiles {
@@ -46,20 +46,20 @@ in {
     after = [carrierDevice];
   };
 
-  networking.homeRouter.switch.ports.lan1.tagged = [650];
-  networking.homeRouter.switch.ports.wan0.tagged = [650];
+  networking.homeRouter.switch.ports.lan1.tagged = [41];
+  networking.homeRouter.switch.ports.wan0.tagged = [41];
 
-  systemd.network.netdevs."25-vlan650" = {
+  systemd.network.netdevs."25-vlan41" = {
     netdevConfig = {
       Kind = "vlan";
       Name = carrier;
     };
-    vlanConfig.Id = 650;
+    vlanConfig.Id = 41;
   };
 
   systemd.network.networks."40-br-core" = {
     vlan = [carrier];
-    bridgeVLANs = [{VLAN = 650;}];
+    bridgeVLANs = [{VLAN = 41;}];
   };
 
   systemd.network.networks."09-pppoe-carrier" = {

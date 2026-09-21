@@ -84,7 +84,7 @@ in {
     };
 
     # The optical modem has no return route for the LAN subnet.
-    egress.masquerade.extraInterfaces = ["br-core.650"];
+    egress.masquerade.extraInterfaces = ["br-core.41"];
   };
 
   # Proxying would bypass this client's MAC-based forward restriction below.
