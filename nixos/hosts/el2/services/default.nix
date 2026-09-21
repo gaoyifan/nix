@@ -16,6 +16,7 @@
     ./new-api.nix
     ./open-webui.nix
     ./openlist.nix
+    ./orca.nix
     ./powerdns.nix
     ./py-kms.nix
     ./restic.nix
