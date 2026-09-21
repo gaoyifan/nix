@@ -42,6 +42,7 @@ Disconnecting the MacBook leaves agents running. Restarting the systemd service
 ends its terminals and agents, so finish those tasks before an upgrade or restart.
 The runtime and dependency hashes are pinned in `pkgs/orcad.nix`; deploy changes
 with `just nixos` from el2.
+Scheduled updates select stable GitHub releases, rather than snapshots of `main`.
 
 The package runs upstream's Node-only bundle checks and compiles the CLI. Deployment
 validation also exercises native file watching, PTY output, authenticated worktree
