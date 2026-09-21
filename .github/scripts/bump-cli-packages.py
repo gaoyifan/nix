@@ -18,6 +18,10 @@ AUTO_BUMP_SKIP = {"antigravity-cli", "copilot-cli", "cursor-cli"}
 
 
 PACKAGES = {
+    "orcad": {
+        "path": ROOT / "pkgs/orcad.nix",
+        "nix_update": True,
+    },
     "antigravity-cli": {
         "path": ROOT / "pkgs/antigravity-cli.nix",
         "manifest_base": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app",
@@ -100,6 +104,23 @@ def current_version(path):
     return match.group(1)
 
 
+def current_source_version(name):
+    output = subprocess.check_output(
+        [
+            "nix",
+            "eval",
+            "--json",
+            f".#{name}",
+            "--apply",
+            "p: { inherit (p) version; rev = p.src.rev; }",
+        ],
+        cwd=ROOT,
+        text=True,
+    )
+    package = json.loads(output)
+    return f"{package['version']} ({package['rev'][:12]})"
+
+
 def latest_github_release(config):
     releases = json.loads(fetch_text(config["release_api"], token=os.environ.get("GH_TOKEN")))
     tag_pattern = re.compile(config["tag_pattern"])
@@ -170,6 +191,8 @@ def update_package(name, config, version):
             [
                 "nix",
                 "run",
+                "--inputs-from",
+                ".",
                 "nixpkgs#nix-update",
                 "--",
                 "--flake",
@@ -248,6 +271,17 @@ def main():
 
     for name in selected:
         config = PACKAGES[name]
+        if config.get("nix_update"):
+            # Source snapshots can change more than once on the same date.
+            # Read the evaluated package, not the nested pnpm tool's version.
+            current = current_source_version(name)
+            before = config["path"].read_text()
+            update_package(name, config, args.version or "branch=main")
+            latest = current_source_version(name)
+            summaries.append(format_summary(name, current, latest))
+            if config["path"].read_text() != before:
+                changed.append((name, current, latest))
+            continue
         current = current_version(config["path"])
         latest = args.version or latest_version(name, config)
         summaries.append(format_summary(name, current, latest))

@@ -15,10 +15,11 @@ on:
           - antigravity-cli
           - copilot-cli
           - codex
+          - orcad
           - cursor-cli
           - pi-coding-agent
       version:
-        description: "Optional version, only when selecting a single package"
+        description: "Optional version for one package; orcad accepts nix-update selectors (default: branch=main)"
         required: false
         type: string
 
@@ -51,7 +52,7 @@ jobs:
         with:
           max_attempts: 5
           retry_wait_seconds: 1
-          timeout_minutes: 10
+          timeout_minutes: 30
           on_retry_command: git restore --source=HEAD --staged --worktree -- .
           command: python3 .github/scripts/bump-cli-packages.py --package "$REQUESTED_PACKAGE" --version "$REQUESTED_VERSION"
 
@@ -61,7 +62,7 @@ jobs:
 
       - name: Validate packages
         if: steps.bump.outputs.changed == 'true'
-        run: nix build --accept-flake-config .#agy .#copilot .#codex .#cursor-cli .#pi
+        run: nix build --accept-flake-config .#agy .#copilot .#codex .#cursor-cli .#pi .#orcad
 
       - name: Commit and push
         if: steps.bump.outputs.changed == 'true'
