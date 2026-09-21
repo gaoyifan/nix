@@ -511,7 +511,7 @@ in {
 
         nylon-routes = {
           description = "Exact Nylon selector route reconciliation";
-          wantedBy = ["multi-user.target"];
+          wantedBy = ["multi-user.target" "nylon.service"];
           requires = ["nylon.service"];
           after =
             ["nylon.service"]
@@ -581,7 +581,7 @@ in {
 
       systemd.services.nylon-exit = {
         description = "Nylon MPLS exits: static LSPs and egress SNAT";
-        wantedBy = ["multi-user.target"];
+        wantedBy = ["multi-user.target" "nylon.service"];
         requires =
           ["nylon.service"]
           ++ lib.optional warpEnabled "nylon-warp-reconfigure.service";

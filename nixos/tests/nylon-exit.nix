@@ -95,7 +95,10 @@ in {
           before = ["nylon.service"];
           requiredBy = ["nylon.service"];
           path = [pkgs.iproute2];
-          serviceConfig.Type = "oneshot";
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+          };
           script = ''
             ip link add nylon0 type dummy
             ip link set nylon0 up
@@ -154,5 +157,22 @@ in {
     exit.succeed("ip -f mpls route show 100 | grep -F 'via inet 192.0.2.1 dev wan0'")
     exit.succeed("ip -f mpls route show 101 | grep -F 'dev p2p0'")
     exit.fail("ip -f mpls route show 101 | grep -F 'via inet'")
+
+    # PartOf stops the route services with Nylon; a subsequent start must
+    # pull them back in, including after an automatic crash recovery.
+    exit.wait_for_unit("nylon-routes.service")
+    exit.succeed("systemctl stop nylon.service")
+    exit.fail("systemctl is-active --quiet nylon-routes.service")
+    exit.fail("systemctl is-active --quiet nylon-exit.service")
+    exit.succeed("systemctl start nylon.service")
+    exit.wait_for_unit("nylon-routes.service")
+    exit.wait_for_unit("nylon-exit.service")
+    exit.succeed("ip -f mpls route show 100 | grep -F 'via inet 192.0.2.1 dev wan0'")
+
+    exit.succeed("systemctl kill --signal=KILL --kill-whom=main nylon.service")
+    exit.wait_until_succeeds("test $(systemctl show nylon.service -p NRestarts --value) -ge 1")
+    exit.wait_for_unit("nylon-routes.service")
+    exit.wait_for_unit("nylon-exit.service")
+    exit.succeed("ip -f mpls route show 100 | grep -F 'via inet 192.0.2.1 dev wan0'")
   '';
 }
