@@ -52,6 +52,16 @@ in {
               output_usd_per_million = "50.00";
               max_reasoning_effort = "medium";
             };
+            "gpt-6-sol" = {
+              input_usd_per_million = "2.00";
+              cached_input_usd_per_million = "0.20";
+              output_usd_per_million = "10.00";
+            };
+            "gpt-6-luna" = {
+              input_usd_per_million = "0.10";
+              cached_input_usd_per_million = "0.01";
+              output_usd_per_million = "0.50";
+            };
             "gpt-5.6-sol" = {
               input_usd_per_million = "4.00";
               cached_input_usd_per_million = "0.40";

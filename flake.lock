@@ -149,11 +149,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1789034880,
-        "narHash": "sha256-ui1Dx3+66pybHoq9gyeGakxc9fAHBXEDoO7ytLReVoc=",
+        "lastModified": 1790101650,
+        "narHash": "sha256-SVu9O7d8ZHPU8dGNrMZ34PSuqaxeaJOONjfS/4lgc/c=",
         "owner": "gaoyifan",
         "repo": "codex-api",
-        "rev": "58f9077e0a1d46a9f0c61be2dc1680709cff2e6a",
+        "rev": "6c68a835ad8cd11d74ac95a962d48db319b6e393",
         "type": "github"
       },
       "original": {

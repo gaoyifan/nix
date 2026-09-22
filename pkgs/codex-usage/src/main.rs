@@ -16,7 +16,7 @@ use rayon::prelude::*;
 use serde_json::Value;
 use walkdir::WalkDir;
 
-const PRICE_DATE: &str = "2026-09-09";
+const PRICE_DATE: &str = "2026-09-23";
 const FAST_MULTIPLIER: f64 = 2.5;
 const INJECTED_PROMPT_PREFIXES: [&str; 3] = [
     "# AGENTS.md instructions",
@@ -291,19 +291,21 @@ fn event_user_prompt(payload: &Value) -> Option<String> {
 }
 
 fn request_cost(model: Option<&str>, tier: Option<&str>, usage: Usage) -> Option<f64> {
-    let (input_price, cached_price, output_price) = match model? {
-        "gpt-6-astra" => (10.0, 1.0, 50.0),
-        "gpt-5.6-sol" => (4.0, 0.4, 20.0),
-        "gpt-5.6-terra" => (2.0, 0.2, 12.0),
-        "gpt-5.6-luna" => (0.2, 0.02, 1.2),
+    let (input_price, cached_price, output_price, fast_multiplier) = match model? {
+        "gpt-6-astra" => (10.0, 1.0, 50.0, FAST_MULTIPLIER),
+        "gpt-6-sol" => (2.0, 0.2, 10.0, 2.0),
+        "gpt-6-luna" => (0.1, 0.01, 0.5, 2.0),
+        "gpt-5.6-sol" => (4.0, 0.4, 20.0, FAST_MULTIPLIER),
+        "gpt-5.6-terra" => (2.0, 0.2, 12.0, FAST_MULTIPLIER),
+        "gpt-5.6-luna" => (0.2, 0.02, 1.2, FAST_MULTIPLIER),
         _ => return None,
     };
     let billable_input = usage.input_tokens as i64
         - usage.cached_input_tokens as i64
         - usage.cache_write_input_tokens as i64;
 
-    let multiplier = if tier == Some("priority") {
-        FAST_MULTIPLIER
+    let multiplier = if matches!(tier, Some("priority" | "fast")) {
+        fast_multiplier
     } else {
         1.0
     };
@@ -1041,6 +1043,20 @@ mod tests {
         assert_eq!(
             request_cost(Some("gpt-5.6-terra"), None, large),
             Some(0.252)
+        );
+        assert_eq!(request_cost(Some("gpt-6-sol"), None, large), Some(0.25));
+        assert_eq!(
+            request_cost(Some("gpt-6-sol"), Some("priority"), large),
+            Some(0.5)
+        );
+        assert_eq!(
+            request_cost(Some("gpt-6-sol"), Some("fast"), large),
+            Some(0.5)
+        );
+        assert_eq!(request_cost(Some("gpt-6-luna"), None, large), Some(0.0125));
+        assert_eq!(
+            request_cost(Some("gpt-6-luna"), Some("priority"), large),
+            Some(0.025)
         );
     }
 }
