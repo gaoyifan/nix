@@ -4,6 +4,7 @@
       name = "anomalyco/tap";
       trusted = true;
     }
+    "stablyai/orca"
   ];
 
   brews = [
@@ -36,6 +37,7 @@
     # AI Tools
     "chatgpt"
     "grok-bot"
+    "stablyai/orca/orca"
     "typeless"
 
     # Development
