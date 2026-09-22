@@ -167,20 +167,18 @@ in {
     settings = {
       model = {
         provider = "codex-api";
-        default = "gpt-5.6-sol";
+        default = "gpt-6-sol";
         base_url = codexApiBaseUrl;
         api_mode = "codex_responses";
       };
       providers.codex-api = {
         api = codexApiBaseUrl;
         key_env = "NEWAPI_API_KEY";
-        default_model = "gpt-5.6-sol";
         transport = "codex_responses";
       };
       providers.newapi = {
         api = newApiBaseUrl;
         key_env = "NEWAPI_API_KEY";
-        default_model = "gpt-5.6-sol";
         transport = "codex_responses";
       };
       approvals.mode = "off";
