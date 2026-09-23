@@ -18,6 +18,8 @@ in {
   systemd.services.orcad = {
     description = "Orca headless agent runtime";
     wantedBy = ["multi-user.target"];
+    # Preserve running agent sessions across NixOS switches; upgrade on manual restart.
+    restartIfChanged = false;
     path = [pkgs.orcad pkgs.codex pkgs.git pkgs.openssh pkgs.bash];
     environment = {
       CODEX_HOME = "/home/${username}/.syncd-dotfiles/.codex";
