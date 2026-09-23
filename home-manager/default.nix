@@ -122,6 +122,8 @@ in {
         email = "git@yfgao.com";
       };
       push.autoSetupRemote = true;
+      # Xcode Git enables osxkeychain by default; our GitHub HTTPS remotes are public.
+      credential."https://github.com".helper = "";
       # Delta for better diffs
       core.pager = "delta";
       interactive.diffFilter = "delta --color-only";
