@@ -7,7 +7,7 @@
 }: let
   cfg = config.networking.homeRouter;
   nylonUdpPort =
-    if lib.hasAttrByPath ["services" "nylon" "udpPort"] options
+    if lib.hasAttrByPath ["services" "nylon" "udpPort"] options && config.services.nylon.enable
     then config.services.nylon.udpPort
     else 6622;
   classification = cfg.egress.classification;
