@@ -4,6 +4,8 @@
   ...
 }: let
   database = "/var/lib/ulogd/flows.sqlite";
+  archiveDirectory = "/pool0/log";
+  archivePython = pkgs.python3.withPackages (pythonPackages: [pythonPackages.pyarrow]);
   schema = pkgs.writeText "ulogd-flows.sql" ''
     PRAGMA journal_mode = WAL;
     CREATE TABLE IF NOT EXISTS flows (
@@ -81,33 +83,18 @@ in {
     };
   };
 
-  systemd.services.ulogd-prune = {
-    description = "Delete connection records older than 90 days";
-    startAt = "daily";
-    after = ["ulogd.service"];
-    unitConfig.ConditionPathExists = database;
-    serviceConfig.Type = "oneshot";
+  systemd.services.ulogd-archive = {
+    description = "Archive completed ulogd days as zstd Parquet";
+    startAt = "*-*-* 09:10:00";
+    after = ["ulogd.service" "zfs-mount.service"];
+    unitConfig.RequiresMountsFor = archiveDirectory;
+    serviceConfig = {
+      Type = "oneshot";
+      UMask = "0077";
+    };
     script = ''
-      ${pkgs.python3}/bin/python3 <<'PY'
-      import sqlite3
-      import time
-
-      cutoff = int(time.time()) - 90 * 86400
-      with sqlite3.connect("${database}", timeout=30) as db:
-          # Short transactions leave the writer room between batches. WAL lets
-          # readers query history without blocking collection. Freed pages are reused.
-          while True:
-              deleted = db.execute(
-                  "DELETE FROM flows WHERE rowid IN "
-                  "(SELECT rowid FROM flows WHERE flow_end_sec < ? LIMIT 500)",
-                  (cutoff,),
-              ).rowcount
-              db.commit()
-              if deleted == 0:
-                  break
-              time.sleep(0.05)
-      PY
+      ${archivePython}/bin/python3 ${./ulogd-archive.py} ${database} ${archiveDirectory}
     '';
   };
-  systemd.timers.ulogd-prune.timerConfig.Persistent = true;
+  systemd.timers.ulogd-archive.timerConfig.Persistent = true;
 }
