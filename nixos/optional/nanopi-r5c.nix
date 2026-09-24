@@ -36,11 +36,17 @@
   systemd.network.links = {
     "10-wan0" = {
       matchConfig.Path = "platform-3c0800000.pcie-*";
-      linkConfig.Name = "wan0";
+      linkConfig = {
+        Name = "wan0";
+        MACAddressPolicy = "persistent";
+      };
     };
     "10-lan1" = {
       matchConfig.Path = "platform-3c0400000.pcie-*";
-      linkConfig.Name = "lan1";
+      linkConfig = {
+        Name = "lan1";
+        MACAddressPolicy = "persistent";
+      };
     };
   };
 

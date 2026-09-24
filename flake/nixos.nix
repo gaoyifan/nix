@@ -51,6 +51,7 @@
   };
   hostInventory = {
     ali-sg = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/ali-sg];
+    baihualin = mkDeployableHost "aarch64-linux" [../nixos/hosts/baihualin];
     blog = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/blog];
     cjia = mkDeployableHost "aarch64-linux" [../nixos/hosts/cjia];
     el = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/el];

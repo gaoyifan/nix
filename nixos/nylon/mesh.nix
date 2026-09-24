@@ -27,11 +27,12 @@
   };
 
   # 21 belonged to the resource-constrained google node, 22 to the retired
-  # hetzner0 node, and 27 to los6. Keep all retired identities reserved.
+  # hetzner0 node, and 27 to los6. Keep 32 for offline somo-nanopi-r4s.
   reservedNumericIds = [
     21
     22
     27
+    32
   ];
 
   expected = {

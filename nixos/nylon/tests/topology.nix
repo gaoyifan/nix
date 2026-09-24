@@ -3,6 +3,7 @@
   nodes = import ../nodes;
   expectedHosts = [
     "ali-sg"
+    "baihualin"
     "blog"
     "cjia"
     "el"
@@ -14,19 +15,19 @@
     "oracle2"
     "oracle3"
     "somo-minisforum"
-    "somo-nanopi-r4s"
     "xtom-hkg"
     "xtom-sjc"
     "xtom-syd"
   ];
   expectedSelectors = [
+    "baihualin"
     "cjia"
     "el"
     "el2"
     "somo-minisforum"
-    "somo-nanopi-r4s"
   ];
   expectedNumericIds = {
+    baihualin = 35;
     blog = 16;
     cjia = 17;
     ali-sg = 18;
@@ -41,7 +42,6 @@
     xtom-hkg = 29;
     xtom-sjc = 30;
     xtom-syd = 31;
-    somo-nanopi-r4s = 32;
     misc0-jp = 33;
   };
   compileWith = {
@@ -171,7 +171,7 @@ in
   assert all (exit: exit.nodeId != "los6" && exit.nodeId != "google") fleet.topology.catalog;
   assert fleet.dns.controller == "el2";
   assert fleet.dns.apiUrl == "http://pdns-ui.ts.gaof.net/api/v1/servers/localhost/zones/ny.gaof.net";
-  assert fleet.central.sha256 == "d77a3ec7daa22854a725f194196d8c879ff15237d708cc1d059fb0ea74c39d08";
+  assert fleet.central.sha256 == "4a8acfee2ca1cd2ee057d13ef4cf8cce3612adc9f49e8272cddb163b18ec9a05";
   assert fleet.central.value.graph == [(concatStringsSep ", " expectedHosts)];
   assert builtins.fromJSON fleet.dns.text == fleet.dns.value;
   assert builtins.match ".*privateKey.*" fleet.manifest.text == null;

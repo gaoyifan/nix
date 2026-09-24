@@ -5,6 +5,7 @@
   ...
 }: let
   defaultZones = {
+    "baihualin.gaof.net" = "100.66.1.254";
     "cjia.gaof.net" = "100.65.1.254";
     "el.gaof.net" = "100.64.1.254";
     "el2.gaof.net" = "100.64.2.254";

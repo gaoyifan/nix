@@ -1,5 +1,6 @@
 {
   ali-sg = import ./ali-sg.nix;
+  baihualin = import ./baihualin.nix;
   blog = import ./blog.nix;
   cjia = import ./cjia.nix;
   el = import ./el.nix;
@@ -11,7 +12,7 @@
   oracle2 = import ./oracle2.nix;
   oracle3 = import ./oracle3.nix;
   somo-minisforum = import ./somo-minisforum.nix;
-  somo-nanopi-r4s = import ./somo-nanopi-r4s.nix;
+  # somo-nanopi-r4s is offline; keep its node file for recovery.
   xtom-hkg = import ./xtom-hkg.nix;
   xtom-sjc = import ./xtom-sjc.nix;
   xtom-syd = import ./xtom-syd.nix;
