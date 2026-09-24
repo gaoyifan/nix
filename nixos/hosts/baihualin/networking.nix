@@ -20,6 +20,9 @@
     address = "198.18.233.235/24";
   };
 
+  # This router advertises a default route but never answers neighbor discovery.
+  systemd.network.networks."10-wan-chinanet".ipv6AcceptRAConfig.RouterDenyList = "fe80::9683:c4ff:fee4:5849";
+
   # DAD cannot finish without LAN carrier, but this ULA is also routed over Tailscale.
   systemd.network.networks."41-baihualin" = {
     address = lib.mkForce ["100.66.1.254/24"];
