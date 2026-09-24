@@ -37,6 +37,7 @@
     # AI Tools
     "chatgpt"
     "grok-bot"
+    "paseo"
     "stablyai/orca/orca"
     "typeless"
 
