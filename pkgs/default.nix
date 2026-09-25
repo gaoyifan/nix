@@ -37,6 +37,7 @@ rec {
 }
 // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
   orcad = import ./orcad.nix {inherit pkgs;};
+  paseo = import ./paseo.nix {inherit inputs pkgs;};
   bitmagnet = import ./bitmagnet.nix {inherit pkgs;};
   dnsmonster = import ./dnsmonster.nix {inherit pkgs;};
   jip = import ./jip.nix {inherit pkgs;};

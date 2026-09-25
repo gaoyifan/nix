@@ -17,6 +17,7 @@
     ./open-webui.nix
     ./openlist.nix
     ./orca.nix
+    ./paseo.nix
     ./powerdns.nix
     ./py-kms.nix
     ./restic.nix

@@ -167,6 +167,11 @@
       inputs.rust-overlay.follows = "rust-overlay";
     };
 
+    paseo = {
+      url = "github:getpaseo/paseo/v0.9.2";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     lark-cli-src = {
       url = "github:larksuite/cli";
       flake = false;
