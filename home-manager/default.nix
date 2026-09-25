@@ -226,9 +226,9 @@ in {
 
   services.mutagen.dotfileSync = {
     enable = lib.mkDefault config.services.secrets.hasRealFiles;
-    host = "mutagen.yfgao.com";
+    host = "mutagen.ts.gaof.net";
     user = "syncd";
-    port = 2221;
+    port = 22;
   };
 
   # Auto gc on Linux only - darwin handles this at system level

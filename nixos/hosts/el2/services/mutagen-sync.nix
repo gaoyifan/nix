@@ -8,6 +8,8 @@
 in {
   home-manager.users.${username}.services.mutagen.dotfileSync.syncCodexSessions = true;
 
+  services.tailscale.serve.services.mutagen.endpoints."tcp:22" = "tcp://127.0.0.1:2221";
+
   networking.edgeFirewall.extraPublicTcpPorts = ["2221"];
 
   containers.mutagen-sync = {
