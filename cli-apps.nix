@@ -11,7 +11,9 @@
       bandwhich = {};
       bmon = {};
       cargo-binstall = {};
-      codex = {};
+      codex = {
+        program = "codex-launcher";
+      };
       codex-reindex = {};
       codex-usage = {};
       colliepwa = {

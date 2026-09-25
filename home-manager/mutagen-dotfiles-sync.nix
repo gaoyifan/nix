@@ -21,24 +21,36 @@
   remoteEndpoint = "${cfg.user}@${cfg.host}:${toString cfg.port}:/data/syncd-dotfiles";
   remoteRsyncRoot = "${cfg.user}@${cfg.host}:/data/syncd-dotfiles/";
   rsyncSshCommand = "${sshWrapper}/bin/ssh -F /dev/null -p ${toString cfg.port}";
+  codexSyncedPaths =
+    [
+      "config.toml"
+      "auth*.json"
+    ]
+    ++ lib.optionals cfg.syncCodexSessions [
+      "session_index.jsonl"
+      "sessions/"
+    ];
   ignoredPaths =
     [
       "*.sqlite"
       "*.sqlite-*"
-      ".codex/archived_sessions"
-      ".codex/cache"
-      ".codex/history.jsonl"
-      ".codex/models_cache.json"
-      ".codex/plugins/cache"
-      ".codex/tmp"
-      ".codex/.tmp"
-      ".codex/version.json"
+      # Match only .codex's immediate children, then reopen the allowlisted paths.
+      ".codex/*"
     ]
-    ++ lib.optionals (!cfg.syncCodexSessions) [
-      ".codex/session_index.jsonl"
-      ".codex/sessions"
+    ++ map (path: "!.codex/${path}") codexSyncedPaths;
+  rsyncFilterArguments =
+    [
+      "--exclude=*.sqlite"
+      "--exclude=*.sqlite-*"
+      "--include=/.codex/"
+    ]
+    ++ map (path: "--include=/.codex/${path}") codexSyncedPaths
+    ++ lib.optionals cfg.syncCodexSessions [
+      "--include=/.codex/sessions/***"
+    ]
+    ++ [
+      "--exclude=/.codex/***"
     ];
-  rsyncExcludeArguments = map (path: "--exclude=/${path}") ignoredPaths;
   sessionCreateArguments = lib.cli.toCommandLineGNU {} {
     compression = "deflate";
     ignore = ignoredPaths;
@@ -312,7 +324,7 @@
 
       mkdir -p ${lib.escapeShellArg localPath}
       rsync -a --delete \
-        ${lib.escapeShellArgs rsyncExcludeArguments} \
+        ${lib.escapeShellArgs rsyncFilterArguments} \
         -e ${lib.escapeShellArg rsyncSshCommand} \
         ${lib.escapeShellArg remoteRsyncRoot} \
         ${lib.escapeShellArg "${localPath}/"}

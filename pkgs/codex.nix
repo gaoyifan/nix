@@ -62,9 +62,10 @@ in
       runHook postInstall
     '';
 
-    # Home Manager repoints this stable path when the forwarded agent changes.
+    # The daemon copies this package and checks bin/codex against the running
+    # executable, so keep that entrypoint as the original binary.
     postFixup = ''
-      wrapProgram "$out/bin/codex" \
+      makeWrapper "$out/bin/codex" "$out/bin/codex-launcher" \
         ${lib.optionalString stdenv.hostPlatform.isLinux "--prefix PATH : ${lib.makeBinPath [pkgs.bubblewrap]}"} \
         --run 'if [ -S "$HOME/.ssh/agent.sock" ]; then export SSH_AUTH_SOCK="$HOME/.ssh/agent.sock"; fi'
     '';
@@ -74,7 +75,7 @@ in
       homepage = "https://github.com/openai/codex";
       changelog = "https://github.com/openai/codex/releases/tag/rust-v${version}";
       license = licenses.asl20;
-      mainProgram = "codex";
+      mainProgram = "codex-launcher";
       platforms = [
         "x86_64-linux"
         "aarch64-linux"
