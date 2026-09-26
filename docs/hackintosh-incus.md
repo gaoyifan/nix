@@ -3,8 +3,9 @@
 ## Purpose and current state
 
 `el2` runs the Incus VM `hackintosh` as the macOS computer `Hackintosh`. It is
-an Intel macOS host for a Photos library. Apple Account sign-in is under
-validation; iCloud Photos is not yet enabled or accepted.
+an Intel macOS host for a Photos library. The 2026-09-26 CPU-fix validation
+confirmed active iCloud Photos downloads into the library on `/Volumes/Photos`.
+This verifies the running workload, not completeness of an independent backup.
 
 The accepted local configuration is:
 
@@ -42,7 +43,7 @@ authentication.
 | Apple `BaseSystem.dmg` | `edddd0d5869caaa12e29e6996a04f11590280580976a119dbd42c24fa62fe18e` |
 | Converted `BaseSystem.img` | `4aec7443daa3851effb6ffbba97b34bf2896acf1a28ca152e0c3d0f073c3097e` |
 | Recovery copy of personalized `OpenCore.raw` | `4d919698c8181efd1792681667f74e49a00f35422ae28133985923e180dbc6e2` |
-| Installed OpenCore `config.plist` | `4c3071351752a03b37f2633c2c64a9e4ff3dc23c5c1311745e3fbb0a51028d7f` |
+| Installed OpenCore `config.plist` | `418652df3f1d8bce143a1dc83e84916946bbd847f8cc0c6c30aba8dc7124cf9f` |
 
 `BaseSystem.img`, the recovery copy of `OpenCore.raw`, the official 1.0.7 archive,
 the pre-upgrade OpenCore image, a pre-upgrade system EFI copy, and the private
@@ -95,6 +96,49 @@ The `photos` device references the custom Incus block volume
 volume, instance snapshots do not include its contents; snapshot or back it up
 separately. If encrypted pool0 is unavailable during Incus startup,
 `start-pool0-dependent-vms.service` starts the VM after pool0 is unlocked.
+
+## CPU compatibility fixes
+
+The installed EFI includes two fixes validated on macOS `25G83` / Darwin
+`25.6.0`, QEMU 10.2.4 and VirtualSMC 1.3.7 on 2026-09-26:
+
+- A kernel patch makes the unused Bluetooth HCI controller's `start` method
+  return false. It matches the verified 16-byte function entry and is limited
+  to Darwin `25.6.0`. `bluetoothd` and `WirelessRadioManagerd` then remain near
+  zero CPU, with no recurring Bluetooth daemon exits.
+- An ACPI patch hides QEMU's SMC node from macOS while retaining its boot-time
+  device. `vsmcgen=2` lets VirtualSMC provide the runtime AppleSMC service.
+  The native probe enumerates 69 unique keys and ends with `0xb8`;
+  `PerfPowerServices` remains near zero CPU and the former `0x82` errors stop.
+
+The exact patch bytes, source references and measurements are in
+[the CPU investigation](research/hackintosh-idle-cpu.md#实施记录2026-09-26).
+The ACPI patch matches the verified DSDT's length and OEM table ID. Recheck it
+after changes to QEMU or the VM hardware configuration; recheck the Bluetooth
+patch after macOS updates. Remove the Bluetooth patch before adding Bluetooth
+hardware to the guest.
+
+Photos processing and synchronization services remain enabled. Validation
+confirmed continuing downloads, a stable 53,076-asset database count, HEIC-to-JPEG
+conversion, and 12 original-file hashes matching the pre-change Photos-volume
+snapshot. Two 45-second host CPU samples were 0.45 and 1.86 cores, depending on
+photo activity; the earlier 30-second sample was 3.71 cores. These are workload
+observations, not a controlled Photos throughput benchmark.
+
+Private backups and validated configs are in
+`/var/lib/incus-macos/cpu-fix-20260926/`. The instance and the separate Photos
+volume each have a `pre-cpu-fix-20260926` snapshot. For a firmware rollback,
+cleanly stop the guest and restore only the saved `config-before.plist` into the
+system ESP; do not roll back the Photos volume as part of reverting EFI changes.
+The detached `OpenCore.raw` retains the earlier boot configuration as recovery
+media.
+
+Incus hides stopped ZFS block volumes with `volmode=none`. For offline EFI
+maintenance, verify the instance is stopped, temporarily set its system zvol
+`pool1/incus/virtual-machines/hackintosh.block` to `volmode=dev`, and restore
+`volmode=none` before starting the instance. Verify the GPT partition offset
+before using it; the current system ESP begins at byte 20480. Never write to the
+live VM's block device from the host.
 
 ## Remote administration
 
@@ -237,9 +281,9 @@ Install macOS updates manually during a maintenance window. Take a stopped Incus
 snapshot first, confirm the target release still supports Intel, and re-run the
 cold-boot, identity, Photos import/export, and SSH checks after the update.
 
-This phase does not claim iCloud compatibility or backup completeness. The data
-disk is provisioned but the System Photo Library has not been moved to it. The
-next phase must authenticate the Apple Account with two-factor authentication,
-move or create the System Photo Library on `/Volumes/Photos`, enable Download
-Originals to this Mac, test deletion propagation, and configure an independent
-versioned backup of the library or exported originals.
+The active library is now `/Volumes/Photos/Photos Library.photoslibrary`.
+The CPU-fix validation confirmed successful iCloud resource downloads and local
+photo decoding, but did not establish that every original has finished
+downloading or that an independent versioned backup is complete. Full backup
+acceptance still requires checking Download Originals to this Mac, completion
+status, deletion propagation and restoration from an independent backup.
