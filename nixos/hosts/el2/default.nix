@@ -51,6 +51,7 @@ in {
   ];
 
   environment.systemPackages = [
+    pkgs.gcc
     pkgs.mbuffer
     pkgs.python3
   ];
