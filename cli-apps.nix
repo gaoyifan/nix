@@ -233,26 +233,46 @@ in {
       pkgs.writeShellScript name ''
         cache_dir="''${XDG_CACHE_HOME:-$HOME/.cache}/nix-lazy-apps"
         cache_file="$cache_dir/${app}"
-        printf -v now '%(%s)T' -1
+        mkdir -p "$cache_dir"
+        exec 9> "$cache_file.lock"
+        ${lib.getExe pkgs.flock} -n 9 || {
+          echo "${name}: waiting for cache update..." >&2
+          ${lib.getExe pkgs.flock} 9 || exit $?
+        }
 
+        printf -v now '%(%s)T' -1
+        cached_program=""
+        refresh_timeout=0
         if [[ -r "$cache_file" ]] \
           && read -r cached_at program < "$cache_file" \
           && [[ $cached_at =~ ^[0-9]+$ ]] \
-          && ((now >= cached_at && now - cached_at < 3600)) \
           && [[ -x $program ]]; then
-          exec "$program"${appArgs} "$@"
+          if ((now >= cached_at && now - cached_at < 3600)); then
+            exec "$program"${appArgs} "$@" 9>&-
+          fi
+          cached_program="$program"
+          refresh_timeout=10
         fi
 
-        resolution="$(nix eval ${lib.escapeShellArgs nixCacheOptions} --refresh --impure --raw --expr ${lib.escapeShellArg resolveExpression})" || exit $?
-        read -r program installable <<< "$resolution"
+        echo "${name}: checking for updates..." >&2
+        program="$(${pkgs.coreutils}/bin/timeout --signal=KILL "$refresh_timeout" \
+          ${pkgs.bash}/bin/bash -e -c ${lib.escapeShellArg ''
+          resolution="$(nix eval ${lib.escapeShellArgs nixCacheOptions} --refresh --impure --raw --expr ${lib.escapeShellArg resolveExpression})"
+          read -r program installable <<< "$resolution"
+          if [[ ! -x "$program" ]]; then
+            nix build ${lib.escapeShellArgs nixCacheOptions} --no-link "$installable"
+          fi
+          printf '%s' "$program"
+        ''})" || {
+          status=$?
+          [[ -n "$cached_program" ]] || exit "$status"
+          echo "${name}: update failed or timed out; using installed version." >&2
+          program="$cached_program"
+        }
 
-        if [[ ! -x "$program" ]]; then
-          nix build ${lib.escapeShellArgs nixCacheOptions} --no-link "$installable" || exit $?
-        fi
-
-        mkdir -p "$cache_dir"
+        printf -v now '%(%s)T' -1
         printf '%s %s\n' "$now" "$program" > "$cache_file"
-        exec "$program"${appArgs} "$@"
+        exec "$program"${appArgs} "$@" 9>&-
       '';
     wrapperFiles = lib.mapAttrs' (
       app: spec: let
