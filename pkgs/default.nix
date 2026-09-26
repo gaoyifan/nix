@@ -10,6 +10,7 @@ rec {
   restic = import ./restic.nix {inherit pkgs;};
   mcat = import ./mcat.nix {inherit pkgs;};
   agy = import ./antigravity-cli.nix {inherit pkgs;};
+  cargo-recursive-clean = import ./cargo-recursive-clean.nix {inherit pkgs;};
   copilot-cli = import ./copilot-cli.nix {inherit pkgs;};
   codex = import ./codex.nix {inherit pkgs;};
   codex-reindex = import ./codex-reindex.nix {
