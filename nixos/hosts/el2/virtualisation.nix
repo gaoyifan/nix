@@ -261,6 +261,30 @@ in {
       };
     };
 
+    instances.windows62 = {
+      vlan = 642;
+      macAddress = "BC:24:11:62:00:02";
+      dhcpAddress = "100.64.2.62";
+      rootSize = "50GiB";
+      rootConfig = {
+        "boot.priority" = "10";
+        "io.bus" = "virtio-scsi";
+      };
+      config = {
+        "limits.cpu" = "4";
+        "limits.memory" = "8GiB";
+        "security.csm" = "false";
+        "security.secureboot" = "true";
+      };
+      extraDevices = {
+        agent = {
+          type = "disk";
+          source = "agent:config";
+        };
+        tpm.type = "tpm";
+      };
+    };
+
     instances.hackintosh = {
       vlan = 642;
       macAddress = "00:16:CB:64:02:80";
