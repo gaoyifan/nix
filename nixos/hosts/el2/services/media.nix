@@ -1,4 +1,23 @@
-{lib, ...}: {
+{
+  config,
+  lib,
+  ...
+}: let
+  certDir = "${config.services.acmeCertificates.directory}/yfgao";
+in {
+  services.jellyfin = {
+    enable = true;
+    dataDir = "/pool1/services/jellyfin";
+  };
+
+  services.tailscale.serve.services.jellyfin = {
+    certificate = {
+      certFile = "${certDir}/fullchain.pem";
+      keyFile = "${certDir}/privkey.pem";
+    };
+    tlsEndpoints."tcp:443" = "http://127.0.0.1:8096";
+  };
+
   virtualisation.oci-containers.containers = {
     plex = {
       autoStart = false;
@@ -44,5 +63,12 @@
     wantedBy = ["el2-services.target"];
     requires = ["zfs-unlock-mount.service"];
     after = ["zfs-unlock-mount.service"];
+  };
+
+  systemd.services.jellyfin = {
+    wantedBy = lib.mkForce ["el2-services.target"];
+    requires = ["zfs-unlock-mount.service"];
+    after = ["zfs-unlock-mount.service"];
+    serviceConfig.ReadOnlyPaths = ["/pool0/media0/series"];
   };
 }
