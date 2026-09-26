@@ -999,26 +999,6 @@
         "type": "github"
       }
     },
-    "restic-123pan": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1786156212,
-        "narHash": "sha256-flVkiYInLXmM0N+C6aFgHtBxB4/2T8pcVbqJEWgq53M=",
-        "owner": "gaoyifan",
-        "repo": "restic-123pan",
-        "rev": "452d60b3b14e86fe5dc092da903cb7e8080c3b77",
-        "type": "github"
-      },
-      "original": {
-        "owner": "gaoyifan",
-        "repo": "restic-123pan",
-        "type": "github"
-      }
-    },
     "restic-sync": {
       "inputs": {
         "nixpkgs": [
@@ -1065,7 +1045,6 @@
         "open-kimi-ppt-skill": "open-kimi-ppt-skill",
         "paseo": "paseo",
         "restic-115": "restic-115",
-        "restic-123pan": "restic-123pan",
         "restic-sync": "restic-sync",
         "rust-overlay": "rust-overlay_2",
         "system-manager": "system-manager",

@@ -275,7 +275,6 @@ in
               bitmagnet2.endpoints."tcp:80" = "http://${config.services.bitmagnet.settings.http_server.port}";
               immich2.endpoints."tcp:80" = "tcp://127.0.0.1:2283";
               restic-115.endpoints."tcp:80" = "http://127.0.0.1:8006";
-              restic-123pan.endpoints."tcp:80" = "http://127.0.0.1:8005";
               restic-nas.endpoints."tcp:80" = "http://127.0.0.1:8000";
             };
           };

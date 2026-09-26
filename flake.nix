@@ -93,11 +93,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    restic-123pan = {
-      url = "github:gaoyifan/restic-123pan";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     restic-sync = {
       url = "github:gaoyifan/restic-sync";
       inputs.nixpkgs.follows = "nixpkgs";
