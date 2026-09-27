@@ -78,6 +78,13 @@ let
         options = value.options;
         fieldDefaults = {};
       };
+      status-history = {
+        options = value.options;
+        fieldDefaults.custom = {
+          fillOpacity = 100;
+          lineWidth = 0;
+        };
+      };
       timeseries = {
         options = timeseriesOptions value;
         fieldDefaults.custom = {
@@ -108,14 +115,14 @@ let
       kind = "Panel";
       spec = {
         inherit (value) id title;
-        description = "";
+        description = value.description or "";
         links = [];
         data = {
           kind = "QueryGroup";
           spec = {
             queries = map panelQuery value.queries;
             transformations = value.transformations or [];
-            queryOptions = {};
+            queryOptions = value.queryOptions or {};
           };
         };
         vizConfig = visualization value.visualization;

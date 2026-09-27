@@ -208,26 +208,57 @@
     }
     {
       id = 5;
+      description = "Peak packet loss in each displayed time cell, by WAN and probe target.";
+      # Keep the number of status cells within the panel's rendering limit.
+      queryOptions.maxDataPoints = 120;
       queries = [
         {
           query = {
-            expr = ''ping_loss_ratio{wan=~"$wan", target=~"$target"} * 100'';
+            # A cell starts at its sample time, so include probes up to the next cell boundary.
+            expr = ''max_over_time(ping_loss_ratio{wan=~"$wan", target=~"$target"}[$__interval] offset -$__interval) * 100'';
             legendFormat = "{{wan}} IPv{{ip_version}} {{target}}";
             range = true;
           };
           refId = "A";
         }
       ];
-      title = "Packet Loss";
+      title = "Packet Loss by Target";
       visualization = {
         fieldDefaults = {
-          color = {mode = "palette-classic";};
+          color = {mode = "thresholds";};
           min = 0;
+          max = 100;
+          thresholds = {
+            mode = "absolute";
+            steps = [
+              {
+                color = "#1f4734";
+                value = null;
+              }
+              {
+                color = "#eab839";
+                value = 0.01;
+              }
+              {
+                color = "#ff9830";
+                value = 20;
+              }
+              {
+                color = "#e24d42";
+                value = 50;
+              }
+            ];
+          };
           unit = "percent";
         };
-        fillOpacity = 0;
-        legendCalcs = ["lastNotNull" "max"];
-        type = "timeseries";
+        options = {
+          colWidth = 1;
+          legend.showLegend = false;
+          rowHeight = 0.8;
+          showValue = "never";
+          tooltip.mode = "single";
+        };
+        type = "status-history";
       };
     }
     {
