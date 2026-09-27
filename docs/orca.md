@@ -1,6 +1,6 @@
 # Orca on el2
 
-el2 runs the plain Node `orcad` runtime as `yifan`. Connect the MacBook's Orca
+el2 runs `orcad` with its bundled Bun runtime as `yifan`. Connect the MacBook's Orca
 desktop app to `wss://orcad.ts.gaof.net` through Tailscale Serve. Orcad uses its
 default loopback listener (`127.0.0.1:6768`); the `orcad` Tailscale Service
 terminates TLS on port 443 using the existing ACME certificate and forwards
@@ -43,8 +43,12 @@ ends its terminals and agents, so finish those tasks before an upgrade or restar
 The runtime and dependency hashes are pinned in `pkgs/orcad.nix`; deploy changes
 with `just nixos` from el2.
 Scheduled updates select stable GitHub releases, rather than snapshots of `main`.
+The dependency fetcher reads the release's own Bun pins and uses its watcher
+downloader to prepare an offline cache. Both are covered by the dependency hash
+that the version updater refreshes; Bun has no separate version pin here.
 
-The package runs upstream's Node-only bundle checks and compiles the CLI. Deployment
+The package runs upstream's runtime smoke checks, compiles the CLI, and uses upstream's
+preflight to refresh the artifact identity after Nix's ELF fixups. Deployment
 validation also exercises native file watching, PTY output, authenticated worktree
 operations, unauthenticated connection rejection, and a Codex file-writing task
 whose client disconnects before completion.
