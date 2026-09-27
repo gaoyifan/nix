@@ -7,7 +7,10 @@
 in {
   users.users.${username} = {
     home = "/Users/${username}";
-    openssh.authorizedKeys.keys = [(import ../nixos/common/ssh-keys.nix).userKeys."yifan-macbook"];
+    openssh.authorizedKeys.keys = [
+      (import ../nixos/common/ssh-keys.nix).userKeys."yifan-macbook"
+      ''restrict,from="100.64.2.254" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJqnueG//KLuQhRSbKKOccw9HhETxo79Zyf9dyAqso4J el2-icloud-photos-backup''
+    ];
   };
 
   nix.enable = false;
@@ -30,6 +33,10 @@ in {
       KbdInteractiveAuthentication no
     '';
   };
+
+  security.sudo.extraConfig = ''
+    ${username} ALL=(ALL) NOPASSWD: ALL
+  '';
 
   power.sleep = {
     computer = "never";

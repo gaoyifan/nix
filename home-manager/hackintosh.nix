@@ -25,7 +25,6 @@
       diffutils
       fzf
       just
-      neovim
       nh
       ripgrep
       tree
@@ -58,4 +57,13 @@
       diff.colorMoved = "default";
     };
   };
+
+  home.file.".local/bin/icloud-photos-export" = {
+    executable = true;
+    text = ''
+      #!/bin/sh
+      exec ${pkgs.osxphotos}/bin/python ${./icloud-photos-export.py}
+    '';
+  };
+  home.file.".local/bin/osxphotos".source = "${pkgs.osxphotos}/bin/osxphotos";
 }

@@ -57,7 +57,12 @@
           {
             nixpkgs.hostPlatform = "x86_64-darwin";
             # Hide Nixpkgs's throwing EOL placeholder from lazy CLI discovery.
-            nixpkgs.overlays = [(_final: _prev: {copilot-cli = null;})];
+            nixpkgs.overlays = [
+              (final: prev: {
+                copilot-cli = null;
+                inherit (overlay final prev) osxphotos;
+              })
+            ];
           }
           ../darwin/hackintosh.nix
           home-manager.darwinModules.home-manager
@@ -66,7 +71,10 @@
               useGlobalPkgs = true;
               useUserPackages = true;
               backupCommand = mkHomeManagerBackupCommand pkgs;
-              extraSpecialArgs = {inherit inputs username;};
+              extraSpecialArgs = {
+                inherit inputs username;
+                darwinHost = "Hackintosh";
+              };
               users.${username}.imports = [../home-manager/hackintosh.nix];
             };
           })

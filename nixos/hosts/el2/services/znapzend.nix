@@ -1,4 +1,12 @@
-{lib, ...}: {
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
+  cfg = config.services.znapzend;
+  enabledFeatures = lib.attrNames (lib.filterAttrs (_: enabled: enabled) cfg.features);
+in {
   imports = [../../../optional/znapzend-mail.nix];
 
   services.znapzend = {
@@ -7,6 +15,11 @@
     features = {
       sendRaw = true;
       zfsGetType = true;
+    };
+    zetup.icloud-photos = {
+      dataset = "pool0/footage2";
+      plan = "2w=>6h,3m=>1d,1y=>1m";
+      presnap = "${pkgs.systemd}/bin/systemctl start icloud-photos-backup.service";
     };
     zetup.services = {
       dataset = "pool1/services";
@@ -46,6 +59,18 @@
       "zfs-import-pool1.service"
       "zfs-unlock-mount.service"
     ];
+    # Nixpkgs exposes no extraArgs for znapzend. Preserve its generated arguments
+    # while preventing incomplete photo exports from producing a success snapshot.
+    serviceConfig.ExecStart = lib.mkForce (lib.concatStringsSep " " ([
+        "${pkgs.znapzend}/bin/znapzend"
+        "--logto=${cfg.logTo}"
+        "--loglevel=${cfg.logLevel}"
+        "--skipOnPreSnapCmdFail"
+      ]
+      ++ lib.optional cfg.noDestroy "--nodestroy"
+      ++ lib.optional cfg.autoCreation "--autoCreation"
+      ++ lib.optional (cfg.mailErrorSummaryTo != "") "--mailErrorSummaryTo=${cfg.mailErrorSummaryTo}"
+      ++ lib.optional (enabledFeatures != []) "--features=${lib.concatStringsSep "," enabledFeatures}"));
     preStart = lib.mkBefore ''
       zfs set org.znapzend:enabled=off pool0/backup pool0/footage
     '';

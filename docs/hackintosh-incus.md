@@ -2,12 +2,8 @@
 
 ## Purpose and current state
 
-`el2` runs the Incus VM `hackintosh` as the macOS computer `Hackintosh`. It is
-an Intel macOS host for a Photos library. The 2026-09-26 CPU-fix validation
-confirmed active iCloud Photos downloads into the library on `/Volumes/Photos`.
-This verifies the running workload, not completeness of an independent backup.
-
-The accepted local configuration is:
+`el2` runs the Incus VM `hackintosh` as the macOS computer `Hackintosh`,
+synchronizing iCloud Photos and exporting a file archive to `pool0/footage2`.
 
 | Item | Value |
 | --- | --- |
@@ -22,9 +18,8 @@ The accepted local configuration is:
 | Nix | Upstream multi-user Nix 2.35.2 |
 | Guest repository | `/Users/yifan/nix` |
 
-The VM automatically boots macOS and logs in as `yifan`. Photos is opened
-manually when needed. FileVault is off because it is incompatible with
-unattended login. SSH accepts the shared public key and rejects password
+The VM automatically boots macOS and logs in as `yifan`; the export worker opens
+Photos when it runs. FileVault is off for unattended login. SSH uses public-key
 authentication.
 
 ## Boot-chain provenance
@@ -118,12 +113,8 @@ after changes to QEMU or the VM hardware configuration; recheck the Bluetooth
 patch after macOS updates. Remove the Bluetooth patch before adding Bluetooth
 hardware to the guest.
 
-Photos processing and synchronization services remain enabled. Validation
-confirmed continuing downloads, a stable 53,076-asset database count, HEIC-to-JPEG
-conversion, and 12 original-file hashes matching the pre-change Photos-volume
-snapshot. Two 45-second host CPU samples were 0.45 and 1.86 cores, depending on
-photo activity; the earlier 30-second sample was 3.71 cores. These are workload
-observations, not a controlled Photos throughput benchmark.
+Keep Photos processing and synchronization services enabled. Downloads,
+conversion, and indexing are real workloads; assess idle CPU after they settle.
 
 Private backups and validated configs are in
 `/var/lib/incus-macos/cpu-fix-20260926/`. The instance and the separate Photos
@@ -180,11 +171,6 @@ of depending on unavailable guest OpenGL or hardware video encoding.
 
 ## Initial installation and Nix bootstrap
 
-The one-time interactive setup used Apple Recovery to erase the target as APFS,
-install Tahoe, create `yifan`, skip Apple Account, disable analytics, location,
-Siri, Screen Time, and FileVault, and choose automatic update downloads without
-automatic macOS installation.
-
 Determinate Nix no longer publishes `x86_64-darwin` installers. Intel macOS must
 therefore use the upstream multi-user installer. Nixpkgs 26.05 is the final
 release supporting Intel Darwin; keep the guest on the repository's locked
@@ -208,51 +194,6 @@ the pre-nix-darwin shell files once, and uses the locked Hackintosh flake:
 cd /Users/yifan/nix
 just darwin
 ```
-
-During the 2026-09-14 bootstrap, the Nixpkgs 26.05 Intel Darwin cache omitted
-test-only `character-ps`, `network-uri`, `semialign`, and `witherable` paths from
-the `hermes-json` closure used by `nh`. Realizing their existing derivations
-allowed the pinned build to complete; the accepted baseline snapshot retains the
-resulting store closure.
-
-## Acceptance record
-
-Acceptance on 2026-09-14 produced these results:
-
-- `just fmt`, `just fmt-check`, and `just check` passed on `el2`.
-- `darwinConfigurations.Hackintosh` built and repeated `just darwin` activation
-  returned zero in the guest.
-- A fresh SSH shell provided Nix 2.35.2, just 1.51.0, nh 4.4.2, and Neovim
-  0.12.4; guest `just check` passed.
-- Password-only SSH was rejected with `Permission denied (publickey)` when SSH
-  multiplexing was disabled for the test.
-- Two batches containing JPEG, HEIC, and H.264 MP4 media were imported into the
-  System Photo Library. Photos displayed six items. Exporting unmodified
-  originals produced SHA-256 hashes identical to all six sources.
-- The second three-item import took 1.36 seconds after the retained UI
-  optimizations were active.
-- At the three-minute post-boot sample, Photos used 0% CPU and 53 MiB RSS; the
-  guest reported 98.7% CPU idle, 85% free memory pressure, and no swap activity.
-- With Recovery and external OpenCore detached, an Incus stop/start reached
-  automatic login in 49 seconds. The Photos library, Nix volume, exported files,
-  and private identity fingerprint were unchanged.
-- A stopped `accepted-baseline` Incus snapshot was created after acceptance.
-- A stopped `identity-opencore-1.0.7` snapshot records the aligned MAC/ROM
-  identity and OpenCore 1.0.7 system EFI.
-- The `pre-apple-id-attestation-patch` snapshot precedes the Tahoe Apple Account
-  kernel patch. The patched system EFI passes OpenCore 1.0.7 `ocvalidate`, and
-  the running guest reports `kern.hv_vmm_present=0`.
-- The 2 TiB pool0 data disk uses GPT and APFS, mounts at `/Volumes/Photos`, and
-  passed a non-root write/read/delete test.
-- The password-protected host VNC bridge displayed the live Photos desktop and
-  accepted login input. A client restricted to unauthenticated VNC was rejected,
-  and the listener was confined to `100.64.2.254:5900`.
-
-The retained optimizations disable system/display/disk sleep, screen saver,
-automatic logout, Dock animation and magnification, window animation, motion,
-and transparency. Siri is disabled and `/nix` is not indexed. Photos analysis,
-media indexing, Spotlight outside `/nix`, crash reporting, graphics frameworks,
-and software-update checks remain enabled.
 
 ## Known limitations and recovery
 
@@ -281,9 +222,165 @@ Install macOS updates manually during a maintenance window. Take a stopped Incus
 snapshot first, confirm the target release still supports Intel, and re-run the
 cold-boot, identity, Photos import/export, and SSH checks after the update.
 
-The active library is now `/Volumes/Photos/Photos Library.photoslibrary`.
-The CPU-fix validation confirmed successful iCloud resource downloads and local
-photo decoding, but did not establish that every original has finished
-downloading or that an independent versioned backup is complete. Full backup
-acceptance still requires checking Download Originals to this Mac, completion
-status, deletion propagation and restoration from an independent backup.
+Keep `/Volumes/Photos/Photos Library.photoslibrary` as the System Photo Library
+with **Download Originals to this Mac** selected. A primary-original inventory
+can still miss absent Live Photo components or edited renditions; use the export
+report to assess completeness.
+
+## Photo archive on pool0/footage2
+
+The pipeline is Photos download → OSXPhotos export/cleanup → one rsync pull →
+ZFS snapshot. `pool0/footage2` is an encrypted filesystem mounted at
+`/pool0/footage2`, separate from the live APFS library. It permanently retains
+files already archived, even after their deletion in iCloud. Edits and metadata
+are updated in place; ZFS snapshots retain earlier versions for two weeks at
+six-hour intervals, three months daily, and one year monthly.
+
+The guest exports to `/Volumes/Photos/icloud-export` with
+`--update --update-errors --download-missing --use-photokit --cleanup --not-hidden`.
+UUID directories contain originals, edited versions, Live Photo image/video
+pairs, RAW files, and XMP/full JSON sidecars.
+Original media bytes are unchanged. The staging directory follows the current
+library rather than retaining deleted media forever. Photos deleted before a
+successful archive may never reach ZFS. Separate Shared Albums and hidden assets
+are excluded; iCloud Shared Photo Library is included. The export is not a
+complete `.photoslibrary` backup or a promise of round-trip Apple editing state.
+
+`icloud-photos-backup.service` on el2 runs the guest's
+`/Users/yifan/.local/bin/icloud-photos-export`, then pulls staging once without
+`--delete`. A failed/partial export is still transferred, but the service fails
+and the scheduled snapshot is skipped. Subsequent runs converge incrementally.
+The guest wrapper validates the per-file report because OSXPhotos may return
+zero despite missing files or export errors. It never downloads previews as
+substitutes for originals. The APFS volume identity and ZFS mount are checked
+before writing.
+
+The SSH command launches the worker in Terminal's authorized GUI session and
+waits for its actual exit status, relaying the log. Terminal has been granted
+access to all Photos through the normal macOS permission dialog. Keep `yifan`
+logged in; Terminal's authorization does not extend to a Python process run
+directly over SSH. The worker explicitly opens the Photos library before
+issuing export requests. The generated Terminal window closes after completion.
+
+Two narrowly scoped workarounds are pinned to OSXPhotos 0.77.1:
+
+- Missing original Live Photo resources use Photos' original AppleScript
+  export, because the upstream PhotoKit Live exporter warns that an original
+  request can return edited content. Other resources, including edited Live
+  movies and missing burst members, use PhotoKit.
+- For edited Live Photos, the current PhotoKit type determines whether an
+  edited companion movie exists. Turning Live off produces a valid edited still,
+  not a missing edited video. The original image/video pair is still preserved.
+
+Both routes run inside one OSXPhotos export with one report and one cleanup,
+followed by one rsync. Do not replace this worker with the bare CLI command or
+upgrade OSXPhotos without retesting these original/edited cases. Offline-only
+export can silently skip absent edited renditions.
+
+Hidden photos are excluded by user choice. Photos' **Use Password** setting
+remains enabled. Staging cleanup removes previously exported hidden assets;
+rsync still does not delete files already archived on ZFS. Thus hiding a photo
+stops future exports but does not erase earlier backups. Purging an already
+archived item requires explicit deletion from ZFS and checking retained snapshots.
+
+The znapzend `icloud-photos` source runs the service as its presnapshot command
+every six hours. `--skipOnPreSnapCmdFail` prevents incomplete attempts from being
+recorded as successful snapshots. The existing local Prometheus/Grafana stack
+shows last successful archive age, failed attempts, missing/error counts, and
+APFS usage; thresholds are 12 hours without success and 85% APFS usage.
+
+### Initial setup and activation
+
+Create the dataset once in an el2 terminal, using the same passphrase as the
+existing `unlock-pool0` datasets. Do not put the passphrase in a shell argument,
+the repository, or the Nix store:
+
+```bash
+sudo zfs create -o encryption=aes-256-gcm -o keyformat=passphrase \
+  -o keylocation=prompt -o compression=zstd -o atime=off \
+  -o mountpoint=/pool0/footage2 pool0/footage2
+sudo chown yifan:users /pool0/footage2
+sudo chmod 700 /pool0/footage2
+```
+
+The dataset must exist before activating the host configuration because it is
+part of `unlock-pool0`. After host startup, run `sudo unlock-pool0` before backups
+can proceed.
+
+The guest's Python runtime and OSXPhotos 0.77.1 are built by
+`pkgs/osxphotos.nix`. CPython 3.13 comes from the locked Nixpkgs input;
+the `osxphotos-src` flake input pins the upstream source, including its
+`pyproject.toml` and `uv.lock`. uv2nix builds the Intel macOS runtime dependencies
+and OSXPhotos from that source inside the Nix store; development extras are not
+enabled. Activation does not run uv or install Python packages.
+
+```bash
+cd /Users/yifan/nix
+just darwin
+```
+
+Home Manager installs `icloud-photos-export` and `osxphotos` entrypoints backed
+by the Nix store. To update, change the pinned `osxphotos-src` revision and run
+`nix flake lock`, then revalidate the version-specific export workarounds. There
+is no local Python dependency lock to regenerate. The build checks dependencies and
+native Photos/Objective-C imports; sample export tests still require the user's
+authorized GUI session.
+
+`yifan` has declarative passwordless sudo through
+`security.sudo.extraConfig` in `darwin/hackintosh.nix`. Run `just darwin` in
+Terminal: Tahoe's protected user-default domains can reject activation over
+SSH even when sudo succeeds. No account password is stored in Nix configuration.
+
+The host's dedicated SSH private key is encrypted in the private secrets
+submodule at `secrets/files/nixos/el2/icloud-photos-ssh-key.age`. NixOS activation
+uses agenix to install it at `/run/agenix/icloud-photos-ssh-key` (root only).
+Rebuilding requires the private submodule and el2's SSH host decryption identity;
+after replacing that identity, an authorized operator must rekey the ciphertext
+for the new host key. See [Secrets Management](secrets.md).
+The backup public key is declared in `darwin/hackintosh.nix`, restricted to
+connections from `100.64.2.254` without forwarding. Rotating the backup key
+requires updating both the ciphertext and that public key, then reactivating
+both configurations. Test access through the real SSH path;
+Terminal permissions alone do not grant Remote Login access to protected files.
+Use the macOS **Allow full disk access for remote users** setting if required.
+
+On el2, apply configuration with `just fmt`, `just check`, and `just nixos`.
+No host reboot is needed. For a manual archive run:
+
+```bash
+sudo systemctl start icloud-photos-backup.service
+sudo journalctl -u icloud-photos-backup.service -n 50
+sudo zfs list -t snapshot -r pool0/footage2
+```
+
+Manual service execution updates the archive but does not itself create a
+snapshot; znapzend creates scheduled snapshots after its presnapshot service
+succeeds. Do not launch a separate guest export while a host pull is running.
+The archive includes `.osxphotos_export.db`, `.export-report.json`, and
+`.backup-status.json` for audit and recovery. A snapshot can be browsed under
+`/pool0/footage2/.zfs/snapshot/<name>/`; restore selected files into a separate
+directory rather than rolling back the entire archive.
+
+For incomplete exports, inspect `.export-report.json` and the service journal,
+restore connectivity or GUI authorization as appropriate, and rerun the normal
+service. It retries missing resources and earlier errors. Never use `--cleanup`
+with a UUID-filtered diagnostic export into production staging: that would clean
+staging down to the selected subset. Use an independent temporary directory for
+such tests.
+
+This archive shares pool0's hardware failure domain with the live photo disk.
+There is no offsite replication of footage2 in this configuration. Existing
+Kopia jobs for `pool0/footage` do not automatically back up `pool0/footage2`.
+
+### Verify after changes
+
+After tool or macOS updates, test JPEG/HEIC, video, RAW, Live Photos, edited Live
+Photos (including Live disabled), and bursts in an independent export directory.
+Check original hashes, edited renditions, metadata, incremental reruns, and hidden
+asset exclusion. Use a disposable staging copy to verify that removal from
+staging does not delete archived files, then restore a sample from a ZFS snapshot.
+
+Build success alone is not backup acceptance. Require a fresh complete export
+report, successful transfer, and a usable snapshot; missing media or failed
+transfers must not advance the last-success timestamp. Check current status via
+the service journal and monitoring rather than relying on past inventory counts.

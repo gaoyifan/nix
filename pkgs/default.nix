@@ -56,3 +56,6 @@ rec {
   nanopi-r4s-uboot = import ./nanopi-r4s-uboot.nix {inherit pkgs;};
   nanopi-r5c-uboot = import ./nanopi-r5c-uboot.nix {inherit pkgs;};
 }
+// pkgs.lib.optionalAttrs (pkgs.stdenv.hostPlatform.system == "x86_64-darwin") {
+  osxphotos = import ./osxphotos.nix {inherit inputs pkgs;};
+}

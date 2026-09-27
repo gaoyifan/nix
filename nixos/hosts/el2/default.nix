@@ -7,6 +7,7 @@
     "pool0/backup"
     "pool1/services"
     "pool0/footage"
+    "pool0/footage2"
     "pool0/kopia"
     "pool0/media0"
     "pool0/media1"

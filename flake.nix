@@ -18,6 +18,25 @@
     nixpkgs-darwin.url = "github:nixos/nixpkgs/nixpkgs-26.05-darwin";
     systems.url = "github:nix-systems/default";
 
+    pyproject-nix = {
+      url = "github:pyproject-nix/pyproject.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    uv2nix = {
+      url = "github:pyproject-nix/uv2nix";
+      inputs.pyproject-nix.follows = "pyproject-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    osxphotos-src = {
+      type = "git";
+      url = "https://github.com/RhetTbull/osxphotos";
+      rev = "2be2970fc0a38b087a65215a8bdb7058a7d6ffef";
+      shallow = true;
+      flake = false;
+    };
+
     flake-compat = {
       url = "github:edolstra/flake-compat";
       flake = false;
