@@ -21,6 +21,7 @@ TARGETS = {
     "immich-redis": (ROOT / "nixos/hosts/el2/services/immich.nix", "docker.io/valkey/valkey"),
     "immich-postgres": (ROOT / "nixos/hosts/el2/services/immich.nix", "ghcr.io/immich-app/postgres"),
     "new-api": (ROOT / "nixos/hosts/el2/services/new-api.nix", "docker.io/calciumion/new-api"),
+    "new-api-somo": (ROOT / "nixos/hosts/somo-minisforum/newapi.nix", "docker.io/calciumion/new-api"),
     "open-webui": (ROOT / "nixos/hosts/el2/services/open-webui.nix", "ghcr.io/open-webui/open-webui"),
     "py-kms": (ROOT / "nixos/hosts/el2/services/py-kms.nix", "ghcr.io/gaoyifan/py-kms"),
 }
@@ -110,6 +111,7 @@ def set_output(name, value):
 def main():
     images = latest_immich_images()
     images.update({name: resolve_digest(TARGETS[name][1], tag) for name, tag in FLOATING_TAGS.items()})
+    images["new-api-somo"] = images["new-api"]
 
     changes = []
     summaries = []
