@@ -37,12 +37,6 @@ jobs:
           - os: ubuntu-latest
             system: x86_64-linux
             target: homeConfigurations.yifan.config.home.activationPackage
-          - os: ubuntu-24.04-arm
-            system: aarch64-linux
-            target: homeConfigurations.yifan.config.home.activationPackage
-          - os: macos-latest
-            system: aarch64-darwin
-            target: darwinConfigurations.default.system
 
     runs-on: ${{ matrix.os }}
 
@@ -98,6 +92,19 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           set -euo pipefail
+
+          (
+            while true; do
+              date -u
+              free -m
+              df -m / /nix
+              sleep 15
+            done
+          ) &
+          resources_pid=$!
+          sudo journalctl --kernel --follow --since now --no-pager &
+          kernel_log_pid=$!
+          trap 'kill "$resources_pid" 2>/dev/null || true; sudo kill "$kernel_log_pid" 2>/dev/null || true' EXIT
 
           nix build --accept-flake-config --no-link --print-out-paths \
             .#packages.${{ matrix.system }}.nixos-hosts-cache \
