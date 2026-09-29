@@ -17,6 +17,13 @@
   hermesPackage = inputs.hermes-agent.packages.${pkgs.stdenv.hostPlatform.system}.minimal.override {
     extraDependencyGroups = ["exa" "honcho" "messaging"];
   };
+  initialUserConfig = pkgs.writeText "hermes-initial-user-config.yaml" (builtins.toJSON {
+    stt.enabled = false;
+    plugins.enabled = [
+      "newapi-codex"
+      "weixin-channel"
+    ];
+  });
   newApiCodexPlugin = pkgs.runCommand "newapi-codex" {} ''
     mkdir -p $out
     cp -r ${./newapi-codex}/. $out/
@@ -165,6 +172,16 @@ in {
     ];
   };
 
+  # Seed only a new instance. Rebuilds must preserve user toggles, including
+  # an explicitly empty plugin list, instead of restoring the initial values.
+  system.activationScripts.hermes-user-config = lib.stringAfter ["users"] ''
+    if [ ! -e /var/lib/hermes/.hermes/config.yaml ]; then
+      install -d -m 2770 -o agent -g agent /var/lib/hermes/.hermes
+      install -m 0660 -o agent -g agent ${initialUserConfig} /var/lib/hermes/.hermes/config.yaml
+    fi
+  '';
+  system.activationScripts.hermes-agent-setup.deps = ["hermes-user-config"];
+
   # Pin the deployment baseline through Hermes' native managed scope. MCP
   # definitions and personal credentials stay in the writable HERMES_HOME;
   # Nix must not reintroduce a server that its user has deleted.
@@ -189,7 +206,7 @@ in {
       };
       approvals.mode = "off";
       compression.threshold = 0.9;
-      auxiliary.title_generation.model = "gpt-5.6-luna";
+      auxiliary.title_generation.model = "gpt-6-luna";
       memory.provider = "honcho";
       dashboard.public_url = dashboardPublicUrl;
       agent.system_prompt = ''
@@ -208,12 +225,7 @@ in {
         base_file_url = "${telegramBotApiBaseUrl}:${toString telegramBotApi.filePort}/file/bot";
       };
       platform_toolsets.telegram = ["hermes-telegram"];
-      stt.enabled = false;
       image_gen.provider = "newapi-codex";
-      plugins.enabled = [
-        "newapi-codex"
-        "weixin-channel"
-      ];
       skills = {
         disabled = [
           "apple-notes"

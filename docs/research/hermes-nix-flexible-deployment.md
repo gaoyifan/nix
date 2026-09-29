@@ -23,6 +23,14 @@ canary 已验证真实 Dashboard API 的 HTTP/stdio server 添加、探测、删
 
 目录调整也已推广到全部 15 个实例：两个服务进程均不再设置 `HERMES_MANAGED_DIR`，旧 `/etc/hermes-managed/config.yaml` 已清理，运行时凭据挂载保持只读及 `root:agent 0640` 权限。服务、Dashboard 和用户数据指纹检查全部通过。
 
+## STT 与插件启用列表的后续调整
+
+按用户最终决策，主模型、标题模型、压缩阈值和 Exa 搜索后端继续由平台固定；标题模型改为 `gpt-6-luna`。`stt.enabled` 与 `plugins.enabled` 已从 managed scope 移除，由用户管理。
+
+新实例仅在默认 Profile 的 `config.yaml` 不存在时安装 `hermes-initial-user-config.yaml`：`stt.enabled=false`，`plugins.enabled=[newapi-codex, weixin-channel]`。该 activation 在上游 `hermes-agent-setup` 前执行。已有文件不被补写，因此显式禁用插件（包括空列表）和开启语音转写都能跨 rebuild 保留；这不是持续合并的低优先级平台默认层。插件文件仍由 Nix 安装，用户主动停用插件会停用对应功能。额外 Profile 继续遵循上游创建流程，不经过此实例初始化脚本。
+
+最初在 canary 中备份并移走用户配置后执行初始化脚本，验证了初始值与插件加载；随后将 STT 改为 true、插件列表改为空，完整 reactivation 后仍保留用户选择。该测试模拟首次配置，不能单独证明全新实例的首次启动顺序。
+
 ## 对当前需求的结论
 
 用户的主要需求是每人自行添加、修改、删除 MCP。适合保留现有 NixOS nspawn、Nix Hermes 包、gateway 和 dashboard，调整配置的管理边界；无需为此迁入另一层 Ubuntu OCI 容器。
