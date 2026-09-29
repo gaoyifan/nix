@@ -26,15 +26,6 @@ def summarize(report):
     return missing, errors
 
 
-def stage_missing(self, options):
-    # OSXPhotos 0.77.1's PhotoKit LivePhoto exporter documents that requesting
-    # originals can yield the edited movie. Photos' original AppleScript export
-    # preserves it; PhotoKit is needed for edited movies and missing burst members.
-    if self.photo.live_photo and not options.edited:
-        return self._stage_photo_for_export_with_applescript(options=options)
-    return self._stage_photo_for_export_with_photokit(options=options)
-
-
 def configure_osxphotos():
     import osxphotos
     from osxphotos.photoexporter import PhotoExporter
@@ -44,7 +35,13 @@ def configure_osxphotos():
         raise RuntimeError("Revalidate the original Live Photo workaround before upgrading OSXPhotos")
 
     class ArchivePhotoExporter(PhotoExporter):
-        _stage_missing_photos_for_export_helper = stage_missing
+        def _stage_missing_photos_for_export_helper(self, options):
+            # OSXPhotos 0.77.1's PhotoKit LivePhoto exporter documents that requesting
+            # originals can yield the edited movie. Photos' original AppleScript export
+            # preserves it; PhotoKit is needed for edited movies and missing burst members.
+            if self.photo.live_photo and not options.edited:
+                return self._stage_photo_for_export_with_applescript(options=options)
+            return self._stage_photo_for_export_with_photokit(options=options)
 
         def _export(self, dest, filename, options):
             if options.edited and self.photo.live_photo:
