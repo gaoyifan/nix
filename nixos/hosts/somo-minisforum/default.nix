@@ -64,6 +64,7 @@ in {
   services.resticBackup.extraPaths =
     [
       "/var/lib/codex-api"
+      "/var/lib/hermes"
       "/var/lib/honcho"
       "/var/lib/new-api"
       "/var/lib/postgresql"
