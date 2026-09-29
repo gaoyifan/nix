@@ -98,15 +98,16 @@ jobs:
               date -u
               free -m
               df -m / /nix
+              ps -eo pid,ppid,rss,comm --sort=-rss | sed -n '1,12p'
               sleep 15
             done
           ) &
           resources_pid=$!
-          sudo journalctl --kernel --follow --since now --no-pager &
+          sudo dmesg --follow-new &
           kernel_log_pid=$!
           trap 'kill "$resources_pid" 2>/dev/null || true; sudo kill "$kernel_log_pid" 2>/dev/null || true' EXIT
 
-          nix build --accept-flake-config --no-link --print-out-paths \
+          nix build --accept-flake-config --max-jobs 2 --no-link --print-out-paths \
             .#packages.${{ matrix.system }}.nixos-hosts-cache \
             | tee -a cache-store-paths
 
