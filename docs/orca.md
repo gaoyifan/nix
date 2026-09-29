@@ -1,6 +1,6 @@
 # Orca on el2
 
-el2 runs `orcad` with its bundled Bun runtime as `yifan`. Connect the MacBook's Orca
+el2 runs `orcad` directly with its pinned Bun runtime as `yifan`. Connect the MacBook's Orca
 desktop app to `wss://orcad.ts.gaof.net` through Tailscale Serve. Orcad uses its
 default loopback listener (`127.0.0.1:6768`); the `orcad` Tailscale Service
 terminates TLS on port 443 using the existing ACME certificate and forwards
@@ -30,25 +30,34 @@ the existing server pairing flow rather than installing another runtime over SSH
   this deployment; use runtime pairing for the desktop client.
 - Server-side browser panes and speech are not configured.
 
-Run the management CLI from this checkout:
+Inspect the service from this checkout:
 
 ```sh
-nix shell .#nixosConfigurations.el2.pkgs.orcad -c \
-  env ORCA_USER_DATA_PATH=/var/lib/orca orca-ide status --json
+systemctl status orcad
+sudo journalctl -u orcad -b --no-pager
 ```
 
-Replace `status` with `terminal list` to inspect active terminals before maintenance.
+Use the desktop client to inspect active terminals before maintenance.
+The package provides only `orcad`, without the separate `orca-ide` management CLI.
 Disconnecting the MacBook leaves agents running. Restarting the systemd service
 ends its terminals and agents, so finish those tasks before an upgrade or restart.
 The runtime and dependency hashes are pinned in `pkgs/orcad.nix`; deploy changes
 with `just nixos` from el2.
 Scheduled updates select stable GitHub releases, rather than snapshots of `main`.
-The dependency fetcher reads the release's own Bun pins and uses its watcher
-downloader to prepare an offline cache. Both are covered by the dependency hash
-that the version updater refreshes; Bun has no separate version pin here.
+`pkgs/orcad-bun.nix` pins the Bun version required by Orcad using nixpkgs' existing
+binary packaging recipe and stable dependencies. Update that pin when an Orcad
+release changes its required Bun version; the upstream build checks the version.
+The watcher downloader prepares an offline dependency cache covered by `pnpmDeps.hash`.
 
-The package runs upstream's runtime smoke checks, compiles the CLI, and uses upstream's
-preflight to refresh the artifact identity after Nix's ELF fixups. Deployment
-validation also exercises native file watching, PTY output, authenticated worktree
-operations, unauthenticated connection rejection, and a Codex file-writing task
-whose client disconnects before completion.
+The package installs upstream's headless runtime bundle, including its workers,
+native watcher and identity-tracked resources. Node and pnpm are build tools;
+the service and terminal daemon run with Bun's native PTY support. The project-wide
+`node_modules` tree and `node-pty` are not installed.
+
+The build runs upstream's smoke checks and final preflight, which exercises PTY
+creation, native file watching and persistence workers. Preflight also refreshes
+the artifact identity after Nix's ELF fixups.
+
+For Orcad 1.4.216 on x86_64-linux, this packaging reduced the runtime closure from
+1755.8 MiB (71 store paths) to 171.6 MiB (8 paths). The result has no Node.js runtime
+dependency and uses the same glibc as stdenv, eliminating the extra glibc build.
