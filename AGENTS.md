@@ -27,7 +27,7 @@
 
 ## Remote Commands
 
-- Before triggering or scheduling any NixOS reboot (local or remote, including through other workflows), explicitly call `request_user_input`, name the target host, and obtain approval for that specific reboot. Deployment or maintenance approval does not count. If the tool is unavailable or explicit approval is missing, do not reboot.
+- Before triggering or scheduling a reboot of a host or VM directly managed by deploy-rs (local or remote, including through other workflows), explicitly call `request_user_input`, name the target, and obtain approval for that specific reboot. Deployment or maintenance approval does not count. If the tool is unavailable or explicit approval is missing, do not reboot. Functional service containers may be restarted as part of authorized deployment or maintenance without separate reboot approval.
 - Before using SSH, verify the target hostname, FQDN, and addresses are not local; run local targets directly, using `sudo` when needed.
 - Prefer `just sync-and-rebuild <target>` when deploying the NanoPi hosts `cjia` and `somo-nanopi-r4s`.
 - For remote deployments to devices without unrestricted internet access, prefer `just sync-and-rebuild <target>` so builds happen on the target through its configured substituters.
