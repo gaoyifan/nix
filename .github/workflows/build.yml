@@ -56,6 +56,9 @@ jobs:
         uses: nixbuild/nix-quick-install-action@v35
         with:
           nix_conf: |
+            # Store-path builds below do not load the flake's cache settings.
+            extra-substituters = https://nix-cache.yfgao.net?priority=50
+            extra-trusted-public-keys = nix-cache.yfgao.net-1:mSv/FykKK4oFZbX9JgD38D/me1+xJeAKsQ+STHiHVp4=
             http-connections = 64
             keep-env-derivations = true
             max-jobs = 8
@@ -99,9 +102,10 @@ jobs:
         run: |
           set -euo pipefail
 
-          nix build --accept-flake-config --no-link --print-out-paths \
-            .#packages.${{ matrix.system }}.nixos-hosts-cache \
-            | tee -a cache-store-paths
+          # Let evaluation release its memory before realizing the host closure.
+          drv_path=$(nix eval --accept-flake-config --raw \
+            .#packages.${{ matrix.system }}.nixos-hosts-cache.drvPath)
+          nix build --no-link --print-out-paths "${drv_path}^out" | tee -a cache-store-paths
 
       - name: Build NixOS disk-writer kexec image
         if: runner.os == 'Linux'
