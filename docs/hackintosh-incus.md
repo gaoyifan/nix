@@ -238,8 +238,11 @@ six-hour intervals, three months daily, and one year monthly.
 
 The guest exports to `/Volumes/Photos/icloud-export` with
 `--update --update-errors --download-missing --use-photokit --cleanup --not-hidden`.
-UUID directories contain originals, edited versions, Live Photo image/video
-pairs, RAW files, and XMP/full JSON sidecars.
+Year/month directories contain originals, edited versions, Live Photo image/video
+pairs, RAW files, and XMP/full JSON sidecars. Filenames use
+`{original_name}_{uuid}` to preserve asset identity across export database rebuilds.
+Grouping photos by month avoids OSXPhotos 0.77.1's full-table directory-prefetch
+query running once per photo; no local SQL patch or extra index is required.
 Original media bytes are unchanged. The staging directory follows the current
 library rather than retaining deleted media forever. Photos deleted before a
 successful archive may never reach ZFS. Separate Shared Albums and hidden assets

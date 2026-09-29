@@ -218,3 +218,172 @@ SIP、Authenticated Root 均保持启用，`kern.hv_vmm_present=0`。
 
 完整回滚材料在私有目录，原始恢复镜像未覆盖。回滚 CPU 补丁时只需恢复 EFI
 配置；不要为了撤销固件补丁而回滚已继续接收照片的图库卷。
+
+## 再次高 CPU 的调查（2026-09-29）
+
+本次主要原因是 OSXPhotos 增量导出的目录预取查询退化为全表扫描。
+没有发现此前 SMC 或蓝牙修复失效的证据；不能将此次现象归因于 Incus 升级。
+
+### 运行期证据
+
+- Incus 7.5.1、QEMU 10.2.4；guest 为 macOS 26.6.2 / Darwin 25.6.0，
+  4 vCPU、8 GiB RAM。
+- 导出 worker（OSXPhotos 0.77.1 / Python 3.13，PID 1942）自 16:00 启动，
+  连续采样约占一核。guest 总 CPU 约 29–34%，宿主 QEMU 的 10 秒增量约
+  129%（100% 为一核），主要来自 vCPU 线程。
+- `bluetoothd` 仍为 `runs=1`、从未退出；它与 `PerfPowerServices` 最后一次
+  进程采样均为 0.0%。设备树仍为 `VirtualSMC -> AppleSMC`。
+- 只读检查 QEMU RAM 中当前 DSDT：长度 8690，与 9 月 26 日原表仅有预期的
+  SMC `_STA` 和校验和两个字节不同。当前 SHA-256：
+  `22c45a5a4bee9e188e2f0cf65aa4da2f4515c9117a186119857c7c102043a779`。
+  三分钟日志窗口未发现实际 SMC 枚举错误或 BlueTool 超时。
+- 导出报告持续增长，19:02 已达 175,861,180 字节；任务在缓慢推进，并非死锁。
+
+### 热点和查询计划
+
+对 worker 用 py-spy 采样 20 秒，共 979 个样本；69.3% 落在
+`ExportDB.prefetch_directory_records()` 执行目录查询的位置。macOS 原生
+`sample` 同时显示 `sqlite3_step -> sqlite3VdbeExec -> sqlite3BtreeNext`
+为主要热点。完整照片 JSON 的 `cloud_metadata` 路径仅占约 2.7%。
+
+当前导出配置使用 `directory="{uuid}"`、`update=True`，本轮处理 51,437 张
+照片。OSXPhotos 对每个新目录执行以下查询，然后缓存该目录的结果：
+
+```sql
+SELECT filepath_normalized, uuid, digest, exifdata, export_options,
+       dest_mode, dest_size, dest_mtime, error, date_modified
+FROM export_data
+WHERE filepath_normalized LIKE ? AND filepath_normalized NOT LIKE ?;
+-- 参数：uuid/%、uuid/%/%
+```
+
+以 `mode=ro`、`query_only=ON` 打开导出数据库验证：`export_data` 有 138,635
+行，路径索引使用 BINARY 排序规则，默认 LIKE 不区分 ASCII 大小写。
+实际计划为 **`SCAN export_data`**。因此每个 UUID 目录仅有少量文件，却要
+遍历整张表；目录缓存无法消除下一个 UUID 的全表扫描。
+[SQLite 对 LIKE/GLOB 索引优化的条件](https://www.sqlite.org/optoverview.html#the_like_optimization)
+解释了这里默认 LIKE 与 BINARY 索引不匹配的原因。
+
+仅为验证索引效果，对三个真实 UUID 目录使用 GLOB 执行只读对照查询：
+
+| 目录文件数 | 原 LIKE 查询 | GLOB 对照查询 |
+| --- | --- | --- |
+| 3 | 220.393 ms | 0.492 ms |
+| 3 | 171.104 ms | 0.253 ms |
+| 2 | 186.782 ms | 0.309 ms |
+
+每组返回的文件集合一致；对照计划为
+`SEARCH export_data USING INDEX idx_export_data_filepath_normalized
+(filepath_normalized>? AND filepath_normalized<?)`。
+这是单条查询的耗时对照，不能当作完整备份的提速比例。
+
+### 引入时间与修复方向
+
+上游提交
+[`a7f2f200`（2026-01-23，SMB 性能优化）](https://github.com/RhetTbull/osxphotos/commit/a7f2f200e1878c06049f904667739badeca1cdb5)
+引入目录预取及 update 路径的调用；其父版本按文件路径做等值查询。
+该优化在当前每张照片独立目录的布局下产生性能退化。
+本地备份功能于 `bc1934c`（2026-09-27）引入，早于本次 Incus 升级。
+已检查的上游 main `e6c8a9dcb9e6a0bc91eb9bf6951ec161bd2ab683`
+（包含 0.77.2）仍保留该查询，单纯升级到这个版本不能消除问题。
+
+建议修正 OSXPhotos 的目录查询，使其利用现有路径索引，并保留直接子文件
+过滤。通用修复需要正确处理目录中的通配符；本次 GLOB 对照仅使用已确认
+不含通配符的 UUID，不能直接推广到任意目录。无需修改 Apple Photos 数据库、
+改变归档布局或删除完整元数据。
+
+本次未修改生产 SQL、数据库索引、EFI 或 iCloud 设置，也未重启 VM。
+调查记录了原因与修复方向，尚未实施查询修复或进行完整导出前后对照。
+
+### 修复方案评估
+
+后续只读实测：用现有 BINARY 索引的路径范围查询
+（`path >= directory || '/' AND path < directory || '0'`，再筛选直接子文件）
+在三个 UUID 目录返回相同文件集合，耗时 0.092–1.213 ms；同期原查询为
+107.150–143.594 ms。路径归一化本身已转小写；范围查询无需解释目录中的
+LIKE/GLOB 通配符。通用实现仍需覆盖根目录、Unicode 和直接子文件边界。
+
+另将实际路径列复制到独立的内存数据库，仅用于验证索引选择：BINARY 索引
+对应 `SCAN`，添加 `COLLATE NOCASE` 索引后，未修改的 LIKE 查询使用索引范围
+查找。这不是生产库全字段查询的耗时测试，也未给生产库添加索引。
+
+| 方案 | 优点 | 代价与限制 |
+| --- | --- | --- |
+| 上游修正范围查询 | 利用现有索引，不迁移文件、不增加索引 | 合入前使用需要本地补丁；合入后可以移除 |
+| 导出数据库增加 NOCASE 路径索引 | 不修改 OSXPhotos 代码、不迁移文件 | 增加索引存储及写入开销；数据库重建或上游迁移后需保证索引存在 |
+| 禁用目录预取 | 退回已有按文件等值查询，不迁移文件 | 当前没有公开开关，需补丁或 monkey patch；会增加查询次数 |
+| 年月目录，UUID 放入文件名 | 仅用公开配置，显著减少目录扫描次数 | 仍是每目录全表扫描；修改日期可改变路径；需要迁移现有归档 |
+| UUID 前两位分桶，完整 UUID 放入文件名 | 最多 256 个目录，路径不依赖可编辑日期 | 仍有全表扫描；增加布局约定；需要迁移现有归档 |
+| 默认单目录，UUID 放入文件名 | 目录预取只扫描一次，配置简单 | 单目录包含十几万文件；需要迁移，人工浏览不便 |
+
+分桶后如果仍保留每张照片的 UUID 子目录，预取的实际父目录数量不变，不能
+解决本次问题。默认原始文件名已由上游提供；布局调整时需要 UUID 文件名是
+为了明确避免跨照片重名，而不是修正默认文件名行为。
+
+宿主归档 rsync 刻意不使用 `--delete`。直接更换布局会保留旧路径并复制新路径，
+且可能重新导出媒体；不能假定改两项参数即可无成本迁移。迁移必须保留已经
+从 iCloud 删除、只剩归档的资产，也不能用全量 `--delete` 清理旧目录。
+
+用户明确不将迁移复杂性作为决策因素，优先减少技术债。因此推荐年月目录，
+将 UUID 放入文件名：只使用上游公开模板，不引入 SQL 补丁、额外索引或私有
+方法覆盖。减少实际父目录数可以大幅减少扫描次数，但没有修复上游 SQL，
+实际完整导出耗时仍需部署后验证。
+
+已检查默认文件名冲突处理：上游会增加 `(1)` 等后缀，并在增量更新时通过
+导出数据库寻找同一 UUID 已占用的文件名。无需自己实现冲突处理。不过宿主
+归档永久保留已经从图库删除的照片，而 staging 会清理删除项；文件名仍加入
+UUID，可使跨导出数据库重建的归档身份不依赖自动编号分配。它只需公开模板，
+无需自定义代码。仅追求默认参数最少时可以选择单目录，但人工浏览十几万个
+文件不方便，且原始文件名加自动编号不具备上述独立的身份稳定性。
+
+NOCASE 索引虽不修改上游代码，仍需维护上游未管理的数据库结构；禁用预取
+仍需私有方法覆盖，均不符合这次优先减少技术债的目标。上游正式修复发布后
+可正常升级，无需为了等待该修复保留本地补丁。
+不建议使用 SQLite 已弃用的
+[`case_sensitive_like` PRAGMA](https://www.sqlite.org/pragma.html#pragma_case_sensitive_like)，
+或关闭增量更新、减少归档内容来降低此热点。
+
+### 年月布局实施（2026-09-29）
+
+用户选择年月目录与 UUID 文件名。生产代码仅修改两项公开模板：
+`directory="{created.year}/{created.mm}"`、
+`filename_template="{original_name}_{uuid}"`，未增加 SQL 补丁或索引。
+`just fmt` 通过；在 Hackintosh 的 Terminal 授权会话中执行 `just darwin`
+成功，系统闭包仍为 2.34 GiB，仅包装与配置变化，VM 无需重启。
+
+独立目录样本导出覆盖普通照片、视频、Live Photo 及编辑后的 Live Photo，
+共四个资产、八个媒体文件。八个文件与旧 staging 的 SHA-256 全部相同；
+第二轮八个媒体全部跳过，missing/error 均为零。选取的连拍样本未进入本次
+导出集合，因此不将其计为已验证样本。
+
+归档迁移前创建 `pool0/footage2@pre-month-layout-20260929` 快照，并临时阻止
+定时服务启动。根据已归档照片元数据，将 51,437 个 UUID 目录中的 193,771
+个文件重命名至 183 个月份目录，合计 1,086,602,789,004 字节；逐文件确认
+inode 与大小不变，没有重写媒体内容。迁移依据归档而非当前图库筛选，保留
+已经从图库删除的归档资产。旧目录仅在为空时删除。
+迁移清单保存在宿主 root-only 的
+`/var/lib/icloud-photos-backup/layout-migration-20260929/plan.json`。
+
+检查归档导出数据库时发现旧 WAL/SHM 残留：忽略旁文件读取主数据库的
+`quick_check` 为 `ok`，guest 当前导出数据库检查也为 `ok`。
+将归档的旧旁文件移至上述私有目录保存，再由正常导出后 rsync 更新元数据。
+这未修改 live Photos 数据库或导出数据库 schema。
+
+20:18 恢复服务并启动新布局的完整导出。旧布局上一轮在 19:05 完成导出阶段，
+耗时 3:03:25，已有一个 `IMG_9423.mov` 资源缺失；新一轮需分别验证布局性能
+及该既有缺失状态。
+
+新布局首轮运行中再次采样 20 秒、979 个样本，目录预取调用栈占比从旧布局的
+69.3% 降至 3.1%。当前主要开销转为完整元数据生成及正常导出操作，其中
+`cloud_metadata` 占 13.1%。此时 APFS 可用空间仍约 993 GiB。
+该结果证明目录预取热点已明显下降，但首轮正在重新导出新路径，不能将采样
+占比直接换算为完整增量备份的提速比例；完整导出耗时与最终缺失状态待该轮
+结束后确认。归档服务和原定时调度均已恢复，独立样本目录已清理。
+
+### 临时快照清理（2026-09-29）
+
+用户要求清理快照以释放空间。删除本轮归档的
+`pre-month-layout-20260929`（约 1.09 GiB），并通过 Incus 删除系统盘和照片卷
+的 `pre-cpu-fix-20260926`（分别约 5.17 GiB、57.2 GiB）。这些名称在上文中
+保留为历史实施记录，已不能作为回滚目标。更早的 accepted-baseline、OpenCore
+身份和 Apple ID 补丁前快照保留；EFI 私有备份与归档迁移清单也保留。
