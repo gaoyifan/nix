@@ -107,9 +107,9 @@ jobs:
           kernel_log_pid=$!
           trap 'kill "$resources_pid" 2>/dev/null || true; sudo kill "$kernel_log_pid" 2>/dev/null || true' EXIT
 
-          nix build --accept-flake-config --max-jobs 2 --no-link --print-out-paths \
-            .#packages.${{ matrix.system }}.nixos-hosts-cache \
-            | tee -a cache-store-paths
+          drv_path=$(nix eval --accept-flake-config --raw \
+            .#packages.${{ matrix.system }}.nixos-hosts-cache.drvPath)
+          nix build --no-link --print-out-paths "${drv_path}^out" | tee -a cache-store-paths
 
       - name: Build NixOS disk-writer kexec image
         if: runner.os == 'Linux'
