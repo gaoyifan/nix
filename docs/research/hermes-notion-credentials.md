@@ -1,5 +1,7 @@
 # Hermes Nix 的 Notion 接入方案
 
+> 2026-09-29 更新：Notion 定义已转交用户管理，现有定义与 OAuth 状态保留。当前使用原生 managed scope，用户可在 Desktop 自行增删 MCP；见 [当前实现](hermes-nix-flexible-deployment.md)。下文关于全局配置写锁和持续 Nix 声明的描述属于历史部署。
+
 > 结论基于本仓库当前部署、锁定的 Hermes
 > [`3ef6bbd201263d354fd83ec55b3c306ded2eb72a`](https://github.com/NousResearch/hermes-agent/tree/3ef6bbd201263d354fd83ec55b3c306ded2eb72a)
 >（v0.19.0），以及 2026-07-29 的 Notion 官方文档。未读取任何真实凭据。

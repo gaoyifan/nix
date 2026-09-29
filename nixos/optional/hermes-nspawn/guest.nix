@@ -35,6 +35,8 @@
   guestTools = [
     pkgs.agent-browser
     pkgs.chromium
+    pkgs.nodejs_22
+    pkgs.uv
   ];
   podmanRuntimeDir = "/run/hermes-podman";
   podmanTmpDir = "/var/lib/hermes/podman-tmp";
@@ -121,7 +123,7 @@ in {
     "L+ /var/lib/hermes/.ssh/authorized_keys - agent agent - /var/lib/hermes-ssh/agent/authorized_keys"
     "L+ /workspace - - - - /var/lib/hermes/workspace"
     "L+ /home/agent - - - - /workspace"
-    "L+ /var/lib/hermes/.hermes/honcho.json - agent agent - /etc/hermes/honcho.json"
+    "L+ /var/lib/hermes/.hermes/honcho.json - agent agent - /run/hermes-secrets/honcho.json"
   ];
 
   services.openssh = {
@@ -142,9 +144,11 @@ in {
 
   fonts.packages = [pkgs.noto-fonts-cjk-sans];
 
+  environment.systemPackages = guestTools;
   environment.variables = {
     AGENT_BROWSER_EXECUTABLE_PATH = lib.getExe pkgs.chromium;
-    HERMES_MANAGED = "true";
+    # Explicit false overrides the upstream .managed marker without patching it.
+    HERMES_MANAGED = "false";
   };
 
   services.hermes-agent = {
@@ -159,12 +163,14 @@ in {
       newApiCodexPlugin
       weixinChannelPlugin
     ];
-    mcpServers.notion = {
-      url = "https://mcp.notion.com/mcp";
-      auth = "oauth";
-      connect_timeout = 315;
-    };
-    settings = {
+  };
+
+  # Pin the deployment baseline through Hermes' native managed scope. MCP
+  # definitions and personal credentials stay in the writable HERMES_HOME;
+  # Nix must not reintroduce a server that its user has deleted.
+  environment.etc = {
+    "hermes/.env".source = "/run/hermes-secrets/.env";
+    "hermes/config.yaml".text = builtins.toJSON {
       model = {
         provider = "codex-api";
         default = "gpt-6-sol";
@@ -246,7 +252,7 @@ in {
     description = "Configure Lark CLI for Hermes";
     after = ["network-online.target"];
     wants = ["network-online.target"];
-    unitConfig.RequiresMountsFor = "/etc/hermes /var/lib/hermes";
+    unitConfig.RequiresMountsFor = "/run/hermes-secrets /var/lib/hermes";
     environment = {
       HOME = "/var/lib/hermes";
       HERMES_HOME = "/var/lib/hermes/.hermes";
@@ -258,7 +264,7 @@ in {
       RemainAfterExit = true;
       User = "agent";
       Group = "agent";
-      EnvironmentFile = "/etc/hermes/.env";
+      EnvironmentFile = "/run/hermes-secrets/.env";
       UMask = "0077";
     };
     script = ''
@@ -323,6 +329,7 @@ in {
   };
 
   systemd.services.hermes-agent = {
+    restartTriggers = [config.environment.etc."hermes/config.yaml".source];
     after = [
       "hermes-terminal-image.service"
       "lark-cli-init.service"
@@ -331,15 +338,16 @@ in {
       "hermes-terminal-image.service"
       "lark-cli-init.service"
     ];
-    unitConfig.RequiresMountsFor = "/etc/hermes /var/lib/hermes";
+    unitConfig.RequiresMountsFor = "/run/hermes-secrets /var/lib/hermes";
     path = [config.virtualisation.podman.package];
     environment = {
       AGENT_BROWSER_EXECUTABLE_PATH = lib.getExe pkgs.chromium;
+      HERMES_MANAGED = lib.mkForce "false";
       XDG_RUNTIME_DIR = podmanRuntimeDir;
     };
     serviceConfig = {
       Delegate = true;
-      EnvironmentFile = "/etc/hermes/.env";
+      EnvironmentFile = "/run/hermes-secrets/.env";
       NoNewPrivileges = lib.mkForce false;
       ReadWritePaths = lib.mkAfter [podmanRuntimeDir];
     };
@@ -347,6 +355,7 @@ in {
 
   systemd.services.hermes-dashboard = {
     description = "Hermes Agent Dashboard";
+    restartTriggers = [config.environment.etc."hermes/config.yaml".source];
     wantedBy = ["multi-user.target"];
     after = [
       "hermes-terminal-image.service"
@@ -358,11 +367,11 @@ in {
       "hermes-terminal-image.service"
       "lark-cli-init.service"
     ];
-    unitConfig.RequiresMountsFor = "/etc/hermes /var/lib/hermes";
+    unitConfig.RequiresMountsFor = "/run/hermes-secrets /var/lib/hermes";
     environment = {
       AGENT_BROWSER_EXECUTABLE_PATH = lib.getExe pkgs.chromium;
       HERMES_HOME = "/var/lib/hermes/.hermes";
-      HERMES_MANAGED = "true";
+      HERMES_MANAGED = "false";
       HOME = "/var/lib/hermes";
       XDG_RUNTIME_DIR = podmanRuntimeDir;
     };
@@ -379,7 +388,7 @@ in {
       User = "agent";
       Group = "agent";
       WorkingDirectory = "/var/lib/hermes/workspace";
-      EnvironmentFile = "/etc/hermes/.env";
+      EnvironmentFile = "/run/hermes-secrets/.env";
       ExecStart = "${hermesPackage}/bin/hermes dashboard --host 0.0.0.0 --port 9119 --no-open";
       Restart = "always";
       RestartSec = 5;

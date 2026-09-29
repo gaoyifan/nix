@@ -197,7 +197,7 @@ in {
             hostPath = "/dev/kvm";
             isReadOnly = false;
           };
-          "/etc/hermes" = {
+          "/run/hermes-secrets" = {
             hostPath = secretDirectory containerName;
             isReadOnly = true;
           };

@@ -1,5 +1,7 @@
 # Hermes Nix 终端用户自助添加 MCP 的实现选项
 
+> 2026-09-29 更新：已改用原生 managed scope，用户可自行管理 MCP。当前实现与维护方式见 [灵活部署与用户自助 MCP](hermes-nix-flexible-deployment.md)。下文保留旧全局 managed lock 部署的调查记录，不再作为当前部署建议。
+
 > 范围：本仓库当前部署及 flake 锁定的 Hermes
 > [`3ef6bbd201263d354fd83ec55b3c306ded2eb72a`](../../flake.lock#L223-L246)。结论来自实际 Desktop、backend、MCP loader/writer 与 NixOS module；未读取任何真实凭据。
 
