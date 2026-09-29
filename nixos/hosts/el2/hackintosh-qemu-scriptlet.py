@@ -146,33 +146,30 @@ def remap_disks():
         if name == "opencore":
             continue
 
-        fdset = "fdset{}".format(inserted["file"].split("/")[-1])
-        direct = inserted["drv"] == "host_device"
+        qdev = block["qdev"]
+        if qdev.endswith("/virtio-backend"):
+            qdev = qdev[:-15]
+
         log_info("[macOS] Remapping disk {} to static VirtIO".format(name))
+        # Release the original device's exclusive write permission before moving
+        # its block node, including Incus's QCOW2 metadata and raw data-file.
+        detached = "macos_detached_{}".format(name)
         run_qmp(
             {
                 "execute": "blockdev-add",
                 "arguments": {
-                    "aio": "native" if direct else "threads",
-                    "cache": {"direct": direct, "no-flush": False},
-                    "discard": "unmap",
-                    "driver": inserted["drv"],
-                    "filename": inserted["file"],
-                    "locking": "off",
-                    "node-name": fdset,
-                    "read-only": inserted["ro"],
+                    "driver": "null-co",
+                    "node-name": detached,
+                    "size": 0,
                 },
             }
         )
+        qom_set(path=qdev, property="drive", value=detached)
         qom_set(
             path="/machine/peripheral/macos_disk_{}".format(name),
             property="drive",
-            value=fdset,
+            value=node,
         )
-
-        qdev = block["qdev"]
-        if qdev.endswith("/virtio-backend"):
-            qdev = qdev[:-15]
         device_del(id=qdev)
 
 

@@ -67,6 +67,9 @@
 in {
   imports = [../../optional/incus-vms];
 
+  # Incus 7.5 fixes the duplicate VM stop hooks that can break guest reboots.
+  virtualisation.incus.package = pkgs.incus;
+
   virtualisation.incusVms = {
     enable = true;
     metricsPort = 8444;
