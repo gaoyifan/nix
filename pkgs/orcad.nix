@@ -14,13 +14,13 @@
 }:
 stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "orcad";
-  version = "1.4.216";
+  version = "1.4.217";
 
   src = fetchFromGitHub {
     owner = "stablyai";
     repo = "orca";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-lh1IjgrJiHD1Iz3rT86e65KBZwDr6jy8ZsItIS6QKxI=";
+    hash = "sha256-mQqKjnLkejhqgeqguLcZa9a/wVFKeO3hjrQOqV82VaQ=";
   };
 
   pnpmDeps = fetchPnpmDeps {
