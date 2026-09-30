@@ -292,6 +292,7 @@ fn event_user_prompt(payload: &Value) -> Option<String> {
 
 fn request_cost(model: Option<&str>, tier: Option<&str>, usage: Usage) -> Option<f64> {
     let (input_price, cached_price, output_price, fast_multiplier) = match model? {
+        "gpt-6.1-sol" => (2.0, 0.1, 10.0, 2.0),
         "gpt-6-astra" => (10.0, 1.0, 50.0, FAST_MULTIPLIER),
         "gpt-6-sol" => (2.0, 0.2, 10.0, 2.0),
         "gpt-6-luna" => (0.1, 0.01, 0.5, 2.0),
@@ -1024,6 +1025,10 @@ mod tests {
             Some(0.000528)
         );
         assert_eq!(request_cost(Some("unknown"), None, standard), None);
+        assert_eq!(
+            request_cost(Some("gpt-6.1-sol"), None, standard),
+            Some(0.000262)
+        );
 
         let large = Usage {
             input_tokens: 300_000,
@@ -1045,6 +1050,15 @@ mod tests {
             Some(0.252)
         );
         assert_eq!(request_cost(Some("gpt-6-sol"), None, large), Some(0.25));
+        assert_eq!(request_cost(Some("gpt-6.1-sol"), None, large), Some(0.23));
+        assert_eq!(
+            request_cost(Some("gpt-6.1-sol"), Some("priority"), large),
+            Some(0.46)
+        );
+        assert_eq!(
+            request_cost(Some("gpt-6.1-sol"), Some("fast"), large),
+            Some(0.46)
+        );
         assert_eq!(
             request_cost(Some("gpt-6-sol"), Some("priority"), large),
             Some(0.5)

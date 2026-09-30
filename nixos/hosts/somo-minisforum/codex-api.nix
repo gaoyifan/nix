@@ -46,6 +46,11 @@ in {
           upstream.supports_websockets = true;
           server.enable_websockets = true;
           model_prices = {
+            "gpt-6.1-sol" = {
+              input_usd_per_million = "2.00";
+              cached_input_usd_per_million = "0.10";
+              output_usd_per_million = "10.00";
+            };
             "gpt-6-astra" = {
               input_usd_per_million = "10.00";
               cached_input_usd_per_million = "1.00";
