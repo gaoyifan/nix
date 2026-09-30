@@ -7,6 +7,11 @@ on:
     branches: [main]
   workflow_dispatch:
     inputs:
+      self-hosted:
+        description: "Trial the x86_64-linux build on EL2 instead of GitHub-hosted Ubuntu"
+        required: false
+        default: false
+        type: boolean
       revision:
         description: "Exact commit to build; defaults to the dispatched ref"
         required: false
@@ -34,7 +39,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ${{ inputs['self-hosted'] && fromJSON('["self-hosted", "Linux", "X64", "el2", "nix"]') || 'ubuntu-latest' }}
             system: x86_64-linux
             target: homeConfigurations.yifan.config.home.activationPackage
           - os: ubuntu-24.04-arm
@@ -53,6 +58,7 @@ jobs:
           ref: ${{ inputs.revision || github.sha }}
 
       - name: Install Nix
+        if: runner.environment == 'github-hosted'
         uses: nixbuild/nix-quick-install-action@v35
         with:
           nix_conf: |
@@ -65,6 +71,7 @@ jobs:
             max-substitution-jobs = 64
 
       - name: Restore and save Nix store
+        if: runner.environment == 'github-hosted'
         uses: nix-community/cache-nix-action@v7.0.2
         with:
           primary-key: nix-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/*.nix', '**/flake.lock') }}
@@ -136,9 +143,13 @@ jobs:
       - name: Switch home-manager configuration
         if: runner.os == 'Linux'
         run: |
-          # Validate the same Home Manager switch path used locally. Skip Darwin
-          # because `just darwin` is too slow on GitHub-hosted runners.
-          nix develop --accept-flake-config .#devShells.${{ matrix.system }}.default -c just home
+          # The NixOS runner uses the already-built activation package because
+          # `just home` rejects standalone Home Manager on NixOS.
+          if [[ "${{ runner.environment }}" == 'self-hosted' ]]; then
+            ./result/activate
+          else
+            nix develop --accept-flake-config .#devShells.${{ matrix.system }}.default -c just home
+          fi
 
       - name: Compute cache paths
         run: |

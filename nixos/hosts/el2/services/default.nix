@@ -6,6 +6,7 @@
     ./collie.nix
     ./derp.nix
     ./dnsmonster.nix
+    ./github-runner.nix
     ./icloud-photos.nix
     ./immich.nix
     ./kopia.nix
