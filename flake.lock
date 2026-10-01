@@ -659,6 +659,27 @@
         "type": "github"
       }
     },
+    "microvm": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "spectrum": "spectrum"
+      },
+      "locked": {
+        "lastModified": 1790526615,
+        "narHash": "sha256-33a6iTG1uFv12/zV8yo5VvdpftMNQms6TIHhMCVN6zE=",
+        "owner": "microvm-nix",
+        "repo": "microvm.nix",
+        "rev": "81f70a2002254f75b572fc34c55e7df16e9bb176",
+        "type": "github"
+      },
+      "original": {
+        "owner": "microvm-nix",
+        "repo": "microvm.nix",
+        "type": "github"
+      }
+    },
     "mk-shell-bin": {
       "locked": {
         "lastModified": 1677004959,
@@ -1017,6 +1038,23 @@
         "type": "github"
       }
     },
+    "rakazo-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1788845915,
+        "narHash": "sha256-xz3F3T69NjMYPhceGkTpcFtyykrYyMbW+pwjinvkIoA=",
+        "owner": "elie222",
+        "repo": "rakazo",
+        "rev": "84c8689f92f267d5d846d7b193b382631372d315",
+        "type": "github"
+      },
+      "original": {
+        "owner": "elie222",
+        "ref": "v0.1.6",
+        "repo": "rakazo",
+        "type": "github"
+      }
+    },
     "restic-115": {
       "inputs": {
         "nixpkgs": [
@@ -1076,6 +1114,7 @@
         "home-manager": "home-manager_2",
         "lark-cli-src": "lark-cli-src",
         "loft": "loft",
+        "microvm": "microvm",
         "nix-darwin": "nix-darwin",
         "nixos-images": "nixos-images",
         "nixpkgs": "nixpkgs",
@@ -1084,6 +1123,7 @@
         "osxphotos-src": "osxphotos-src",
         "paseo": "paseo",
         "pyproject-nix": "pyproject-nix_2",
+        "rakazo-src": "rakazo-src",
         "restic-115": "restic-115",
         "restic-sync": "restic-sync",
         "rust-overlay": "rust-overlay_2",
@@ -1136,6 +1176,22 @@
         "owner": "oxalica",
         "repo": "rust-overlay",
         "type": "github"
+      }
+    },
+    "spectrum": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1786032750,
+        "narHash": "sha256-+Ba/kIn5BjvV7PN8bWOo7RoqgTY/Yv2M7qeMf3wS2Ag=",
+        "ref": "refs/heads/main",
+        "rev": "77d2389874bb092b8dbf05ecc5b1030372e80e98",
+        "revCount": 1417,
+        "type": "git",
+        "url": "https://spectrum-os.org/git/spectrum"
+      },
+      "original": {
+        "type": "git",
+        "url": "https://spectrum-os.org/git/spectrum"
       }
     },
     "system-manager": {

@@ -22,6 +22,7 @@
     ./paseo.nix
     ./powerdns.nix
     ./py-kms.nix
+    ./rakazo
     ./restic.nix
     ./ulogd.nix
     ./znapzend.nix
