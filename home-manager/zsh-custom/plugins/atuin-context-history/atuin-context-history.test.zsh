@@ -66,9 +66,9 @@ print -rl -- \
   'elif [[ "$ATUIN_QUERY" == multi ]]; then' \
   "  print -rn -- \$'print -r -- MULTI_ONE\\nprint -r -- MULTI_TWO\\0'" \
   'elif [[ $filter_mode == global ]]; then' \
-  "  print -rn -- \$'print -r -- GLOBAL_OLDEST\\0print -r -- OLDEST\\0print -r -- GLOBAL_NEWEST\\0'" \
+  "  print -rn -- \$'print -r -- GLOBAL_OLDEST\\0print -r -- \"OLDEST[*]\"\\0print -r -- GLOBAL_NEWEST\\0'" \
   'else' \
-  "  print -rn -- \$'print -r -- OLDEST\\0print -r -- NEWEST\\0'" \
+  "  print -rn -- \$'print -r -- \"OLDEST[*]\"\\0print -r -- NEWEST\\0'" \
   'fi' \
   >"$fake_bin/atuin"
 chmod +x "$fake_bin/atuin"
@@ -284,6 +284,82 @@ test_directory_results_precede_global_results() {
   assert_contains "$output" 'GLOBAL_NEWEST' 'global history follows all directory history'
   assert_equals "$(history_load_count)" 1 'the history load contains one directory query'
   assert_equals "$(global_query_count)" 1 'the history load contains one global query'
+
+  finish_shell
+}
+
+test_last_shell_command_precedes_atuin_history() {
+  local keymap
+  local output
+  for keymap in viins emacs vicmd; do
+    start_shell "$keymap"
+
+    zpty -w -n test_shell $'\e[A\e[A\n'
+    zpty -r test_shell output '*READY> *'
+    zpty -w -n test_shell $'\e[A\n'
+    zpty -r test_shell output '*READY> *'
+    assert_contains "$output" $'\r\nOLDEST[*]\r\n' "the first Up recalls this shell's last command in every keymap"
+
+    zpty -w -n test_shell $'\e[A\e[A'
+    zpty -r test_shell output '*NEWEST*'
+    assert_contains "$output" 'NEWEST' 'the second Up continues with Atuin directory history'
+    # The literal OLDEST[*] command occurs in both result sets; neither
+    # should repeat it after the pinned entry.
+    zpty -w -n test_shell $'\e[A\n'
+    zpty -r test_shell output '*READY> *'
+    assert_contains "$output" $'\r\nGLOBAL_NEWEST\r\n' 'the pinned command is removed from directory and global history'
+    assert_equals "$(history_load_count)" 3 'each navigation cycle loads Atuin history once'
+
+    finish_shell
+  done
+}
+
+test_prefix_search_does_not_pin_last_shell_command() {
+  start_shell
+
+  local output
+  zpty -w -n test_shell $'print -r -- LOCAL_LAST\n'
+  zpty -r test_shell output '*READY> *'
+  zpty -w -n test_shell $'seed\e[A\n'
+  zpty -r test_shell output '*READY> *'
+  assert_contains "$output" $'\r\nNEWEST\r\n' 'a nonempty buffer keeps Atuin prefix search'
+  assert_not_contains "$output" 'LOCAL_LAST' 'prefix search does not insert an unrelated local command'
+  assert_contains "$(tail -n 1 "$test_log")" 'batch|seed|' 'prefix search keeps the original query'
+
+  finish_shell
+}
+
+test_blank_and_cancelled_input_keep_last_shell_command() {
+  start_shell
+
+  local output
+  zpty -w -n test_shell $'print -r -- LOCAL_LAST\n'
+  zpty -r test_shell output '*READY> *'
+  zpty -w -n test_shell $'\e[A\e[B\n'
+  zpty -r test_shell output '*READY> *'
+  assert_not_contains "$output" $'\r\nLOCAL_LAST\r\n' 'Down from the pinned command restores the empty buffer'
+  zpty -w -n test_shell $'print -r -- CANCELLED\C-C'
+  zpty -r test_shell output '*READY> *'
+  zpty -w -n test_shell $'\e[A\n'
+  zpty -r test_shell output '*READY> *'
+  assert_contains "$output" $'\r\nLOCAL_LAST\r\n' 'blank and cancelled input do not replace the last executed command'
+
+  finish_shell
+}
+
+test_last_shell_command_preserves_multiline_input() {
+  start_shell
+
+  local output
+  # Bracketed paste submits one command containing a newline and literal glob
+  # characters, rather than two separate commands.
+  zpty -w -n test_shell $'\e[200~print -r -- "LOCAL[*]"\nprint -r -- LOCAL_SECOND\e[201~\n'
+  zpty -r test_shell output '*READY> *'
+  zpty -w -n test_shell $'\e[A\e[A\n'
+  zpty -r test_shell output '*READY> *'
+  assert_contains "$output" $'\r\nLOCAL[*]\r\n' 'the pinned command preserves its first line and literal glob characters'
+  assert_contains "$output" $'\r\nLOCAL_SECOND\r\n' 'the pinned command preserves its second line'
+  assert_equals "$(history_load_count)" 1 'moving up within the pinned multiline command reuses the history load'
 
   finish_shell
 }
@@ -512,6 +588,19 @@ test_real_atuin_database_uses_directory_then_global_history() {
   zpty -r test_shell output '*READY> *'
   assert_contains "$output" 'CONTEXT_ELSEWHERE' 'the real ZLE widget continues with the newest remaining global match'
 
+  local last_command='print -r -- RUNNING; read -r reply'
+  record_history "$subdirectory" "$last_command"
+  zpty -w -n test_shell "$last_command"$'\n'
+  zpty -r test_shell output $'*\r\nRUNNING\r\n*'
+  # Insert another session's command while this shell is blocked, reproducing
+  # an older command such as htop finishing after newer external commands.
+  record_history "$subdirectory" 'print -r -- EXTERNAL_NEWEST'
+  zpty -w -n test_shell $'done\n'
+  zpty -r test_shell output '*READY> *'
+  zpty -w -n test_shell $'\e[A\C-Uprint -r -- "$_atuin_context_history_last_buffer"\n'
+  zpty -r test_shell output '*READY> *'
+  assert_contains "$output" $'\r\nprint -r -- RUNNING; read -r reply\r\n' 'the first Up recalls the local command despite newer external database entries'
+
   finish_shell
 }
 
@@ -525,6 +614,14 @@ test_vicmd_cursor_keys_use_atuin_history
 print -r -- 'PASS: vicmd cursor keys use Atuin history'
 test_directory_results_precede_global_results
 print -r -- 'PASS: directory results precede global results'
+test_last_shell_command_precedes_atuin_history
+print -r -- 'PASS: the last shell command precedes Atuin history in all keymaps'
+test_prefix_search_does_not_pin_last_shell_command
+print -r -- 'PASS: prefix search keeps its existing behavior after a local command'
+test_blank_and_cancelled_input_keep_last_shell_command
+print -r -- 'PASS: Down restores the empty buffer and blank or cancelled input keeps the last command'
+test_last_shell_command_preserves_multiline_input
+print -r -- 'PASS: the last shell command preserves multiline input and literal glob characters'
 test_full_directory_stops_before_global_query
 print -r -- 'PASS: a full directory result set skips the global query'
 test_global_results_only_fill_the_remaining_limit

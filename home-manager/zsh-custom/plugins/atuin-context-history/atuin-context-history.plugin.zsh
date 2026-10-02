@@ -1,17 +1,26 @@
 zmodload zsh/zle
 
 typeset -ga _atuin_context_history_items=()
-typeset -gi _atuin_context_history_active=0
+# Index 0 means no active history cycle; even an empty loaded batch uses 1.
 typeset -gi _atuin_context_history_index=0
 typeset -g _atuin_context_history_original_buffer=""
 typeset -gi _atuin_context_history_original_cursor=0
 typeset -g _atuin_context_history_pwd=""
 typeset -g _atuin_context_history_last_buffer=""
 typeset -gi _atuin_context_history_last_cursor=0
+typeset -g _atuin_context_history_last_command=""
+
+# Capture this shell's input before execution; shared history and Atuin's
+# timestamps can put another shell's command ahead of a long-running command.
+function _atuin_context_history_preexec() {
+  _atuin_context_history_last_command="$1"
+}
+
+autoload -Uz add-zsh-hook
+add-zsh-hook preexec _atuin_context_history_preexec
 
 function _atuin_context_history_reset() {
   _atuin_context_history_items=()
-  _atuin_context_history_active=0
   _atuin_context_history_index=0
 }
 
@@ -21,8 +30,7 @@ autoload -Uz add-zle-hook-widget
 add-zle-hook-widget line-init _atuin_context_history_reset
 
 function _atuin_context_history_matches_buffer() {
-  (( _atuin_context_history_active )) \
-    && [[ "$BUFFER" == "$_atuin_context_history_last_buffer" ]] \
+  [[ "$BUFFER" == "$_atuin_context_history_last_buffer" ]] \
     && (( CURSOR == _atuin_context_history_last_cursor )) \
     && [[ "$PWD" == "$_atuin_context_history_pwd" ]]
 }
@@ -81,8 +89,15 @@ function _atuin_context_history_load() {
 
   results+=("${directory_results[@]}")
 
+  if [[ -z "$BUFFER" && -n "$_atuin_context_history_last_command" ]]; then
+    # Quote the command so pattern characters remain literal.
+    results=("${(@)results:#"$_atuin_context_history_last_command"}" "$_atuin_context_history_last_command")
+    if (( ${#results} > 200 )); then
+      shift results
+    fi
+  fi
+
   _atuin_context_history_items=("${results[@]}")
-  _atuin_context_history_active=1
   _atuin_context_history_index=$(( ${#results} + 1 ))
   _atuin_context_history_original_buffer="$BUFFER"
   _atuin_context_history_original_cursor=$CURSOR
@@ -110,19 +125,19 @@ function _atuin_context_history_render() {
 }
 
 function _atuin_context_history_up() {
-  if (( _atuin_context_history_active )) && ! _atuin_context_history_matches_buffer; then
+  if (( _atuin_context_history_index )) && ! _atuin_context_history_matches_buffer; then
     _atuin_context_history_reset
   fi
 
   if [[ "$LBUFFER" == *$'\n'* ]]; then
     zle up-line
-    if (( _atuin_context_history_active )); then
+    if (( _atuin_context_history_index )); then
       _atuin_context_history_last_cursor=$CURSOR
     fi
     return 0
   fi
 
-  if (( ! _atuin_context_history_active )); then
+  if (( ! _atuin_context_history_index )); then
     _atuin_context_history_load || return
   fi
 
@@ -136,19 +151,19 @@ function _atuin_context_history_up() {
 }
 
 function _atuin_context_history_down() {
-  if (( _atuin_context_history_active )) && ! _atuin_context_history_matches_buffer; then
+  if (( _atuin_context_history_index )) && ! _atuin_context_history_matches_buffer; then
     _atuin_context_history_reset
   fi
 
   if [[ "$RBUFFER" == *$'\n'* ]]; then
     zle down-line
-    if (( _atuin_context_history_active )); then
+    if (( _atuin_context_history_index )); then
       _atuin_context_history_last_cursor=$CURSOR
     fi
     return 0
   fi
 
-  if (( ! _atuin_context_history_active )); then
+  if (( ! _atuin_context_history_index )); then
     zle down-line-or-history
     return 0
   fi
