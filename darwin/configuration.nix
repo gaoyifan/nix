@@ -43,6 +43,18 @@ in {
     startup.chime = false;
   };
 
+  # Shorten rBBR's initial RTT probe, which otherwise limits downloads for a second.
+  launchd.daemons.tcp-rbbr = {
+    serviceConfig = {
+      ProgramArguments = [
+        "/usr/sbin/sysctl"
+        "-w"
+        "net.inet.tcp.rbbr_rtt_probe_min_duration=200"
+      ];
+      RunAtLoad = true;
+    };
+  };
+
   # Enable Touch ID authentication for sudo
   security.pam.services.sudo_local = {
     reattach = true;
