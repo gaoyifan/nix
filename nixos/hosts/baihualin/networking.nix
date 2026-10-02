@@ -46,6 +46,11 @@
         "fd9a:2d16:5c3e:6601::254/64"
       ];
       dhcpServer.range = "100.66.1.100,100.66.1.200,24h";
+      dhcpServer.hosts = [
+        "dc:ed:83:e5:20:34,100.66.1.240,yunmi-waterpuri-lx27,infinite"
+        "d4:35:38:cb:9f:55,100.66.1.250,miwifi-rb08-d5fe,infinite"
+        "d4:35:38:cb:9f:50,100.66.1.251,miwifi-rb08-302,infinite"
+      ];
       ipv6.prefixes = ["fd9a:2d16:5c3e:6601::/64"];
     };
 
