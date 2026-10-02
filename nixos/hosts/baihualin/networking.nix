@@ -8,6 +8,14 @@
     ../../optional/oob-ssh.nix
   ];
 
+  boot.kernel.sysctl = {
+    "net.ipv4.tcp_congestion_control" = "bbr";
+    "net.core.rmem_max" = 134217728;
+    "net.core.wmem_max" = 134217728;
+    "net.ipv4.tcp_rmem" = "4096 131072 134217728";
+    "net.ipv4.tcp_wmem" = "4096 16384 134217728";
+  };
+
   networking.homeRouter.wgIplc = {
     enable = true;
     ip = "11.13.112.81/24";
@@ -37,6 +45,7 @@
   networking.homeRouter = {
     enable = true;
     monitoring.enable = true;
+    ttr.enable = true;
 
     switch.ports.lan1.untagged = 661;
     lans.baihualin = {
