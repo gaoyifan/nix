@@ -8,6 +8,7 @@ in
       ++ [
         "flutter"
         "handbrake-app" # Video transcoder
+        "kicad" # Electronics design automation
         "lm-studio" # Local LLM runner
         "orbstack" # Docker/Linux VM alternative
       ];
