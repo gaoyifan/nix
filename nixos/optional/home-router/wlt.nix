@@ -16,6 +16,7 @@
   snapshotFile = "${persistDir}/wlt_src2mark-v3.conf";
   portalIpv4 = homeRouter.serviceAddresses.ipv4;
   portalIpv6 = homeRouter.serviceAddresses.ipv6;
+  certDir = "${config.services.acmeCertificates.directory}/yfgao";
 
   wltConfig = pkgs.writeText "wlt-config.toml" ''
     time_limits = [1, 4, 10, 24, 0]
@@ -25,8 +26,8 @@
 
     [web.https]
     listen = ["${portalIpv4}:443", "[${portalIpv6}]:443"]
-    cert = "${config.services.secrets.filesDir}/nixos/wlt-server.pem"
-    key = "/run/agenix/wlt-server-key"
+    cert = "${certDir}/fullchain.pem"
+    key = "${certDir}/privkey.pem"
 
     [ssh]
     listen = ["[::]:2222"]
@@ -68,7 +69,10 @@
     "禁用 IPv6" = 0xfff
   '';
 in {
-  imports = [inputs.wlt.nixosModules.default];
+  imports = [
+    inputs.wlt.nixosModules.default
+    ../acme-certificates.nix
+  ];
 
   config = lib.mkIf homeRouter.enable (lib.mkMerge [
     {
@@ -85,8 +89,15 @@ in {
         configDirectory = null;
       };
 
+      services.acmeCertificates = lib.mkIf config.services.wlt.enable {
+        enable = true;
+        restartServices = ["wlt"];
+      };
+
       age.secrets = lib.mkIf config.services.secrets.hasRealFiles {
-        wlt-server-key.file = config.services.secrets.filesDir + "/nixos/wlt-server-key.pem.age";
+        acme-repository-pull-key = lib.mkIf config.services.wlt.enable {
+          file = config.services.secrets.filesDir + "/nixos/acme-repository-pull-key.age";
+        };
         wlt-ssh-host-key.file = config.services.secrets.filesDir + "/nixos/wlt-ssh-host-key.age";
       };
 

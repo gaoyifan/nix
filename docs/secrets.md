@@ -45,7 +45,7 @@ Home Manager declares user-level agenix secrets only for Darwin configurations w
 
 - `nixos/wlt-ssh-host-key`: shared SSH host private key for the WLT selector service. Keep it host-agnostic so multiple gateways serving the same WLT domain present the same SSH host identity.
 - `nixos/internal-ca.pem`, `nixos/internal-ca-key.pem`: internal CA certificate and private key for locally issued service certificates.
-- `nixos/wlt-server.pem`, `nixos/wlt-server-key.pem`: HTTPS server certificate and private key for WLT, signed by the internal CA. The server certificate should cover the public WLT aliases plus their split-horizon `wlt-ipv4.*` and `wlt-ipv6.*` API hosts.
+- `nixos/acme-repository-pull-key.age`: SSH key for pulling the shared ACME certificate repository. WLT gateways use `services.acmeCertificates` and its `yfgao/fullchain.pem` and `yfgao/privkey.pem`; `*.gaof.net` covers `wlt.gaof.net`, `wlt-ipv4.gaof.net`, and `wlt-ipv6.gaof.net`. The update timer refreshes the checkout daily and restarts WLT when it changes. The old internal-CA WLT certificate is no longer used; other historical WLT domain aliases are not covered by this ACME certificate.
 
 ### Recipient registry
 
