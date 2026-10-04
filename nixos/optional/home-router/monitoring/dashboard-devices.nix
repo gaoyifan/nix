@@ -53,8 +53,9 @@
       ];
       transformations = [
         {
-          id = "organize";
-          options = {
+          kind = "Transformation";
+          group = "organize";
+          spec.options = {
             excludeByName = {
               Time = true;
               instance = true;
