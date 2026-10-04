@@ -825,6 +825,9 @@
         "promql_expr_test": [],
     }
     for panel in device_dashboard["dashboard"]["panels"]:
+        if panel["type"] == "table":
+            assert [transform["id"] for transform in panel["transformations"]] == ["organize"]
+            assert panel["transformations"][0]["options"]["renameByName"]["name"] == "Device"
         for target in panel["targets"]:
             query = target["expr"].replace("$lan", ".*").replace("$__rate_interval", "5m").replace("$__range", "24h")
             result = json.loads(router.succeed("curl -fsSG --data-urlencode " + shlex.quote("query=" + query) + " http://127.0.0.1:9090/api/v1/query"))
