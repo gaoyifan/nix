@@ -173,6 +173,13 @@ jobs:
           comm -23 cache-closure-store-paths cache-excluded-store-paths \
             > cache-included-store-paths
 
+      - name: Retain build outputs on persistent runners
+        if: runner.environment == 'self-hosted'
+        run: |
+          xargs nix-store --realise \
+            --add-root "$HOME/.local/state/nix/ci-build-roots/result" \
+            < cache-upload-root-paths
+
       - name: Push closures to R2 with Loft
         if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs['publish-cache']))
         run: |

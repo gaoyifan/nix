@@ -20,6 +20,8 @@ in {
       max-jobs = 8;
       max-substitution-jobs = 64;
       keep-env-derivations = true;
+      # Retain build dependencies of the workflow's rooted derivations too.
+      keep-outputs = true;
       min-free = 2 * 1024 * 1024 * 1024;
       max-free = 6 * 1024 * 1024 * 1024;
     };
