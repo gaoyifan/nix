@@ -97,12 +97,66 @@
       ip link set guest0 netns guest
       ip link set vm-access0 up
       ip -n guest link set lo up
+      ip -n guest link set guest0 address 02:00:00:00:64:02
       ip -n guest link set guest0 up
       wait_for_bridge_port vm-access0
       ip -n guest address add 10.64.2.2/24 dev guest0
-      ip -n guest address add fd00:642::2/64 dev guest0
+      ip -n guest address add fd00:642::2/64 dev guest0 nodad
       ip -n guest route add default via 10.64.2.254 dev guest0
       wait_for_address br-core.931 2001:db8:931::2/64
+      wait_for_address br-core.642 fd00:642::254/64
+
+      # Warm neighbors, then verify dual-stack traffic shares one MAC counter.
+      ip netns exec guest ping -c 1 -W 2 10.64.2.254
+      ip netns exec guest ping -6 -c 1 -W 2 fd00:642::254
+      nft 'delete element netdev home-router-devices upload_mac { "br-core.642" . 02:00:00:00:64:02 }'
+      nft 'delete element netdev home-router-devices download_mac { "br-core.642" . 02:00:00:00:64:02 }'
+      ip netns exec guest ping -c 1 -W 2 10.64.2.254
+      ip netns exec guest ping -6 -c 1 -W 2 fd00:642::254
+      nft --json list table netdev home-router-devices |
+        ${pkgs.jq}/bin/jq --exit-status '
+          [.nftables[].set? | select(.name == "upload_mac" or .name == "download_mac")
+            | [.elem[].elem | select(.val.concat == ["br-core.642", "02:00:00:00:64:02"])]
+            | select(length == 1 and .[0].counter.packets == 2)] | length == 2
+        '
+      printf '0 02:00:00:00:64:02 10.64.2.2 test-client *\n' > /var/lib/dnsmasq/dnsmasq.leases
+      systemctl stop home-router-device-metrics.service
+      rm -f /run/home-router-wan-metrics/home-router-devices.prom
+      systemctl start home-router-device-metrics.service
+      for _ in $(seq 1 50); do
+        if grep -Fq 'name="test-client"' /run/home-router-wan-metrics/home-router-devices.prom; then break; fi
+        sleep 0.1
+      done
+      grep -F 'home_router_device_bytes_total{lan="internal",device_id="mac:02:00:00:00:64:02",address="",direction="upload"} 188' /run/home-router-wan-metrics/home-router-devices.prom
+      grep -F 'home_router_device_bytes_total{lan="internal",device_id="mac:02:00:00:00:64:02",address="",direction="download"} 188' /run/home-router-wan-metrics/home-router-devices.prom
+      grep -F 'home_router_device_info{lan="internal",device_id="mac:02:00:00:00:64:02",name="test-client"} 1' /run/home-router-wan-metrics/home-router-devices.prom
+
+      # A real layer-3 peer uses one identity for its IPv4 and IPv6 addresses.
+      mkdir -p /tmp/wg-peer-names
+      wg genkey > /tmp/wg-client.key
+      wg pubkey < /tmp/wg-client.key > /tmp/wg-peer-names/vpn-client.pub
+      client_public_key="$(cat /tmp/wg-peer-names/vpn-client.pub)"
+      server_public_key="$(wg show wg-test public-key)"
+      wg set wg-test peer "$client_public_key" allowed-ips 10.110.0.2/32,fd00:110::2/128
+      ip -n guest link add wg-client type wireguard
+      ip netns exec guest wg set wg-client private-key /tmp/wg-client.key \
+        peer "$server_public_key" allowed-ips 10.110.0.1/32,fd00:110::1/128 \
+        endpoint 10.64.2.254:2198
+      ip -n guest address add 10.110.0.2/24 dev wg-client
+      ip -n guest address add fd00:110::2/64 dev wg-client nodad
+      ip -n guest link set wg-client up
+      ip netns exec guest ping -c 1 -W 2 10.110.0.1
+      ip netns exec guest ping -6 -c 1 -W 2 fd00:110::1
+      systemctl stop home-router-device-metrics.service
+      rm -f /run/home-router-wan-metrics/home-router-devices.prom
+      systemctl start home-router-device-metrics.service
+      for _ in $(seq 1 50); do
+        if grep -Fq 'name="vpn-client"' /run/home-router-wan-metrics/home-router-devices.prom; then break; fi
+        sleep 0.1
+      done
+      grep -F "device_id=\"wireguard:$client_public_key\",address=\"10.110.0.2\",direction=\"upload\"" /run/home-router-wan-metrics/home-router-devices.prom
+      grep -F "device_id=\"wireguard:$client_public_key\",address=\"fd00:110::2\",direction=\"download\"" /run/home-router-wan-metrics/home-router-devices.prom
+      grep -F "home_router_device_info{lan=\"wg-test\",device_id=\"wireguard:$client_public_key\",name=\"vpn-client\"} 1" /run/home-router-wan-metrics/home-router-devices.prom
 
       ip netns add podman
       ip link add podman0 type veth peer name container0
@@ -276,6 +330,8 @@
       grep -F 'home_router_wan_transmit_bytes_total{wan="cmcc"}' /run/home-router-wan-metrics/home-router-wan.prom
       ${pkgs.curl}/bin/curl --fail --silent http://127.0.0.1:9100/metrics |
         grep -F 'home_router_wan_receive_bytes_total{wan="chinanet"}'
+      ${pkgs.curl}/bin/curl --fail --silent http://127.0.0.1:9100/metrics |
+        grep -F 'home_router_device_info{device_id="mac:02:00:00:00:64:02",lan="internal",name="test-client"}'
 
       prometheus_config="$(
         systemctl show --property=ExecStart --value prometheus.service |
@@ -378,6 +434,7 @@
       enable = true;
 
       monitoring.enable = true;
+      monitoring.wireguardPeerNamesDirectory = "/tmp/wg-peer-names";
 
       switch.ports.uplink0 = {
         untagged = 931;
@@ -478,6 +535,13 @@
 
     networking.wireguard.interfaces.wg-iplc.privateKeyFile =
       lib.mkForce (toString (pkgs.writeText "wg-iplc-test-private-key" "SHU/G83Hd3I1CH1EM8zifA5ja9QpKzcQljsZmDvuw3k="));
+    networking.wireguard.interfaces.wg-test = {
+      ips = ["10.110.0.1/24" "fd00:110::1/64"];
+      listenPort = 2198;
+      privateKeyFile = toString (pkgs.writeText "wg-device-test-private-key" "SHU/G83Hd3I1CH1EM8zifA5ja9QpKzcQljsZmDvuw3k=");
+    };
+    networking.edgeFirewall.extraTrustedInterfaces = ["wg-test"];
+    systemd.tmpfiles.rules = ["d /tmp/wg-peer-names 0755 root root -"];
 
     systemd.network.networks."50-vm-access" = {
       matchConfig.Name = "vm-access0";
@@ -523,6 +587,7 @@
       pkgs.iproute2
       pkgs.iputils
       pkgs.netcat-openbsd
+      pkgs.prometheus.cli
       pkgs.tcpdump
     ];
 
@@ -542,8 +607,111 @@
   };
 
   testScript = {nodes, ...}: ''
+    import http.client
+    from http.server import BaseHTTPRequestHandler
+    import importlib.util
     import json
     import shlex
+    from socketserver import UnixStreamServer
+    import tempfile
+    from threading import Thread
+
+    spec = importlib.util.spec_from_file_location("device_metrics", "${../optional/home-router/monitoring/collect-device-metrics.py}")
+    assert spec is not None and spec.loader is not None
+    device_metrics = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(device_metrics)
+    counters = device_metrics.parse_nft_counters({"nftables": [
+        {"set": {"name": name, "elem": [{"elem": {
+            "val": {"concat": [interface, address]},
+            "counter": {"bytes": byte_count, "packets": packets},
+        }}]}}
+        for name, interface, address, byte_count, packets in [
+            ("upload_mac", "br-core.642", "02:00:00:00:64:02", 188, 2),
+            ("download_mac", "br-core.642", "02:00:00:00:64:02", 216, 2),
+            ("upload4", "tailscale0", "100.100.1.2", 84, 1),
+            ("upload6", "tailscale0", "fd7a:115c:a1e0::2", 104, 1),
+            ("upload6", "wg0", "fd00:110::2", 104, 1),
+            ("upload4", "wg0", "100.64.110.2", 84, 1),
+            ("upload4", "wg0", "192.0.2.2", 84, 1),
+        ]
+    ]})
+    assert counters[1]["bytes"] == 188
+    tailscale_status = {"Peer": {"key": {
+        "ID": "node-2", "DNSName": "phone.tail.test.", "HostName": "phone",
+        "TailscaleIPs": ["100.100.1.2", "fd7a:115c:a1e0::2"],
+    }}}
+    tailscale_peers = device_metrics.parse_tailscale_peers(tailscale_status)
+    wireguard_peers = {"wg0": device_metrics.parse_wireguard_peers(
+        "unused-peer\t(none)\nclient-peer\tfd00:110::2/128 100.64.110.2/32\n",
+        {"client-peer": "laptop"},
+    )}
+    collector_config = {
+        "lans": {"br-core.642": "internal"}, "tailscale": "tailscale0",
+        "wireguard": ["wg0"],
+    }
+    metrics = device_metrics.render_metrics(
+        counters, collector_config, {"02:00:00:00:64:02": "dhcp-name"},
+        {"02:00:00:00:64:02": "incus-name"}, tailscale_peers, wireguard_peers,
+    )
+    assert 'device_id="mac:02:00:00:00:64:02",name="dhcp-name"' in metrics
+    assert metrics.count('device_id="tailscale:node-2",name="phone"') == 1
+    assert 'device_id="wireguard:client-peer",address="fd00:110::2"' in metrics
+    assert 'device_id="wireguard:client-peer",address="100.64.110.2"' in metrics
+    assert 'device_id="ip:192.0.2.2"' in metrics
+    renamed = device_metrics.render_metrics(
+        counters, collector_config, {"02:00:00:00:64:02": 'TV "Main"\nRoom'}, {}, tailscale_peers, wireguard_peers,
+    )
+    assert r'name="TV \"Main\"\nRoom"' in renamed
+    assert "home_router_device_packets_total" not in metrics
+    assert [line for line in metrics.splitlines() if "_total{" in line] == [
+        line for line in renamed.splitlines() if "_total{" in line
+    ]
+
+    class LocalAPIHandler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            if self.path == "/localapi/v0/status":
+                assert self.headers["Host"] == "local-tailscaled.sock"
+                payload = tailscale_status
+            elif self.path == "/1.0/instances?recursion=1":
+                assert self.headers["Host"] == "localhost"
+                payload = {"metadata": [{"name": "vm", "config": {
+                    "volatile.eth0.hwaddr": "02:00:00:00:64:02",
+                }}]}
+            else:
+                self.send_response(503)
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
+            body = json.dumps(payload).encode()
+            self.send_response(200)
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, format, *args):
+            pass
+
+    with tempfile.TemporaryDirectory() as directory:
+        socket_path = directory + "/api.sock"
+        assert device_metrics.read_socket_json(socket_path, "localhost", "/status") == {}
+        with UnixStreamServer(socket_path, LocalAPIHandler) as server:
+            thread = Thread(target=server.serve_forever)
+            thread.start()
+            try:
+                status = device_metrics.read_socket_json(socket_path, "local-tailscaled.sock", "/localapi/v0/status")
+                assert device_metrics.parse_tailscale_peers(status) == tailscale_peers
+                instances = device_metrics.read_socket_json(socket_path, "localhost", "/1.0/instances?recursion=1")
+                assert device_metrics.parse_incus_names(instances["metadata"]) == {"02:00:00:00:64:02": "vm"}
+                try:
+                    device_metrics.read_socket_json(socket_path, "localhost", "/unavailable")
+                except http.client.HTTPException:
+                    pass
+                else:
+                    raise AssertionError("API failure must not produce empty metadata")
+            finally:
+                server.shutdown()
+                thread.join()
+        assert device_metrics.read_socket_json(socket_path, "localhost", "/status") == {}
 
     start_all()
     storage.wait_for_unit("multi-user.target")
@@ -623,6 +791,54 @@
     router.succeed("ip -4 rule show | grep -F 'to 1.1.1.1' | grep -F 'fwmark' | grep -F '/0xffffff' | grep -F 'lookup main'")
     router.succeed("ip -4 rule show | grep -F 'to 1.1.1.1' | grep -F 'unreachable'")
     router.succeed("exercise-home-router-topology")
+    collector_pid = router.succeed("systemctl show home-router-device-metrics.service -p MainPID --value").strip()
+    assert int(collector_pid) > 0
+    router.succeed("ip link delete wg-test")
+    previous_mtime = router.succeed("stat -c %Y /run/home-router-wan-metrics/home-router-devices.prom").strip()
+    router.wait_until_succeeds("test $(stat -c %Y /run/home-router-wan-metrics/home-router-devices.prom) -gt " + previous_mtime, timeout=30)
+    assert router.succeed("systemctl show home-router-device-metrics.service -p MainPID --value").strip() == collector_pid
+    router.fail("systemctl list-unit-files home-router-device-metrics.timer")
+    router.succeed("systemctl restart nftables.service")
+    router.wait_for_unit("home-router-device-metrics.service")
+    assert router.succeed("systemctl show home-router-device-metrics.service -p MainPID --value").strip() != collector_pid
+    router.wait_until_succeeds("curl -fsS http://127.0.0.1:3001/api/dashboards/uid/home-router-devices")
+    device_dashboard = json.loads(router.succeed("curl -fsS http://127.0.0.1:3001/api/dashboards/uid/home-router-devices"))
+    assert device_dashboard["meta"]["provisioned"]
+    # el2 also scrapes textfile metrics under icloud-photos; joins and totals must use node only.
+    duplicate_scrape_test = {
+        "interval": "1m",
+        "input_series": [
+            {
+                "series": 'home_router_device_bytes_total{job="' + job + '",instance="router",lan="wg0",device_id="wireguard:test",address="' + address + '",direction="' + direction + '"}',
+                "values": values,
+            }
+            for job in ["node", "icloud-photos"]
+            for direction in ["upload", "download"]
+            for address, values in [("10.0.0.2", "0+600x5"), ("fd00::2", "0+300x5")]
+        ] + [
+            {
+                "series": 'home_router_device_info{job="' + job + '",instance="router",lan="wg0",device_id="wireguard:test",name="laptop"}',
+                "values": "1+0x5",
+            }
+            for job in ["node", "icloud-photos"]
+        ],
+        "promql_expr_test": [],
+    }
+    for panel in device_dashboard["dashboard"]["panels"]:
+        for target in panel["targets"]:
+            query = target["expr"].replace("$lan", ".*").replace("$__rate_interval", "5m").replace("$__range", "24h")
+            result = json.loads(router.succeed("curl -fsSG --data-urlencode " + shlex.quote("query=" + query) + " http://127.0.0.1:9090/api/v1/query"))
+            assert result["status"] == "success", query
+            duplicate_scrape_test["promql_expr_test"].append({
+                "expr": query.replace("[24h]", "[5m]"),
+                "eval_time": "5m",
+                "exp_samples": [{
+                    "labels": '{instance="router",lan="wg0",device_id="wireguard:test",name="laptop"}',
+                    "value": 120 if panel["type"] == "timeseries" else 4500,
+                }],
+            })
+    router.succeed("printf %s " + shlex.quote(json.dumps({"tests": [duplicate_scrape_test]})) + " > /tmp/device-dashboard-promql.json")
+    router.succeed("promtool test rules /tmp/device-dashboard-promql.json")
     router.wait_for_unit("wlt-dns.service")
     router.succeed("ss -Hlnut 'sport = :53' | grep -F '10.64.2.254:53'")
     router.succeed("ss -Hlnut 'sport = :1053' | grep -F '127.0.0.1:1053'")

@@ -8,12 +8,11 @@ in {
   imports = [
     ../edge-firewall.nix
     ../policy-routing.nix
-    ../smart-monitoring
     ./options.nix
     ./networkd.nix
     ./firewall.nix
     ./services.nix
-    ./monitoring.nix
+    ./monitoring
     ./ttr.nix
     ./wlt.nix
     ./wlt-dns.nix
@@ -21,8 +20,6 @@ in {
   ];
 
   config = lib.mkIf cfg.enable {
-    services.smartMonitoring.enable = lib.mkDefault true;
-
     boot.kernelModules = ["br_netfilter"];
     boot.kernel.sysctl = {
       "net.bridge.bridge-nf-call-arptables" = 0;
@@ -30,20 +27,10 @@ in {
       "net.bridge.bridge-nf-call-ip6tables" = 0;
     };
 
-    assertions = [
-      {
-        assertion =
-          !cfg.monitoring.enable
-          || (cfg.monitoring.wans != [] && lib.all (wan: lib.hasAttr wan cfg.wans) cfg.monitoring.wans);
-        message = "networking.homeRouter.monitoring.wans must name at least one configured WAN when monitoring is enabled.";
-      }
-    ];
-
     networking.useDHCP = false;
     networking.useNetworkd = true;
     networking.edgeFirewall.enable = true;
     networking.firewall.enable = false;
-    networking.homeRouter.monitoring.wans = lib.mkDefault (lib.attrNames cfg.wans);
     networking.nftables.enable = true;
     networking.nftables.flushRuleset = false;
     networking.nftables.tables.home-router = {

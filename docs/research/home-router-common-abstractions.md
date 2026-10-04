@@ -66,7 +66,7 @@ Home Router 调用点而遗漏适配层，可能得到开启转发但缺少预�
 ## 2. WAN 监控应从 WAN 定义自动推导
 
 已验证事实：五台机器都启用
-[`monitoring.nix`](../../nixos/optional/home-router/monitoring.nix)，且监控列表没有排除任何
+[`monitoring/default.nix`](../../nixos/optional/home-router/monitoring/default.nix)，且监控列表没有排除任何
 已配置 WAN。重复声明 `monitoring.wans` 没有表达额外意图。
 
 实施状态（2026-08-28）：`homeRouter` 现在以 `mkDefault (attrNames wans)` 推导监控列表，

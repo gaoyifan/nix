@@ -1,0 +1,340 @@
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
+  cfg = config.networking.homeRouter;
+  monitoringCfg = cfg.monitoring;
+  grafanaDashboard = import ../../grafana-dashboard.nix;
+  pingPort = 9427;
+  probeTargets = [
+    "223.5.5.5"
+    "119.29.29.29"
+    "180.76.76.76"
+    "2400:3200::1"
+    "1.1.1.1"
+    "8.8.8.8"
+    "2606:4700:4700::1111"
+    "2001:4860:4860::8888"
+  ];
+  isIpv6 = address: lib.hasInfix ":" address;
+  isIpv4 = address: !isIpv6 address;
+  ipv4Targets = lib.filter isIpv4 probeTargets;
+  ipv6Targets = lib.filter isIpv6 probeTargets;
+  addressWithoutPrefix = address: lib.head (lib.splitString "/" address);
+  allInterfaceNames = lib.unique (
+    map (lan: lan.interface) (lib.attrValues cfg.lans)
+    ++ map (wan: wan.interface) (lib.attrValues cfg.wans)
+  );
+  grafanaInputInterfaces =
+    [
+      "lo"
+      "tailscale0"
+    ]
+    ++ cfg.internalInterfaces;
+  grafanaInputInterfaceSet = lib.concatMapStringsSep ", " (interface: ''"${interface}"'') grafanaInputInterfaces;
+  monitoredWans =
+    lib.imap0 (index: name: {
+      counterId = toString index;
+      inherit name;
+      inherit (cfg.wans.${name}) addresses interface routingTable;
+      port = pingPort + index;
+      sharedInterface =
+        builtins.length (lib.filter (wan: wan.interface == cfg.wans.${name}.interface) (lib.attrValues cfg.wans))
+        > 1;
+      targets = let
+        wan = cfg.wans.${name};
+        hasRoute = family: route: route ? Destination && family route.Destination;
+      in
+        lib.optionals (wan.dhcp || wan.gateway4 != null || lib.any isIpv4 wan.addresses || lib.any (hasRoute isIpv4) wan.routes) ipv4Targets
+        ++ lib.optionals (wan.dhcp || wan.gateway6 != null || lib.any isIpv6 wan.addresses || lib.any (hasRoute isIpv6) wan.routes) ipv6Targets;
+    })
+    monitoringCfg.wans;
+  monitoredTargets = lib.unique (lib.concatMap (wan: wan.targets) monitoredWans);
+  wanCounterName = wan: direction: "home_router_wan_${wan.counterId}_${direction}";
+  wanCounterDefinitions =
+    lib.concatMapStringsSep "\n" (wan: ''
+      counter ${wanCounterName wan "receive"} {}
+      counter ${wanCounterName wan "transmit"} {}
+    '')
+    monitoredWans;
+  wanAccountingRules = direction:
+    lib.concatMapStringsSep "\n" (wan: let
+      interfaceSelector =
+        if direction == "receive"
+        then "iifname"
+        else "oifname";
+      addressSelector =
+        if direction == "receive"
+        then "daddr"
+        else "saddr";
+      counter = wanCounterName wan direction;
+      addressRule = address: let
+        family =
+          if lib.hasInfix ":" address
+          then "ip6"
+          else "ip";
+      in ''${interfaceSelector} "${wan.interface}" ${family} ${addressSelector} ${addressWithoutPrefix address} counter name ${counter}'';
+    in
+      if wan.sharedInterface
+      then lib.concatMapStringsSep "\n" addressRule wan.addresses
+      else ''${interfaceSelector} "${wan.interface}" counter name ${counter}'')
+    monitoredWans;
+  wanMetricsDirectory = "/run/home-router-wan-metrics";
+  wanMetricsFile = "${wanMetricsDirectory}/home-router-wan.prom";
+  collectWanMetrics = pkgs.writeShellScript "collect-home-router-wan-metrics" ''
+    set -euo pipefail
+
+    counters_file="$(${pkgs.coreutils}/bin/mktemp ${wanMetricsDirectory}/.home-router-wan-counters.XXXXXX)"
+    metrics_file="$(${pkgs.coreutils}/bin/mktemp ${wanMetricsDirectory}/.home-router-wan-metrics.XXXXXX)"
+    trap '${pkgs.coreutils}/bin/rm -f "$counters_file" "$metrics_file"' EXIT
+
+    ${lib.getExe pkgs.nftables} --json list counters inet home-router > "$counters_file"
+
+    counter_bytes() {
+      ${lib.getExe pkgs.jq} --exit-status --raw-output \
+        --arg name "$1" \
+        '.nftables[] | select(.counter.name == $name) | .counter.bytes' \
+        "$counters_file"
+    }
+
+    {
+      printf '# HELP home_router_wan_receive_bytes_total Bytes received through a WAN.\n'
+      printf '# TYPE home_router_wan_receive_bytes_total counter\n'
+      printf '# HELP home_router_wan_transmit_bytes_total Bytes transmitted through a WAN.\n'
+      printf '# TYPE home_router_wan_transmit_bytes_total counter\n'
+      ${lib.concatMapStringsSep "\n" (wan: ''
+        printf 'home_router_wan_receive_bytes_total{wan=%s} %s\n' \
+          ${lib.escapeShellArg (builtins.toJSON wan.name)} \
+          "$(counter_bytes ${lib.escapeShellArg (wanCounterName wan "receive")})"
+        printf 'home_router_wan_transmit_bytes_total{wan=%s} %s\n' \
+          ${lib.escapeShellArg (builtins.toJSON wan.name)} \
+          "$(counter_bytes ${lib.escapeShellArg (wanCounterName wan "transmit")})"
+      '')
+      monitoredWans}
+    } > "$metrics_file"
+
+    ${pkgs.coreutils}/bin/chmod 0644 "$metrics_file"
+    ${pkgs.coreutils}/bin/mv "$metrics_file" ${lib.escapeShellArg wanMetricsFile}
+  '';
+  overviewDashboard = pkgs.writeTextDir "home-router-overview.json" (builtins.toJSON (grafanaDashboard.build {
+    source = import ./dashboard-overview.nix;
+    variables = [
+      (grafanaDashboard.customVariable {
+        name = "interface";
+        query = lib.concatStringsSep "," allInterfaceNames;
+        current = {
+          text = "All";
+          value = "$__all";
+        };
+        label = "Interfaces";
+      })
+    ];
+  }));
+  publicEgressDashboard = pkgs.writeTextDir "home-router-public-egress.json" (builtins.toJSON (grafanaDashboard.build {
+    source = import ./dashboard-public-egress.nix;
+    variables = [
+      (grafanaDashboard.customVariable {
+        name = "wan";
+        query = lib.concatMapStringsSep "," (wan: wan.name) monitoredWans;
+        current = {
+          text = "All";
+          value = "$__all";
+        };
+        allValue = ".+";
+        label = "WAN";
+      })
+      (grafanaDashboard.customVariable {
+        name = "target";
+        query = lib.concatStringsSep "," monitoredTargets;
+        current = {
+          text = lib.take 4 monitoredTargets;
+          value = lib.take 4 monitoredTargets;
+        };
+        label = "Probe Targets";
+      })
+    ];
+  }));
+in {
+  imports = [../../local-monitoring.nix ../../smart-monitoring ./metrics-devices.nix];
+
+  options.networking.homeRouter.monitoring = {
+    enable = lib.mkEnableOption "home router monitoring";
+    wans = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [];
+      description = "WANs probed and displayed by public egress dashboards; defaults to all configured WANs.";
+    };
+    wireguardPeerNamesDirectory = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      description = "Directory containing named <client>.pub files for WireGuard LAN peers.";
+    };
+  };
+
+  config = lib.mkMerge [
+    (lib.mkIf cfg.enable {
+      services.smartMonitoring.enable = lib.mkDefault true;
+      networking.homeRouter.monitoring.wans = lib.mkDefault (lib.attrNames cfg.wans);
+    })
+    (lib.mkIf (cfg.enable && monitoringCfg.enable) {
+      services.localMonitoring.enable = true;
+      assertions = [
+        {
+          assertion = monitoringCfg.wans != [] && lib.all (wan: lib.hasAttr wan cfg.wans) monitoringCfg.wans;
+          message = "networking.homeRouter.monitoring.wans must name at least one configured WAN when monitoring is enabled.";
+        }
+        {
+          assertion = lib.all (wan: !wan.sharedInterface || wan.addresses != []) monitoredWans;
+          message = "Monitored WANs sharing an interface must declare addresses for per-WAN throughput accounting.";
+        }
+      ];
+
+      services.prometheus = {
+        scrapeConfigs =
+          [
+            {
+              job_name = "node";
+              static_configs = [{targets = ["127.0.0.1:${toString config.services.prometheus.exporters.node.port}"];}];
+            }
+            {
+              job_name = "ping";
+              static_configs =
+                map (wan: {
+                  targets = ["127.0.0.1:${toString wan.port}"];
+                  labels.wan = wan.name;
+                })
+                monitoredWans;
+            }
+          ]
+          ++ map (wan: {
+            job_name = "node-wan-${wan.name}";
+            params."collect[]" = ["netclass" "netdev"];
+            static_configs = [
+              {
+                targets = ["127.0.0.1:${toString config.services.prometheus.exporters.node.port}"];
+                labels.wan = wan.name;
+              }
+            ];
+            metric_relabel_configs = [
+              {
+                source_labels = ["device"];
+                regex = lib.escapeRegex wan.interface;
+                action = "keep";
+              }
+              {
+                source_labels = ["__name__"];
+                regex = "node_network_(up|carrier|receive_errs_total|transmit_errs_total|receive_drop_total|transmit_drop_total)";
+                action = "keep";
+              }
+            ];
+          })
+          monitoredWans;
+      };
+
+      services.prometheus.exporters.node = {
+        enable = true;
+        listenAddress = "127.0.0.1";
+        extraFlags = ["--collector.textfile.directory=${wanMetricsDirectory}"];
+      };
+
+      systemd.services =
+        lib.listToAttrs (map (wan: let
+          pingConfigFile = (pkgs.formats.yaml {}).generate "home-router-ping-${wan.name}.yaml" {
+            inherit (wan) targets;
+            ping = lib.optionalAttrs (wan.routingTable != null) {
+              fw-mark = wan.routingTable;
+            };
+          };
+        in
+          lib.nameValuePair "prometheus-ping-${wan.name}-exporter" {
+            description = "Prometheus ping exporter for ${wan.name}";
+            wantedBy = ["multi-user.target"];
+            serviceConfig = {
+              ExecStart = ''
+                ${pkgs.prometheus-ping-exporter}/bin/ping_exporter \
+                  --web.listen-address=127.0.0.1:${toString wan.port} \
+                  --config.path=${pingConfigFile}
+              '';
+              Restart = "always";
+              DynamicUser = true;
+              CapabilityBoundingSet = ["CAP_NET_RAW"];
+              AmbientCapabilities = ["CAP_NET_RAW"];
+              NoNewPrivileges = true;
+              PrivateDevices = true;
+              PrivateTmp = true;
+              ProtectHome = true;
+              ProtectSystem = "strict";
+              RestrictAddressFamilies = [
+                "AF_INET"
+                "AF_INET6"
+              ];
+            };
+          })
+        monitoredWans)
+        // {
+          home-router-wan-metrics = {
+            description = "Export Home Router WAN counters for Prometheus";
+            after = ["nftables.service"];
+            requires = ["nftables.service"];
+            serviceConfig = {
+              Type = "oneshot";
+              RuntimeDirectory = "home-router-wan-metrics";
+              RuntimeDirectoryPreserve = true;
+              ExecStart = collectWanMetrics;
+            };
+          };
+        };
+
+      systemd.timers.home-router-wan-metrics = {
+        description = "Periodically export Home Router WAN counters";
+        wantedBy = ["timers.target"];
+        timerConfig = {
+          OnBootSec = "5s";
+          OnUnitActiveSec = "15s";
+          AccuracySec = "1s";
+        };
+      };
+
+      services.grafana = {
+        settings = {
+          server.http_addr = "";
+          security.secret_key = "SW2YcwTIb9zpOOhoPsMm";
+        };
+        provision = {
+          dashboards.settings.providers = [
+            {
+              name = "home-router-overview";
+              options.path = overviewDashboard;
+            }
+            {
+              name = "home-router-public-egress";
+              options.path = publicEgressDashboard;
+            }
+          ];
+        };
+      };
+
+      networking.nftables.tables.home-router.content = ''
+        ${wanCounterDefinitions}
+
+        chain wan-accounting-prerouting {
+          type filter hook prerouting priority dstnat - 1; policy accept;
+          ${wanAccountingRules "receive"}
+        }
+
+        chain wan-accounting-postrouting {
+          type filter hook postrouting priority srcnat + 1; policy accept;
+          ${wanAccountingRules "transmit"}
+        }
+
+        chain monitoring-input {
+          type filter hook input priority filter; policy accept;
+          iifname { ${grafanaInputInterfaceSet} } tcp dport ${toString config.services.grafana.settings.server.http_port} accept
+          tcp dport ${toString config.services.grafana.settings.server.http_port} drop
+        }
+      '';
+    })
+  ];
+}

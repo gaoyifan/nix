@@ -94,6 +94,7 @@ in {
   ];
 
   networking.wg-quick.interfaces.wg0.configFile = "${stateDir}/wg0.conf";
+  networking.homeRouter.monitoring.wireguardPeerNamesDirectory = userDir;
 
   networking.edgeFirewall = {
     extraTrustedInterfaces = ["wg0"];

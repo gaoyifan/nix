@@ -10,8 +10,8 @@ per-WAN scrape 收窄，以及 `el2` smartctl/IPMI exporter 已于 2026-08-28 �
 第一批实现没有新增 exporter，而是给 Home Router Overview 增加温度面板。当前
 `node_exporter 1.11.1` 已经在五台节点上默认采集 `hwmon`、`thermal_zone`、
 `cpu` 和 `cpufreq`；Home Router Dashboard 已开始消费这些指标。模块当前每 15 秒抓取 node
-exporter，并保留 90 天数据（[`monitoring.nix`](../../nixos/optional/home-router/monitoring.nix#L168-L217)），
-并由 [`overview.nix`](../../nixos/optional/home-router/overview.nix) 定义系统、网络和温度面板。
+exporter，并保留 90 天数据（[`monitoring/default.nix`](../../nixos/optional/home-router/monitoring/default.nix#L191-L240)），
+并由 [`monitoring/dashboard-overview.nix`](../../nixos/optional/home-router/monitoring/dashboard-overview.nix) 定义系统、网络和温度面板。
 
 建议按下面顺序扩展：
 
@@ -39,7 +39,7 @@ exporter，并保留 90 天数据（[`monitoring.nix`](../../nixos/optional/home
   （[`options.nix`](../../nixos/optional/home-router/options.nix#L327-L334)）。
 - Prometheus 的 `node` job 抓取本机 node exporter；节点服务没有关闭任何默认 collector，
   只额外设置了 WAN textfile 目录
-  （[`monitoring.nix`](../../nixos/optional/home-router/monitoring.nix#L168-L217)）。
+  （[`monitoring/default.nix`](../../nixos/optional/home-router/monitoring/default.nix#L191-L240)）。
 - 锁定的 Nixpkgs node exporter 模块在 `enabledCollectors = []` 时不追加 collector 参数，
   因而使用上游默认集合
   （[锁定 Nixpkgs `node.nix`](https://github.com/NixOS/nixpkgs/blob/531670d871c0e29724a02f3cbcac170adc65b58c/nixos/modules/services/monitoring/prometheus/exporters/node.nix#L23-L68)）。
@@ -52,18 +52,18 @@ exporter，并保留 90 天数据（[`monitoring.nix`](../../nixos/optional/home
 
 | Dashboard | 已有指标 | 源码 |
 |---|---|---|
-| Home Router Overview / Summary | uptime、CPU、内存、根文件系统、conntrack、load、CPU/SoC 温度、critical headroom | [`overview.nix`](../../nixos/optional/home-router/overview.nix) |
-| Home Router Overview / Interface health | carrier、link speed、所选时间范围内的 carrier changes | [`overview.nix`](../../nixos/optional/home-router/overview.nix#L254-L376) |
-| Home Router Overview / Trends | interface throughput、packet rate、errors/drops、CPU/内存历史、硬件温度、thermal mitigation | [`overview.nix`](../../nixos/optional/home-router/overview.nix) |
-| Public Egress / Status | ping exporter 是否可用、物理 WAN carrier、当前 packet loss 状态 | [`public-egress.nix`](../../nixos/optional/home-router/public-egress.nix#L1-L177) |
-| Public Egress / Trends | nftables 分 WAN throughput、loss、mean/best/worst/stddev RTT、WAN errors/drops | [`public-egress.nix`](../../nixos/optional/home-router/public-egress.nix#L178-L360) |
+| Home Router Overview / Summary | uptime、CPU、内存、根文件系统、conntrack、load、CPU/SoC 温度、critical headroom | [`monitoring/dashboard-overview.nix`](../../nixos/optional/home-router/monitoring/dashboard-overview.nix) |
+| Home Router Overview / Interface health | carrier、link speed、所选时间范围内的 carrier changes | [`monitoring/dashboard-overview.nix`](../../nixos/optional/home-router/monitoring/dashboard-overview.nix#L254-L376) |
+| Home Router Overview / Trends | interface throughput、packet rate、errors/drops、CPU/内存历史、硬件温度、thermal mitigation | [`monitoring/dashboard-overview.nix`](../../nixos/optional/home-router/monitoring/dashboard-overview.nix) |
+| Public Egress / Status | ping exporter 是否可用、物理 WAN carrier、当前 packet loss 状态 | [`monitoring/dashboard-public-egress.nix`](../../nixos/optional/home-router/monitoring/dashboard-public-egress.nix#L1-L177) |
+| Public Egress / Trends | nftables 分 WAN throughput、loss、mean/best/worst/stddev RTT、WAN errors/drops | [`monitoring/dashboard-public-egress.nix`](../../nixos/optional/home-router/monitoring/dashboard-public-egress.nix#L178-L360) |
 
 分 WAN byte counter 由模块每 15 秒读取 nftables named counter 后写入现有 textfile collector
-（[`monitoring.nix`](../../nixos/optional/home-router/monitoring.nix#L84-L120)、
-[`monitoring.nix`](../../nixos/optional/home-router/monitoring.nix#L254-L275)）；每个 WAN 的 ping
+（[`monitoring/default.nix`](../../nixos/optional/home-router/monitoring/default.nix#L84-L120)、
+[`monitoring/default.nix`](../../nixos/optional/home-router/monitoring/default.nix#L277-L298)）；每个 WAN 的 ping
 exporter 和单独 relabel 后的 link/error scrape 也都在同一模块内
-（[`monitoring.nix`](../../nixos/optional/home-router/monitoring.nix#L173-L210)、
-[`monitoring.nix`](../../nixos/optional/home-router/monitoring.nix#L219-L252)）。因此本轮建议是在
+（[`monitoring/default.nix`](../../nixos/optional/home-router/monitoring/default.nix#L196-L233)、
+[`monitoring/default.nix`](../../nixos/optional/home-router/monitoring/default.nix#L242-L275)）。因此本轮建议是在
 已有“网络 + 通用系统资源”基础上补硬件健康，而不是重做现有监控。
 
 ### 2026-08-28 实机盘点
@@ -356,7 +356,7 @@ PWM fan control（[FriendlyElec 文档](https://wiki.friendlyelec.com/wiki/index
 
 ## 已实施的最小切片
 
-第一批在 [`overview.nix`](../../nixos/optional/home-router/overview.nix) 增加了四块：
+第一批在 [`monitoring/dashboard-overview.nix`](../../nixos/optional/home-router/monitoring/dashboard-overview.nix) 增加了四块：
 
 1. `CPU/SoC Temperature` stat；
 2. `Hardware Temperatures` history，过滤 `temp0` 与 per-core；
