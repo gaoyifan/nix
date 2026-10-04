@@ -8,9 +8,9 @@ on:
   workflow_dispatch:
     inputs:
       self-hosted:
-        description: "Trial the x86_64-linux build on EL2 instead of GitHub-hosted Ubuntu"
+        description: "Run the x86_64-linux build on EL2"
         required: false
-        default: false
+        default: true
         type: boolean
       revision:
         description: "Exact commit to build; defaults to the dispatched ref"
@@ -39,7 +39,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ${{ inputs['self-hosted'] && fromJSON('["self-hosted", "Linux", "X64", "el2", "nix"]') || 'ubuntu-latest' }}
+          - os: ${{ (github.event_name == 'push' || inputs['self-hosted']) && fromJSON('["self-hosted", "Linux", "X64", "el2", "nix"]') || 'ubuntu-latest' }}
             system: x86_64-linux
             target: homeConfigurations.yifan.config.home.activationPackage
           - os: ubuntu-24.04-arm
