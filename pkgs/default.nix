@@ -36,9 +36,8 @@ rec {
   agent-browser = import ./agent-browser.nix {inherit pkgs;};
   agentreach = import ./agentreach.nix {inherit pkgs;};
 }
-// pkgs.lib.optionalAttrs pkgs.stdenv.isLinux rec {
-  orcad-bun = pkgs.callPackage ./orcad-bun.nix {};
-  orcad = pkgs.callPackage ./orcad.nix {inherit orcad-bun;};
+// pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
+  orcad = pkgs.callPackage ./orcad.nix {};
   paseo = import ./paseo.nix {inherit inputs pkgs;};
   bitmagnet = import ./bitmagnet.nix {inherit pkgs;};
   dnsmonster = import ./dnsmonster.nix {inherit pkgs;};

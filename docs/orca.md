@@ -1,6 +1,6 @@
 # Orca on el2
 
-el2 runs `orcad` directly with its pinned Bun runtime as `yifan`. Connect the MacBook's Orca
+el2 runs `orcad` directly with the flake's Node runtime as `yifan`. Connect the MacBook's Orca
 desktop app to `wss://orcad.ts.gaof.net` through Tailscale Serve. Orcad uses its
 default loopback listener (`127.0.0.1:6768`); the `orcad` Tailscale Service
 terminates TLS on port 443 using the existing ACME certificate and forwards
@@ -44,20 +44,16 @@ ends its terminals and agents, so finish those tasks before an upgrade or restar
 The runtime and dependency hashes are pinned in `pkgs/orcad.nix`; deploy changes
 with `just nixos` from el2.
 Scheduled updates select stable GitHub releases, rather than snapshots of `main`.
-`pkgs/orcad-bun.nix` pins the Bun version required by Orcad using nixpkgs' existing
-binary packaging recipe and stable dependencies. Update that pin when an Orcad
-release changes its required Bun version; the upstream build checks the version.
+The package uses nixpkgs' Node runtime and headers to build Orcad's patched
+`node-pty` addon. The runtime marker identifies that Node executable, and the
+bundle references it through upstream's shared runtime layout.
 The watcher downloader prepares an offline dependency cache covered by `pnpmDeps.hash`.
 
 The package installs upstream's headless runtime bundle, including its workers,
-native watcher and identity-tracked resources. Node and pnpm are build tools;
-the service and terminal daemon run with Bun's native PTY support. The project-wide
-`node_modules` tree and `node-pty` are not installed.
+native watcher and identity-tracked resources. The service and terminal daemon
+run with Node and the compiled PTY addon. Only the runtime's required `node-pty`
+files are installed; the project-wide `node_modules` tree stays out of the package.
 
 The build runs upstream's smoke checks and final preflight, which exercises PTY
 creation, native file watching and persistence workers. Preflight also refreshes
 the artifact identity after Nix's ELF fixups.
-
-For Orcad 1.4.216 on x86_64-linux, this packaging reduced the runtime closure from
-1755.8 MiB (71 store paths) to 171.6 MiB (8 paths). The result has no Node.js runtime
-dependency and uses the same glibc as stdenv, eliminating the extra glibc build.
