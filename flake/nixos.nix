@@ -7,6 +7,7 @@
   home-manager,
   deploy-rs,
   disko,
+  forAllLinuxSystems,
   ...
 }: let
   sharedModules = [
@@ -74,7 +75,9 @@
     xtom-sjc = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/xtom-sjc];
     xtom-syd = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/xtom-syd];
   };
-  deployableHostNames = nixpkgs.lib.attrNames (nixpkgs.lib.filterAttrs (_: host: host.deploy) hostInventory);
+  deployableHosts = nixpkgs.lib.filterAttrs (_: host: host.deploy) hostInventory;
+  deployNodes = nixpkgs.lib.mapAttrs mkDeployNode deployableHosts;
+  deployableHostNames = nixpkgs.lib.attrNames deployableHosts;
   nylonTopology = import ../nixos/nylon/compile.nix {
     lib = nixpkgs.lib;
     mesh = import ../nixos/nylon/mesh.nix;
@@ -176,9 +179,12 @@ in {
   lib = {
     inherit mkNixosDiskImage;
     nylonManifest = nylonTopology.manifest;
+    # Group by inventory metadata without evaluating configurations to discover
+    # their platform. CI can then evaluate each profile independently.
+    nixosHostProfiles = forAllLinuxSystems (system:
+      nixpkgs.lib.mapAttrs (name: _: deployNodes.${name}.profiles.system.path)
+      (nixpkgs.lib.filterAttrs (_: host: host.system == system) deployableHosts));
   };
 
-  deploy.nodes = nixpkgs.lib.mapAttrs mkDeployNode (
-    nixpkgs.lib.filterAttrs (_: host: host.deploy) hostInventory
-  );
+  deploy.nodes = deployNodes;
 }
