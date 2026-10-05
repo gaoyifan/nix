@@ -264,6 +264,10 @@ in
   lib.mkMerge (
     [
       {
+        age.secrets.tailscale-api-key = lib.mkIf config.services.secrets.hasRealFiles {
+          file = config.services.secrets.filesDir + "/nixos/el2/tailscale-api-key.age";
+        };
+
         services.tailscale = {
           extraUpFlags = [
             "--advertise-connector"
