@@ -13,6 +13,7 @@
         # uv.lock omits the dynamically computed project version.
         osxphotos = prev.osxphotos.overrideAttrs {
           version = upstream.tool.bumpversion.current_version;
+          patches = [./osxphotos-performance.patch];
           # Keep upstream's multi-gigabyte test libraries out of the build source.
           src = pkgs.lib.cleanSourceWith {
             src = inputs.osxphotos-src;

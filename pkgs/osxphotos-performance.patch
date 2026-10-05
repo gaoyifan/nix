@@ -1,0 +1,41 @@
+--- a/osxphotos/photoinfo.py
++++ b/osxphotos/photoinfo.py
+@@ -1756,9 +1756,8 @@
+             WHERE {asset_table}.ZUUID = ?
+         """
+
+-        _, cursor = self._db.get_db_connection()
+         metadata = {}
+-        if results := cursor.execute(sql_cloud_metadata, (self.uuid,)).fetchone():
++        if results := self._db.execute(sql_cloud_metadata, (self.uuid,)).fetchone():
+             with contextlib.suppress(Exception):
+                 metadata = plistlib.loads(results[0])
+         return metadata
+@@ -1786,7 +1785,7 @@
+     @cached_property
+     def ai_caption(self) -> str:
+         """Returns AI generated caption for photo or video (Photos 5+)"""
+-        return get_caption(get_media_analysis_results(self)) or ""
++        return get_caption(self.media_analysis) or ""
+
+     def detected_text(
+         self, confidence_threshold=TEXT_DETECTION_CONFIDENCE_THRESHOLD
+--- a/osxphotos/cli/export.py
++++ b/osxphotos/cli/export.py
+@@ -2127,7 +2127,15 @@
+                                 err=True,
+                             )
+
+-                    results += export_results
++                    # This accumulator owns its lists; avoid copying the full
++                    # export history for every photo. Keep public += unchanged.
++                    for attribute in results.attributes:
++                        if attribute == "uuids":
++                            results.uuids.update(export_results.uuids)
++                        else:
++                            getattr(results, attribute).extend(
++                                getattr(export_results, attribute)
++                            )
+
+                     # all photo files (not including sidecars) that are part of this export set
+                     # used below for applying Finder tags, etc.
