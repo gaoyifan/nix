@@ -3,7 +3,6 @@
     ./acme.nix
     ./atuin.nix
     ./bitmagnet.nix
-    ./collie.nix
     ./derp.nix
     ./dnsmonster.nix
     ./github-runner.nix
@@ -19,7 +18,6 @@
     ./open-webui.nix
     ./openlist.nix
     ./orca.nix
-    ./paseo.nix
     ./powerdns.nix
     ./py-kms.nix
     ./rakazo

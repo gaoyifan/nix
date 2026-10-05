@@ -921,27 +921,6 @@
         "url": "https://github.com/RhetTbull/osxphotos"
       }
     },
-    "paseo": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1790244308,
-        "narHash": "sha256-8ko/EqTCWnAkUHnrRsVEK+dkNLCHRd89gmcoeOiVBV8=",
-        "owner": "getpaseo",
-        "repo": "paseo",
-        "rev": "c67b7158b441bb09026b38d86ae335cc4b49190a",
-        "type": "github"
-      },
-      "original": {
-        "owner": "getpaseo",
-        "ref": "v0.9.2",
-        "repo": "paseo",
-        "type": "github"
-      }
-    },
     "pre-commit-hooks-nix": {
       "inputs": {
         "flake-compat": [
@@ -1121,7 +1100,6 @@
         "nixpkgs-darwin": "nixpkgs-darwin",
         "open-kimi-ppt-skill": "open-kimi-ppt-skill",
         "osxphotos-src": "osxphotos-src",
-        "paseo": "paseo",
         "pyproject-nix": "pyproject-nix_2",
         "rakazo-src": "rakazo-src",
         "restic-115": "restic-115",

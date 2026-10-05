@@ -17,7 +17,6 @@ rec {
     inherit pkgs codex;
   };
   codex-usage = import ./codex-usage.nix {inherit pkgs;};
-  colliepwa = import ./colliepwa.nix {inherit pkgs;};
   cursor-cli = import ./cursor-cli.nix {inherit pkgs;};
   pi-coding-agent = import ./pi-coding-agent.nix {inherit pkgs;};
   nft-geo-sets = import ./nft-geo-sets.nix {inherit pkgs inputs;};
@@ -38,7 +37,6 @@ rec {
 }
 // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
   orcad = pkgs.callPackage ./orcad.nix {};
-  paseo = import ./paseo.nix {inherit inputs pkgs;};
   bitmagnet = import ./bitmagnet.nix {inherit pkgs;};
   dnsmonster = import ./dnsmonster.nix {inherit pkgs;};
   jip = import ./jip.nix {inherit pkgs;};
