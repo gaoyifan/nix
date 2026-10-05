@@ -109,9 +109,49 @@ jobs:
         run: |
           set -euo pipefail
 
+          if [[ "${{ runner.environment }}" == 'self-hosted' ]]; then
+            nix eval --accept-flake-config --json \
+              .#lib.nixosHostProfiles.${{ matrix.system }} --apply builtins.attrNames \
+              | jq -r '.[]' > "$RUNNER_TEMP/nixos-hosts"
+            mapfile -t hosts < "$RUNNER_TEMP/nixos-hosts"
+            mkdir -p "$RUNNER_TEMP/nixos-host-drvs"
+
+            # Four evaluators share work within each batch and populate Nix's
+            # evaluation cache. Separate cache directories avoid SQLite writer
+            # contention; reruns can reuse every host's derivation.
+            # shellcheck disable=SC2016
+            printf '.#lib.nixosHostProfiles.${{ matrix.system }}.%s\n' "${hosts[@]}" \
+              | xargs -P 4 -n "$(( (${#hosts[@]} + 3) / 4 ))" \
+                  bash -euo pipefail -c '
+                    export NIX_CACHE_HOME="$HOME/.cache/nix-ci-eval/${1##*.}"
+                    nix path-info --accept-flake-config --derivation "$@" > /dev/null
+                    for attr; do
+                      nix path-info --accept-flake-config --derivation "$attr" \
+                        > "$RUNNER_TEMP/nixos-host-drvs/${attr##*.}"
+                    done
+                  ' --
+
+            # Read the cached paths in host order to preserve the aggregate hash.
+            for host in "${hosts[@]}"; do
+              cat "$RUNNER_TEMP/nixos-host-drvs/$host"
+            done | jq -R -s 'split("\n") | map(select(length > 0))' \
+              > "$RUNNER_TEMP/nixos-host-drvs.json"
+
+            # Import evaluated derivations to assemble the same aggregate without
+            # evaluating the host configurations again.
+            drv_path=$(nix path-info --accept-flake-config --derivation --impure --expr '
+              { drvFile }: let
+                flake = builtins.getFlake (toString ./.);
+                drvs = builtins.fromJSON (builtins.readFile drvFile);
+              in flake.packages.${{ matrix.system }}.nixos-hosts-cache.overrideAttrs {
+                constituents = map (drv: import drv) drvs;
+              }' --argstr drvFile "$RUNNER_TEMP/nixos-host-drvs.json")
+          else
+            drv_path=$(nix path-info --accept-flake-config --derivation \
+              .#packages.${{ matrix.system }}.nixos-hosts-cache)
+          fi
+
           # Let evaluation release its memory before realizing the host closure.
-          drv_path=$(nix eval --accept-flake-config --raw \
-            .#packages.${{ matrix.system }}.nixos-hosts-cache.drvPath)
           nix build --no-link --print-out-paths "${drv_path}^out" | tee -a cache-store-paths
 
       - name: Build NixOS disk-writer kexec image

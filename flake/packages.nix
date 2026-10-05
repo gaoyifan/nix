@@ -12,9 +12,6 @@
 }: {
   packages = forAllSystems (system: let
     pkgs = pkgsFor system;
-    nixosProfiles = nixpkgs.lib.attrValues (
-      nixpkgs.lib.filterAttrs (_: node: node.profiles.system.path.system == system) self.deploy.nodes
-    );
   in
     (cliApps.mkPackages {
       inherit pkgs;
@@ -24,7 +21,7 @@
       system-manager = system-manager.packages.${system}.default;
       nixos-hosts-cache = pkgs.releaseTools.aggregate {
         name = "nixos-hosts-cache";
-        constituents = map (node: node.profiles.system.path) nixosProfiles;
+        constituents = builtins.attrValues self.lib.nixosHostProfiles.${system};
       };
       system-manager-hosts-cache = pkgs.releaseTools.aggregate {
         name = "system-manager-hosts-cache";
