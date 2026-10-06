@@ -9,8 +9,9 @@ The VM and Tailscale Service are named `rakazo`. Additional users share this
 deployment and do not create more VMs. The host uses microvm.nix's default
 `microvm:kvm` account and TAP setup.
 
-Rakazo's Compose source and app/computer images are pinned to v0.1.6. The host
-rebuilds the guest declaratively through microvm.nix. The host Nix store is
+Rakazo's Compose source follows `main`, pinned by `flake.lock`. App and computer
+images use the matching `sha-<commit>` tag. Update with `nix flake update rakazo-src`.
+The host rebuilds the guest declaratively through microvm.nix. The host Nix store is
 exported read-only; Docker data is stored in the guest's persistent disk.
 
 ## Configuration and credentials
@@ -60,8 +61,8 @@ is available at `https://rakazo.ts.gaof.net`, using el2's
 existing certificate and Tailscale DNS synchronization. Create the owner account,
 then close registration through Rakazo's deployment settings before advertising
 the service. The web port is also reachable from the LAN when the VM starts;
-`advertised` only controls the Tailscale advertisement. v0.1.6 requires email
-delivery for an allowlist, so the default empty allowlist is used. SMTP and
+`advertised` only controls the Tailscale advertisement. An allowlist requires email
+delivery, so the default empty allowlist is used. SMTP and
 password recovery are not configured. Users connect their own model credentials
 through the UI.
 

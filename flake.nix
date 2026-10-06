@@ -65,7 +65,7 @@
     };
 
     rakazo-src = {
-      url = "github:elie222/rakazo/v0.1.6";
+      url = "github:elie222/rakazo/main";
       flake = false;
     };
 

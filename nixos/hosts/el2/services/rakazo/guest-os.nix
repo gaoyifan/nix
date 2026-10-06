@@ -1,6 +1,7 @@
 {
   host = {
     config,
+    inputs,
     pkgs,
     lib,
     ...
@@ -11,8 +12,8 @@
       API_URL=https://rakazo.ts.gaof.net
       RAKAZO_HOST=rakazo.ts.gaof.net
       RAKAZO_WEB_BIND_IP=100.64.2.81
-      RAKAZO_IMAGE_TAG=v0.1.6
-      RAKAZO_COMPUTER_IMAGE_TAG=v0.1.6
+      RAKAZO_IMAGE_TAG=sha-${inputs.rakazo-src.rev}
+      RAKAZO_COMPUTER_IMAGE_TAG=sha-${inputs.rakazo-src.rev}
     '';
   in {
     config = lib.mkIf config.microvm.host.enable {

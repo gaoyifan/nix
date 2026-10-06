@@ -1020,16 +1020,16 @@
     "rakazo-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1788845915,
-        "narHash": "sha256-xz3F3T69NjMYPhceGkTpcFtyykrYyMbW+pwjinvkIoA=",
+        "lastModified": 1791252200,
+        "narHash": "sha256-ibN+3U4FT45jjc+VQ1u7RdNPSXYgeVezANwW4HPqHAo=",
         "owner": "elie222",
         "repo": "rakazo",
-        "rev": "84c8689f92f267d5d846d7b193b382631372d315",
+        "rev": "4cdf3e23315c2633b6b3fde8977f197b986f06fa",
         "type": "github"
       },
       "original": {
         "owner": "elie222",
-        "ref": "v0.1.6",
+        "ref": "main",
         "repo": "rakazo",
         "type": "github"
       }
