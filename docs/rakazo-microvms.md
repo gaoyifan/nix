@@ -87,6 +87,63 @@ tailscale serve drain svc:rakazo
 tailscale serve advertise svc:rakazo
 ```
 
+## Tushare SDK and Skill
+
+The owner's `Personal` Space has the official
+[Tushare data Skill](https://github.com/waditu-tushare/skills/tree/5e12b31d09123e262c5fb38564e80c26d05cb830/tushare-data)
+imported as `/tushare`. Its instructions include the local Python interpreter,
+reference directory, HTTPS initialization, and output directory below.
+The SDK and Skill files live in the team computer's persistent home:
+
+- Python environment: `/home/rakazo/.local/share/tushare/venv`
+- Official Skill, reference index, and examples:
+  `/home/rakazo/.local/share/skills/tushare-data/`
+- Query outputs: `/home/rakazo/shared/tushare/`
+
+The upstream computer image already includes Python and uv. Install the SDK
+without changing that image:
+
+```sh
+uv venv --python /usr/bin/python3 ~/.local/share/tushare/venv
+uv pip install --python ~/.local/share/tushare/venv/bin/python tushare==1.4.29
+```
+
+`TUSHARE_TOKEN` is stored in Rakazo's native **Agent Secrets** for this Space,
+encrypted by the application. Rakazo injects it into Agent shell commands and
+redacts it from their output. It is not a container-wide environment variable;
+manual desktop terminals do not receive it automatically. Other Spaces configure
+their own token. Do not add the token to host configuration, Skill text, Python
+files, or `ts.set_token()`'s on-disk token store.
+
+Run scripts with the virtual environment's Python. The SDK defaults to HTTP,
+so initialize the client with HTTPS explicitly:
+
+```python
+import os
+import tushare as ts
+
+pro = ts.pro_api(os.environ["TUSHARE_TOKEN"])
+pro._DataApi__http_url = "https://api.waditu.com/dataapi"
+```
+
+SDK 1.4.29 appends the API name to this base URL. The older
+`https://api.tushare.pro` JSON endpoint is not a replacement SDK base URL.
+For chat downloads, copy CSVs into the bot's `exports/` directory and call
+`attach_file` with a relative path; it reads within that bot's workspace.
+
+The Skill is an application record, and the SDK/reference files are computer
+home data; both are covered by the existing persistent disk and backups.
+A new or dedicated computer needs its own Python environment and reference
+files; the imported Skill includes these setup instructions.
+
+End-to-end verification on 2026-10-06 used the configured model to read the
+Skill, execute SDK queries through the computer shell with Agent Secrets,
+and attach CSVs to the chat. SSE's 20241001–20241006 calendar returned 6 rows;
+`000001.SZ`'s 20240930 daily data returned 1 row. Downloaded artifacts matched
+the computer's CSV bytes, and the token was absent from Skill text and thread
+events. The [verification chat](https://rakazo.ts.gaof.net/app/cmuwefrv700062qnuxg4gkdiw)
+contains the query results and downloadable files.
+
 ## Network and capacity
 
 The guest joins the existing VLAN 642 like the Incus VMs and uses the shared
