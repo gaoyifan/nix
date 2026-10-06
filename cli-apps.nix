@@ -11,7 +11,7 @@
       bandwhich = {};
       bmon = {};
       cargo-binstall = {};
-      cargo-recursive-clean = {};
+      cargo-clean-recursive = {};
       codex = {
         program = "codex-launcher";
       };
