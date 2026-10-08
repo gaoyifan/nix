@@ -9,8 +9,10 @@ The VM and Tailscale Service are named `rakazo`. Additional users share this
 deployment and do not create more VMs. The host uses microvm.nix's default
 `microvm:kvm` account and TAP setup.
 
-Rakazo's Compose source follows `main`, pinned by `flake.lock`. App and computer
-images use the matching `sha-<commit>` tag. Update with `nix flake update rakazo-src`.
+Rakazo's Compose source follows `main`, pinned by `flake.lock`. The app image and
+computer base image use the matching `sha-<commit>` tag. The computer adds the
+SDK layer below.
+Update with `nix flake update rakazo-src`.
 The host rebuilds the guest declaratively through microvm.nix. The host Nix store is
 exported read-only; Docker data is stored in the guest's persistent disk.
 
@@ -27,7 +29,7 @@ and DNS (`100.64.2.254`); no address or route is set statically in the guest.
 TAP `rakazo-tap` joins VLAN 642 through `homeRouter.switch.ports`; dnsmasq derives
 the `/24` netmask from the existing LAN interface.
 
-The guest has 4 vCPUs, 6144 MiB RAM, and an 81920 MiB sparse ext4 disk, set
+The guest has 8 vCPUs, 16384 MiB RAM, and an 81920 MiB sparse ext4 disk, set
 directly in `nixos/hosts/el2/services/rakazo/vm.nix`. The volume size only
 controls initial creation; changing it does not grow an existing filesystem.
 
@@ -87,6 +89,53 @@ tailscale serve drain svc:rakazo
 tailscale serve advertise svc:rakazo
 ```
 
+## Tushare SDK and Skill
+
+`nixos/hosts/el2/services/rakazo/computer.nix` declares a thin extension of the
+upstream computer image. It installs Tushare 1.4.29 with the image's existing uv
+into its existing system Python, and adds the official Skill/reference files at
+`/opt/rakazo/skills/tushare-data/`. No additional Python installation or venv is
+created. The image retains the upstream desktop entrypoint and runtime user.
+
+The guest builds this image before starting Compose and configures the supervisor
+to use it. Its tag derives from the Nix build context, so changing the upstream
+commit, SDK version, or Skill files changes the image tag. New and recreated
+computers receive the SDK automatically. The build downloads dependencies from
+PyPI; the SDK version is pinned, while its transitive dependencies are resolved
+at build time.
+
+The [official Skill](https://github.com/waditu-tushare/skills/tree/5e12b31d09123e262c5fb38564e80c26d05cb830/tushare-data)
+is pinned in `computer.nix`; `tushare-environment.md` supplies the local execution
+instructions. Import the resulting `/opt/rakazo/skills/tushare-data/SKILL.md`
+through Rakazo's native Skill interface as `/tushare`. Imported Skills belong to
+the importing user and Space; **Agent Secrets** belong to the Space. Each of the
+two Tushare users has its own Skill import and encrypted `TUSHARE_TOKEN` record,
+using the same token and sharing its permissions and quota. New accounts do not
+inherit either configuration automatically.
+
+Agent shell commands use `python3` and receive the token as an environment
+variable. Do not put it in the image, Nix configuration, Skill text, or scripts.
+The SDK defaults to HTTP; the Skill explicitly initializes it with HTTPS:
+
+```python
+import os
+import tushare as ts
+
+pro = ts.pro_api(os.environ["TUSHARE_TOKEN"])
+pro._DataApi__http_url = "https://api.waditu.com/dataapi"
+```
+
+Save chat exports under the bot workspace's `exports/` and use `attach_file`
+with a relative path. Files shared between bots can also be copied to
+`/home/rakazo/shared/tushare/`.
+
+Verified on 2026-10-06 through the existing `helper`: the Agent read the Skill,
+used `/usr/bin/python3` without a venv or package installation, queried Tushare
+over HTTPS, and attached CSVs. SSE's 20241001–20241006 calendar returned 6 rows;
+`000001.SZ`'s 20240930 daily data returned 1 row. Downloaded artifacts matched
+the computer's files. The token was absent from Skill text, run events, and the
+image build context.
+
 ## Network and capacity
 
 The guest joins the existing VLAN 642 like the Incus VMs and uses the shared
@@ -97,7 +146,7 @@ el2's existing outlets.
 
 Cloud Hypervisor ballooning enables free-page reporting. Actual host memory is
 measured through the VMM process's `smaps_rollup`, together with guest memory and
-Docker statistics. The shared guest has a 6144 MiB ceiling. The pinned Compose
+Docker statistics. The shared guest has a 16384 MiB ceiling. The pinned Compose
 release defaults each computer to a 2 GiB and 2 CPU limit.
 
 On 2026-09-30, the pilot's VMM and virtiofs processes together measured about
