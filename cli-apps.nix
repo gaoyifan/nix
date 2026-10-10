@@ -2,14 +2,17 @@
   from = packagePath: {packagePath = lib.toList packagePath;};
   fromMany = packagePath: names:
     lib.genAttrs names (_: from packagePath);
+  oneYearSeconds = 365 * 24 * 60 * 60;
+  # cacheTtl controls the lazy wrapper's update interval in seconds (default: 3600).
+  # Network diagnostics should run from the local cache during an outage.
   appSpecs =
     {
       agy = {};
       agenix = {};
-      arping = {};
+      arping = {cacheTtl = oneYearSeconds;};
       asciinema = {};
-      bandwhich = {};
-      bmon = {};
+      bandwhich = {cacheTtl = oneYearSeconds;};
+      bmon = {cacheTtl = oneYearSeconds;};
       cargo-binstall = {};
       cargo-clean-recursive = {};
       codex = {
@@ -52,19 +55,20 @@
       hf = from ["python3Packages" "huggingface-hub"];
       herdr = {};
       iostat = from "sysstat";
-      iperf3 = {};
+      iperf3 = {cacheTtl = oneYearSeconds;};
       loft = {};
       mcat = {
         preferWrapper = true;
       };
       mosh = {};
-      mtr = {};
+      mtr = {cacheTtl = oneYearSeconds;};
       nc = {
+        cacheTtl = oneYearSeconds;
         packagePath = ["netcat"];
         preferWrapper = true;
       };
       ncdu = {};
-      nmap = {};
+      nmap = {cacheTtl = oneYearSeconds;};
       node = from "nodejs-slim";
       npm = from ["nodejs-slim" "npm"];
       npx = from ["nodejs-slim" "npm"];
@@ -82,15 +86,16 @@
       rsync = {};
       ruby = {};
       smartctl = from "smartmontools";
-      socat = {};
+      socat = {cacheTtl = oneYearSeconds;};
       sqlite3 = from "sqlite";
       step = from "step-cli";
       tig = {};
       tmate = {};
       tokei = {};
       tuios = {};
-      wakeonlan = {};
+      wakeonlan = {cacheTtl = oneYearSeconds;};
       wireshark = {
+        cacheTtl = oneYearSeconds;
         packagePath = ["wireshark-cli"];
         program = "tshark";
         wrapperName = "tshark";
@@ -200,8 +205,10 @@ in {
       install -Dm644 ${pkgs.mcat}/share/zsh/site-functions/_mcat \
         "$out/share/zsh/site-functions/_mcat"
     '';
-    mkWrapper = name: app: args: let
+    mkWrapper = name: app: spec: let
+      args = spec.wrapperArgs or [];
       appArgs = lib.optionalString (args != []) " ${lib.escapeShellArgs args}";
+      cacheTtl = spec.cacheTtl or 3600;
       nixpkgsInput =
         if pkgs.stdenv.isDarwin
         then "nixpkgs-darwin"
@@ -243,7 +250,7 @@ in {
           && read -r cached_at program < "$cache_file" \
           && [[ $cached_at =~ ^[0-9]+$ ]] \
           && [[ -x $program ]]; then
-          if ((now >= cached_at && now - cached_at < 3600)); then
+          if ((now >= cached_at && now - cached_at < ${toString cacheTtl})); then
             exec "$program"${appArgs} "$@" 9>&-
           fi
           cached_program="$program"
@@ -279,7 +286,7 @@ in {
           else relBinDir;
       in
         lib.nameValuePair "${binDir}/${name}" {
-          source = mkWrapper name app (spec.wrapperArgs or []);
+          source = mkWrapper name app spec;
         }
     ) (lib.filterAttrs (_name: spec: spec.enableWrapper or true) availableAppSpecs);
   in {
