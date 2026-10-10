@@ -53,7 +53,6 @@
       gofmt = from "go";
       hexdump = {};
       hf = from ["python3Packages" "huggingface-hub"];
-      herdr = {};
       iostat = from "sysstat";
       iperf3 = {cacheTtl = oneYearSeconds;};
       loft = {};

@@ -185,12 +185,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    herdr = {
-      url = "github:herdrdev/herdr/v0.7.5";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.rust-overlay.follows = "rust-overlay";
-    };
-
     lark-cli-src = {
       url = "github:larksuite/cli";
       flake = false;

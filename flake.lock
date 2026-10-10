@@ -522,30 +522,6 @@
         "type": "github"
       }
     },
-    "herdr": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ],
-        "rust-overlay": [
-          "rust-overlay"
-        ]
-      },
-      "locked": {
-        "lastModified": 1784657072,
-        "narHash": "sha256-3BA8eredGku+vsL2Af7sUf43QiArR5XTHNrI+X11vFM=",
-        "owner": "herdrdev",
-        "repo": "herdr",
-        "rev": "ef4c23f5775bb8cfec05f05d0844226ff959a07a",
-        "type": "github"
-      },
-      "original": {
-        "owner": "herdrdev",
-        "ref": "v0.7.5",
-        "repo": "herdr",
-        "type": "github"
-      }
-    },
     "hermes-agent": {
       "inputs": {
         "flake-parts": "flake-parts",
@@ -1088,7 +1064,6 @@
         "flake-compat": "flake-compat",
         "flake-utils": "flake-utils",
         "github-backup": "github-backup",
-        "herdr": "herdr",
         "hermes-agent": "hermes-agent",
         "home-manager": "home-manager_2",
         "lark-cli-src": "lark-cli-src",
