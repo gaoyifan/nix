@@ -40,9 +40,14 @@ sudo journalctl -u orcad -b --no-pager
 Use the desktop client to inspect active terminals before maintenance.
 The package provides only `orcad`, without the separate `orca-ide` management CLI.
 Disconnecting the MacBook leaves agents running. Restarting the systemd service
-ends its terminals and agents, so finish those tasks before an upgrade or restart.
+briefly disconnects clients; daemon-backed terminals and CLI agents survive when
+the daemon runs in a separate user scope with linger enabled and the incoming
+version supports its protocol. In-process sessions do not survive. Keep the old
+daemon's bundle and runtime available while it is live.
 The runtime and dependency hashes are pinned in `pkgs/orcad.nix`; deploy changes
-with `just nixos` from el2.
+with `just nixos` from el2. Deployment leaves the running version unchanged
+(`restartIfChanged = false`); activate the installed version with
+`sudo systemctl restart orcad`.
 Scheduled updates select stable GitHub releases, rather than snapshots of `main`.
 The package uses nixpkgs' Node runtime and headers to build Orcad's patched
 `node-pty` addon. The runtime marker identifies that Node executable, and the

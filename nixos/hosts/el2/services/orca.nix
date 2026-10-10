@@ -18,7 +18,7 @@ in {
   systemd.services.orcad = {
     description = "Orca headless agent runtime";
     wantedBy = ["multi-user.target"];
-    # Preserve running agent sessions across NixOS switches; upgrade on manual restart.
+    # Activate upgrades on manual restart; avoid client disconnects during NixOS switches.
     restartIfChanged = false;
     path = [pkgs.orcad pkgs.codex pkgs.git pkgs.openssh pkgs.bash];
     environment = {
