@@ -12,13 +12,13 @@
 }:
 stdenv.mkDerivation (finalAttrs: {
   pname = "orcad";
-  version = "1.4.223";
+  version = "1.4.224";
 
   src = fetchFromGitHub {
     owner = "stablyai";
     repo = "orca";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-ruJdxLvbD5zM1AYUqwtVCae5DL+dBJcEwH9uqF5h1CA=";
+    hash = "sha256-C2H3I9xZ+8SC03bDo/4EWOCjOaKqOMhhl7oFloTQPzs=";
   };
 
   pnpmDeps = fetchPnpmDeps {
@@ -32,7 +32,7 @@ stdenv.mkDerivation (finalAttrs: {
       JS
       cp -r out/.orcad-watchers "$out/orcad-watchers"
     '';
-    hash = "sha256-vgfwdXdAeRO9tAVVXDEaHpJDUhqexgK3DrFoKuPkvPM=";
+    hash = "sha256-yPFBgM6t6MBMo3zPlQ3Tjji9GLSAZnxgLMEWo58/MvE=";
   };
 
   nativeBuildInputs = [
