@@ -15,6 +15,7 @@ on:
           - antigravity-cli
           - copilot-cli
           - codex
+          - claude-code
           - orcad
           - cursor-cli
           - pi-coding-agent
@@ -62,7 +63,7 @@ jobs:
 
       - name: Validate packages
         if: steps.bump.outputs.changed == 'true'
-        run: nix build --accept-flake-config .#agy .#copilot .#codex .#cursor-cli .#pi .#orcad
+        run: nix build --accept-flake-config .#agy .#copilot .#codex .#claude .#cursor-cli .#pi .#orcad
 
       - name: Commit and push
         if: steps.bump.outputs.changed == 'true'

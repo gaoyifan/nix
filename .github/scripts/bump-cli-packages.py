@@ -63,6 +63,15 @@ PACKAGES = {
         },
         "url": lambda version, asset: f"https://github.com/openai/codex/releases/download/rust-v{version}/{asset}",
     },
+    "claude-code": {
+        "path": ROOT / "pkgs/claude-code.nix",
+        "assets": {
+            "x86_64-linux": "linux-x64",
+            "aarch64-linux": "linux-arm64",
+            "aarch64-darwin": "darwin-arm64",
+        },
+        "url": lambda version, asset: f"https://downloads.claude.ai/claude-code-releases/{version}/{asset}/claude",
+    },
     "cursor-cli": {
         "path": ROOT / "pkgs/cursor-cli.nix",
         "assets": {
@@ -168,6 +177,8 @@ def latest_antigravity(config):
 
 
 def latest_version(name, config):
+    if name == "claude-code":
+        return fetch_text("https://downloads.claude.ai/claude-code-releases/latest").strip()
     if name == "antigravity-cli":
         return latest_antigravity(config)
     if "release_api" in config:
@@ -213,8 +224,8 @@ def update_package(name, config, version):
         hash_value = prefetch_hash(config["url"](version, asset))
         pattern = (
             rf"({re.escape(system)} = \{{\n"
-            rf'(?:        [a-z]+ = "[^"]+";\n)+'
-            rf'        hash = ")[^"]+(";)'
+            rf'(?: +[a-z]+ = "[^"]+";\n)+'
+            rf' +hash = ")[^"]+(";)'
         )
         text, count = re.subn(pattern, rf"\g<1>{hash_value}\2", text)
         if count != 1:

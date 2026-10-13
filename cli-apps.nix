@@ -15,6 +15,7 @@
       bmon = {cacheTtl = oneYearSeconds;};
       cargo-binstall = {};
       cargo-clean-recursive = {};
+      claude = from "claude-code";
       codex = {
         program = "codex-launcher";
       };

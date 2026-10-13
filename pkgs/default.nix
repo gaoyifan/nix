@@ -10,6 +10,7 @@ rec {
   mcat = import ./mcat.nix {inherit pkgs;};
   agy = import ./antigravity-cli.nix {inherit pkgs;};
   copilot-cli = import ./copilot-cli.nix {inherit pkgs;};
+  claude-code = import ./claude-code.nix {inherit pkgs;};
   codex = import ./codex.nix {inherit pkgs;};
   codex-reindex = import ./codex-reindex.nix {
     inherit pkgs codex;
