@@ -31,6 +31,7 @@ in {
     ./htop.nix
     ./neovim.nix
     ./mutagen-dotfiles-sync.nix
+    ./agent-skills.nix
     ../secrets/home.nix
   ];
 
