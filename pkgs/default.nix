@@ -33,6 +33,8 @@ rec {
   node-docx = import ./node-docx.nix {inherit pkgs;};
   agent-browser = import ./agent-browser.nix {inherit pkgs;};
   agentreach = import ./agentreach.nix {inherit pkgs;};
+  honcho-ai = pkgs.callPackage ./honcho-ai.nix {};
+  honcho-plugin = import ./honcho-plugin.nix {inherit pkgs;};
 }
 // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
   orcad = pkgs.callPackage ./orcad.nix {};

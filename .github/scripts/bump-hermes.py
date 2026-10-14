@@ -11,7 +11,7 @@ import urllib.request
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 FLAKE = ROOT / "flake.nix"
 RELEASE_API = "https://api.github.com/repos/NousResearch/hermes-agent/releases/latest"
-TAG_PATTERN = re.compile(r"^v[0-9]{4}\.[0-9]{1,2}\.[0-9]{1,2}(?:\.[0-9]+)?$")
+TAG_PATTERN = re.compile(r"^v[0-9]+\.[0-9]+\.[0-9]+(?:\.[0-9]+)?$")
 INPUT_PATTERN = re.compile(r'(url = "github:NousResearch/hermes-agent)(?:/([^"]+))?(";)')
 EXCLUDED_TAGS = {"v2026.8.13"}
 
@@ -42,22 +42,6 @@ def current_release_tag(text):
     return matches[0].group(2)
 
 
-def update_flake_input(text, tag):
-    updated, count = INPUT_PATTERN.subn(rf"\g<1>/{tag}\g<3>", text, count=1)
-    if count != 1:
-        raise RuntimeError("failed to update the hermes-agent flake input")
-    FLAKE.write_text(updated)
-
-
-def hermes_version():
-    expression = "(builtins.getFlake (toString ./.)).inputs.hermes-agent.packages.x86_64-linux.minimal.version"
-    return subprocess.check_output(
-        ["nix", "eval", "--raw", "--impure", "--expr", expression],
-        cwd=ROOT,
-        text=True,
-    ).strip()
-
-
 def set_output(name, value):
     output_path = os.environ.get("GITHUB_OUTPUT")
     if output_path:
@@ -72,8 +56,7 @@ def main():
     text = FLAKE.read_text()
     current_tag = current_release_tag(text)
     if latest_tag in EXCLUDED_TAGS:
-        version = hermes_version()
-        summary = f"Hermes: skipped excluded release {latest_tag}; staying on {current_tag} ({version})"
+        summary = f"Hermes: skipped excluded release {latest_tag}; staying on {current_tag}"
 
         set_output("changed", "false")
         set_output("files", "flake.nix flake.lock")
@@ -86,10 +69,10 @@ def main():
     changed = current_tag != latest_tag
 
     if changed:
-        update_flake_input(text, latest_tag)
+        FLAKE.write_text(INPUT_PATTERN.sub(rf"\g<1>/{latest_tag}\g<3>", text))
         subprocess.run(["nix", "flake", "update", "hermes-agent"], cwd=ROOT, check=True)
 
-    version = hermes_version()
+    version = latest_tag.removeprefix("v")
     current = current_tag or "unpinned"
     summary = f"Hermes: {current} -> {latest_tag} ({version})"
 

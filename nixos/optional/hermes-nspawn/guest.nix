@@ -14,9 +14,17 @@
   ...
 }: let
   inherit (import ../../common/ssh-keys.nix) sshKeys;
-  hermesPackage = inputs.hermes-agent.packages.${pkgs.stdenv.hostPlatform.system}.minimal.override {
-    extraDependencyGroups = ["exa" "honcho" "messaging"];
+  basePackage = inputs.hermes-agent.packages.${pkgs.stdenv.hostPlatform.system}.minimal.override {
+    extraDependencyGroups = ["exa" "messaging"];
+    version = lib.removePrefix "v" (builtins.fromJSON (builtins.readFile ../../../flake.lock)).nodes.hermes-agent.original.ref;
   };
+  honchoSdk = (pkgs.honcho-ai.override {python3 = basePackage.python;}).overridePythonAttrs (_: {
+    # Hermes supplies its locked httpx/pydantic; adding nixpkgs copies would
+    # collide with the sealed venv. Check the SDK against that same venv.
+    dependencies = [];
+    nativeCheckInputs = [basePackage.hermesVenv];
+  });
+  hermesPackage = config.services.hermes-agent.package;
   initialUserConfig = pkgs.writeText "hermes-initial-user-config.yaml" (builtins.toJSON {
     stt.enabled = false;
     plugins.enabled = [
@@ -131,6 +139,9 @@ in {
     "L+ /workspace - - - - /var/lib/hermes/workspace"
     "L+ /home/agent - - - - /workspace"
     "L+ /var/lib/hermes/.hermes/honcho.json - agent agent - /run/hermes-secrets/honcho.json"
+    # Memory providers use their directory name; extraPlugins would prefix
+    # it with nix-managed- and hide the provider named "honcho".
+    "L+ /var/lib/hermes/.hermes/plugins/honcho - agent agent - ${pkgs.honcho-plugin}"
   ];
 
   services.openssh = {
@@ -160,7 +171,9 @@ in {
 
   services.hermes-agent = {
     enable = true;
-    package = hermesPackage;
+    package = basePackage.override {
+      extraPythonPackages = [honchoSdk];
+    };
     user = "agent";
     group = "agent";
     createUser = false;
@@ -208,6 +221,7 @@ in {
       compression.threshold = 0.9;
       auxiliary.title_generation.model = "gpt-6-luna";
       memory.provider = "honcho";
+      security.allow_lazy_installs = false;
       dashboard.public_url = dashboardPublicUrl;
       agent.system_prompt = ''
         Never run machine-learning model inference inside the Podman terminal environment. Use external APIs for inference.
@@ -341,7 +355,7 @@ in {
   };
 
   systemd.services.hermes-agent = {
-    restartTriggers = [config.environment.etc."hermes/config.yaml".source];
+    restartTriggers = [config.environment.etc."hermes/config.yaml".source pkgs.honcho-plugin];
     after = [
       "hermes-terminal-image.service"
       "lark-cli-init.service"
@@ -367,7 +381,7 @@ in {
 
   systemd.services.hermes-dashboard = {
     description = "Hermes Agent Dashboard";
-    restartTriggers = [config.environment.etc."hermes/config.yaml".source];
+    restartTriggers = [config.environment.etc."hermes/config.yaml".source pkgs.honcho-plugin];
     wantedBy = ["multi-user.target"];
     after = [
       "hermes-terminal-image.service"

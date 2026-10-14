@@ -31,6 +31,18 @@ canary 已验证真实 Dashboard API 的 HTTP/stdio server 添加、探测、删
 
 最初在 canary 中备份并移走用户配置后执行初始化脚本，验证了初始值与插件加载；随后将 STT 改为 true、插件列表改为空，完整 reactivation 后仍保留用户选择。该测试模拟首次配置，不能单独证明全新实例的首次启动顺序。
 
+## Honcho 的 Nix 依赖管理（2026-10-14）
+
+Hermes 已升级到官方 `v0.21.7`，Honcho 使用官方目录插件和 `honcho-ai 2.5.1`。插件提交与 SDK wheel 的哈希分别固定在 [`honcho-plugin.nix`](../../pkgs/honcho-plugin.nix) 和 [`honcho-ai.nix`](../../pkgs/honcho-ai.nix)，无需 Hermes fork 或源码补丁。
+
+SDK 通过上游 `extraPythonPackages` 包覆盖接口加入 Gateway、Dashboard 和 CLI 共用的包，并使用 Hermes 的 Python 解释器。SDK 复用 Hermes 已锁定的 httpx/pydantic，构建时执行依赖版本检查和导入检查。打包时在插件清单中声明上游支持的 `python_runtime: external`，由 Nix 负责依赖，PM 与 Dashboard 不再要求另建 PM 环境；插件 Python 代码不作修改。Honcho 插件通过 tmpfiles 链接到 `$HERMES_HOME/plugins/honcho`：上游 `extraPlugins` 会添加 `nix-managed-` 前缀，而记忆提供者按目录名查找。`memory.provider=honcho` 和运行时凭据链接保持原有约定。
+
+Python 依赖由 Nix 管理，`security.allow_lazy_installs=false` 关闭自动依赖安装。新增或升级需要 Python 依赖的插件应修改 Nix 配置并 rebuild；用户 MCP 配置、凭据及插件启用列表仍由用户管理。Honcho 的插件和 SDK 必须一起验证升级。[上游 Nix 插件接口](https://github.com/NousResearch/hermes-agent/blob/v0.21.7/website/docs/getting-started/nix-setup.md#combining-both)
+
+canary 已验证空测试目录的 SDK 加载、依赖版本约束、提供者加载、Honcho 元数据写入/独立读取/恢复、Dashboard 就绪状态及服务重启，未创建 PM Python 环境。随后通过 `just nixos` 部署到 somo-minisforum 的全部 15 个实例：30 个服务 active，15 个 Dashboard 的 Honcho 均为 `ready`，SDK、Honcho API 和用户 MCP API 检查通过。部署前后所有实例的 MCP 定义、个人 `.env`、MCP 认证文件、STT 与插件开关指纹一致。`just fmt`、`just fmt-check`、`just check` 和完整宿主构建通过。
+
+上游启动检查报告现有 Nixpkgs 的 SQLite 3.51.2 处于 WAL-reset bug 的受影响版本范围。此依赖升级需要另行跟进。[SQLite 官方说明](https://sqlite.org/wal.html#walresetbug)
+
 ## 对当前需求的结论
 
 用户的主要需求是每人自行添加、修改、删除 MCP。适合保留现有 NixOS nspawn、Nix Hermes 包、gateway 和 dashboard，调整配置的管理边界；无需为此迁入另一层 Ubuntu OCI 容器。
