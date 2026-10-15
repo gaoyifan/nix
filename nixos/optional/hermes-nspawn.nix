@@ -143,6 +143,7 @@ in {
             install -o root -g 1000 -m 0640 /dev/null "$env_tmp"
             printf '%s\n' \
               'NEWAPI_BASE_URL=${newApiBaseUrl}' \
+              'CODEX_API_BASE_URL=${codexApiBaseUrl}' \
               "NEWAPI_API_KEY=$newapi_token" \
               "EXA_API_KEY=$exa_api_key" \
               'HERMES_DASHBOARD_BASIC_AUTH_USERNAME=agent' \
