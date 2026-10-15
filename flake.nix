@@ -181,7 +181,7 @@
     };
 
     hermes-agent = {
-      url = "github:NousResearch/hermes-agent/v0.22.0";
+      url = "github:NousResearch/hermes-agent/v0.22.1";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
