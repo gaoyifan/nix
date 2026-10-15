@@ -43,6 +43,14 @@ canary 已验证空测试目录的 SDK 加载、依赖版本约束、提供者�
 
 上游启动检查报告现有 Nixpkgs 的 SQLite 3.51.2 处于 WAL-reset bug 的受影响版本范围。此依赖升级需要另行跟进。[SQLite 官方说明](https://sqlite.org/wal.html#walresetbug)
 
+## 原生图片接口（2026-10-15）
+
+图片插件沿用 `newapi-codex` 标识，保留用户已有的启用状态和模型档位选择；实际请求已迁移至 `codex-api`，不再经过 New API 或依赖外层聊天模型。宿主在运行时 `.env` 中注入 `CODEX_API_BASE_URL=http://198.18.255.254:3002/v1`，鉴权继续使用两个服务共享的每用户 `NEWAPI_API_KEY`。
+
+插件直接请求 `/v1/images/generations`；有参考图时，将图片转为内联 data URL 后请求 JSON 格式的 `/v1/images/edits`。`codex-api` 复用现有 API key 鉴权和上游 OAuth 凭据刷新，不对图片请求检查额度或写入用量账本；聊天的额度逻辑保持不变。上游不一定遵守请求的质量和尺寸，插件在 `reported_quality` 和 `reported_size` 中返回实际报告值，不能仅凭 `model` 档位判断实际输出。
+
+先在 canary 通过已安装插件验证生图及参考图编辑，再推广到全部 15 个实例；30 个 Hermes 服务均正常，用户配置文件指纹保持不变。生图与编辑分别约 17 秒和 18 秒，参考图中的蓝色圆形成功变为红色。实现入口见[图片插件](../../nixos/optional/hermes-nspawn/newapi-codex/__init__.py)和[运行时环境注入](../../nixos/optional/hermes-nspawn.nix)。
+
 ## 对当前需求的结论
 
 用户的主要需求是每人自行添加、修改、删除 MCP。适合保留现有 NixOS nspawn、Nix Hermes 包、gateway 和 dashboard，调整配置的管理边界；无需为此迁入另一层 Ubuntu OCI 容器。
