@@ -44,13 +44,9 @@
 
 ## Commits
 
-Do not create commits unless the user explicitly asks for a commit.
-
 Use conventional subjects: `feat(scope):`, `fix:`, `refactor:`, `chore:`, `docs:`, `ci:`, `style:`
 
-Do not push commits or tags unless the user explicitly asks you to push.
-
-When an explicitly requested push is rejected because the remote branch is ahead, run `git pull --rebase`, resolve any conflicts, rerun affected checks, and retry the push without asking for confirmation again.
+When a push is rejected because the remote branch is ahead, run `git pull --rebase`, resolve any conflicts, rerun affected checks, and retry the push.
 
 ## Testing
 
