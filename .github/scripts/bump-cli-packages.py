@@ -177,6 +177,11 @@ def latest_antigravity(config):
 
 
 def latest_version(name, config):
+    if name == "orcad":
+        release = json.loads(
+            fetch_text("https://api.github.com/repos/stablyai/orca/releases/latest", token=os.environ.get("GH_TOKEN"))
+        )
+        return release["tag_name"].removeprefix("v")
     if name == "claude-code":
         return fetch_text("https://downloads.claude.ai/claude-code-releases/latest").strip()
     if name == "antigravity-cli":
@@ -283,8 +288,17 @@ def main():
         if config.get("nix_update"):
             # Read the evaluated package, not the nested pnpm tool's version.
             current = current_source_version(name)
+            latest = args.version or latest_version(name, config)
+            # TODO(2026-10-15): remove this exception once upstream publishes a
+            # supported stable replacement newer than 1.4.226.
+            # Withdrawing 1.4.225/226 made Latest fall back to 1.4.224, which is
+            # incompatible with our current build patches. Keep the current pin.
+            # See docs/research/orca-release-withdrawal.md for evidence and context.
+            if name == "orcad" and latest == "1.4.224":
+                summaries.append(f"orcad: skipped temporarily excluded release {latest}; staying on {current}")
+                continue
             before = config["path"].read_text()
-            update_package(name, config, args.version or "stable")
+            update_package(name, config, latest)
             latest = current_source_version(name)
             summaries.append(format_summary(name, current, latest))
             if config["path"].read_text() != before:
