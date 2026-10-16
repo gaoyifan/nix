@@ -12,3 +12,9 @@
 ## 判断与边界
 
 **较强候选是受管 SSH 服务器迁移带来的回归，因此暂停分发新版。** 这是结合症状与开发者回复的推断；回复没有说删除两版的具体原因，公开 Issues、PR、Discussions 和官网未找到撤回公告。无法据此认定删除者、删除时间或操作动机。官方 X 页面访问受限，未覆盖非公开 Discord 讨论。
+
+## 后续处理（2026-10-16）
+
+上游已发布 [1.4.227](https://github.com/stablyai/orca/releases/tag/v1.4.227)。该版的 [构建入口](https://github.com/stablyai/orca/blob/v1.4.227/package.json)不再调用 `build:packages`，[CLI 打包脚本](https://github.com/stablyai/orca/blob/v1.4.227/config/scripts/build-orcad.mjs)也不再读取 `resolveBuildSourceCommit()`。保留 1.4.225/226 的补丁会导致新版本构建失败。
+
+本仓库已更新到 1.4.227，删除对应补丁与 Git 元数据处理，并改为调用上游 `build:orcad` 入口。本地完整构建和运行时预检通过；临时忽略 1.4.224 的例外已按清理条件移除。

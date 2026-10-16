@@ -12,19 +12,13 @@
 }:
 stdenv.mkDerivation (finalAttrs: {
   pname = "orcad";
-  version = "1.4.226";
+  version = "1.4.227";
 
   src = fetchFromGitHub {
     owner = "stablyai";
     repo = "orca";
     tag = "v${finalAttrs.version}";
-    # Preserve the commit used to pin official skills without retaining .git.
-    leaveDotGit = true;
-    postFetch = ''
-      git -C "$out" rev-parse HEAD > "$out/.source-revision"
-      rm -rf "$out/.git"
-    '';
-    hash = "sha256-g7+wa5p6pSLUpyoLpGhh74lit/PUQqXRVln0Ya8tRsw=";
+    hash = "sha256-AOn5yJ/8DHJTZ598ujs2pDytsBwY6yQKAgt6muvAALI=";
   };
 
   pnpmDeps = fetchPnpmDeps {
@@ -38,7 +32,7 @@ stdenv.mkDerivation (finalAttrs: {
       JS
       cp -r out/.orcad-watchers "$out/orcad-watchers"
     '';
-    hash = "sha256-RzC6DiOgsCQ4c2llvuvRsrLtPXzY48eYFrkT8rYecRk=";
+    hash = "sha256-yPFBgM6t6MBMo3zPlQ3Tjji9GLSAZnxgLMEWo58/MvE=";
   };
 
   nativeBuildInputs = [
@@ -59,8 +53,6 @@ stdenv.mkDerivation (finalAttrs: {
       --replace-fail 'glibcFloor: slotGlibcFloor(slot)' 'glibcFloor: { label: "Nix store libraries", families: [] }'
     substituteInPlace config/scripts/build-orcad-node.mjs \
       --replace-fail 'await ensurePinnedNodeExecutable({ target })' "'${lib.getExe nodejs-slim}'"
-    substituteInPlace config/scripts/build-orcad.mjs \
-      --replace-fail 'commit: resolveBuildSourceCommit()' "commit: readFileSync('.source-revision', 'utf8').trim()"
 
     # The runtime marker and startup handoff must identify the actual Nix Node.
     node --input-type=module <<'JS'
@@ -77,11 +69,9 @@ stdenv.mkDerivation (finalAttrs: {
 
   buildPhase = ''
     runHook preBuild
-    # Build workspace packages before the server build scripts import them.
-    pnpm run build:packages
     mkdir -p out
     cp -r --no-preserve=mode ${finalAttrs.pnpmDeps}/orcad-watchers out/.orcad-watchers
-    node config/scripts/build-orcad-node.mjs --target linux-x64-glibc
+    pnpm run build:orcad --target linux-x64-glibc
     runHook postBuild
   '';
 

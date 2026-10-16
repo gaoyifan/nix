@@ -289,14 +289,6 @@ def main():
             # Read the evaluated package, not the nested pnpm tool's version.
             current = current_source_version(name)
             latest = args.version or latest_version(name, config)
-            # TODO(2026-10-15): remove this exception once upstream publishes a
-            # supported stable replacement newer than 1.4.226.
-            # Withdrawing 1.4.225/226 made Latest fall back to 1.4.224, which is
-            # incompatible with our current build patches. Keep the current pin.
-            # See docs/research/orca-release-withdrawal.md for evidence and context.
-            if name == "orcad" and latest == "1.4.224":
-                summaries.append(f"orcad: skipped temporarily excluded release {latest}; staying on {current}")
-                continue
             before = config["path"].read_text()
             update_package(name, config, latest)
             latest = current_source_version(name)
