@@ -78,7 +78,6 @@ stdenv.mkDerivation (finalAttrs: {
     pnpmRoot=mobile pnpmConfigHook
     pnpm --dir mobile run postinstall
     pnpm run build:mobile-web
-    mkdir -p out
     cp -r --no-preserve=mode ${finalAttrs.pnpmDeps}/orcad-watchers out/.orcad-watchers
     pnpm run build:orcad --target linux-x64-glibc
     runHook postBuild
