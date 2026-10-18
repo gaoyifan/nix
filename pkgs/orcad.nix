@@ -6,19 +6,22 @@
   pnpm_12,
   pnpmConfigHook,
   nodejs-slim,
+  gitMinimal,
   python3,
   autoPatchelfHook,
   makeBinaryWrapper,
 }:
 stdenv.mkDerivation (finalAttrs: {
   pname = "orcad";
-  version = "1.4.227";
+  version = "1.4.229";
 
   src = fetchFromGitHub {
     owner = "stablyai";
     repo = "orca";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-AOn5yJ/8DHJTZ598ujs2pDytsBwY6yQKAgt6muvAALI=";
+    # Orcad embeds the source commit to pin official skills to the same build.
+    leaveDotGit = true;
+    hash = "sha256-2f9NQPWAPzbbfda2Aikw0k4oYhZ/eMHD/t6Gt2fowL8=";
   };
 
   pnpmDeps = fetchPnpmDeps {
@@ -26,17 +29,20 @@ stdenv.mkDerivation (finalAttrs: {
     pnpm = pnpm_12;
     fetcherVersion = 4;
     postInstall = ''
+      # The mobile web bundle uses a separate workspace and lockfile.
+      pnpm --dir mobile install --store-dir "$storePath" --force --ignore-scripts --frozen-lockfile
       node --input-type=module <<'JS'
       import { materializeWatcherPackage } from './config/scripts/orcad-watcher-package.mjs';
       await materializeWatcherPackage('linux-x64-glibc');
       JS
       cp -r out/.orcad-watchers "$out/orcad-watchers"
     '';
-    hash = "sha256-yPFBgM6t6MBMo3zPlQ3Tjji9GLSAZnxgLMEWo58/MvE=";
+    hash = "sha256-WLgozATXffdaWCJqq4zv06MvlJaQiAn7gnjosO0sEmI=";
   };
 
   nativeBuildInputs = [
     nodejs-slim
+    gitMinimal
     python3
     pnpm_12
     pnpmConfigHook
@@ -69,6 +75,12 @@ stdenv.mkDerivation (finalAttrs: {
 
   buildPhase = ''
     runHook preBuild
+    (
+      pnpmRoot=mobile
+      pnpmConfigHook
+    )
+    pnpm --dir mobile run postinstall
+    pnpm run build:mobile-web
     mkdir -p out
     cp -r --no-preserve=mode ${finalAttrs.pnpmDeps}/orcad-watchers out/.orcad-watchers
     pnpm run build:orcad --target linux-x64-glibc
