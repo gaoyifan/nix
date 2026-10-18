@@ -75,10 +75,7 @@ stdenv.mkDerivation (finalAttrs: {
 
   buildPhase = ''
     runHook preBuild
-    (
-      pnpmRoot=mobile
-      pnpmConfigHook
-    )
+    pnpmRoot=mobile pnpmConfigHook
     pnpm --dir mobile run postinstall
     pnpm run build:mobile-web
     mkdir -p out
