@@ -40,6 +40,11 @@ in {
   boot.zfs.forceImportRoot = false;
   boot.zfs.requestEncryptionCredentials = false;
 
+  fileSystems."/home" = {
+    device = "pool1/home";
+    fsType = "zfs";
+  };
+
   services.zfs.autoScrub.enable = true;
 
   zramSwap = {
