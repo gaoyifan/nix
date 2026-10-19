@@ -12,9 +12,8 @@ import urllib.request
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 # Excluded from "all" (scheduled) bumps; can still be bumped explicitly via
-# workflow_dispatch. antigravity-cli, copilot-cli, and cursor-cli are
-# intentionally manual-only.
-AUTO_BUMP_SKIP = {"antigravity-cli", "copilot-cli", "cursor-cli"}
+# workflow_dispatch. copilot-cli and cursor-cli are intentionally manual-only.
+AUTO_BUMP_SKIP = {"copilot-cli", "cursor-cli"}
 
 
 PACKAGES = {
