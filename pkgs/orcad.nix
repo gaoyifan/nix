@@ -13,7 +13,7 @@
 }:
 stdenv.mkDerivation (finalAttrs: {
   pname = "orcad";
-  version = "1.4.229";
+  version = "1.4.230";
 
   src = fetchFromGitHub {
     owner = "stablyai";
@@ -21,7 +21,7 @@ stdenv.mkDerivation (finalAttrs: {
     tag = "v${finalAttrs.version}";
     # Orcad embeds the source commit to pin official skills to the same build.
     leaveDotGit = true;
-    hash = "sha256-2f9NQPWAPzbbfda2Aikw0k4oYhZ/eMHD/t6Gt2fowL8=";
+    hash = "sha256-LbGP8VimdgTVbdI8O2u1JAXvUJ0zE7jh1ni/jn8RbRo=";
   };
 
   pnpmDeps = fetchPnpmDeps {
@@ -37,7 +37,7 @@ stdenv.mkDerivation (finalAttrs: {
       JS
       cp -r out/.orcad-watchers "$out/orcad-watchers"
     '';
-    hash = "sha256-WLgozATXffdaWCJqq4zv06MvlJaQiAn7gnjosO0sEmI=";
+    hash = "sha256-94ljsQr8IyRnT/FGt5muQiUW1NovuE43RsZvKhirq3g=";
   };
 
   nativeBuildInputs = [
