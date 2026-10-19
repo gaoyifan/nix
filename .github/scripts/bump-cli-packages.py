@@ -40,7 +40,7 @@ PACKAGES = {
     },
     "copilot-cli": {
         "path": ROOT / "pkgs/copilot-cli.nix",
-        "release_api": "https://api.github.com/repos/github/copilot-cli/releases?per_page=100",
+        "release_api": "https://api.github.com/repos/github/copilot-cli/releases",
         "tag_pattern": r"^v[0-9]+\.[0-9]+\.[0-9]+$",
         "version_from_tag": lambda tag: tag.removeprefix("v"),
         "assets": {
@@ -52,7 +52,7 @@ PACKAGES = {
     },
     "codex": {
         "path": ROOT / "pkgs/codex.nix",
-        "release_api": "https://api.github.com/repos/openai/codex/releases?per_page=100",
+        "release_api": "https://api.github.com/repos/openai/codex/releases",
         "tag_pattern": r"^rust-v[0-9]+\.[0-9]+\.[0-9]+$",
         "version_from_tag": lambda tag: tag.removeprefix("rust-v"),
         "assets": {
@@ -82,7 +82,7 @@ PACKAGES = {
     },
     "pi-coding-agent": {
         "path": ROOT / "pkgs/pi-coding-agent.nix",
-        "release_api": "https://api.github.com/repos/earendil-works/pi/releases?per_page=100",
+        "release_api": "https://api.github.com/repos/earendil-works/pi/releases",
         "tag_pattern": r"^v[0-9]+\.[0-9]+\.[0-9]+$",
         "version_from_tag": lambda tag: tag.removeprefix("v"),
         "assets": {
@@ -127,18 +127,25 @@ def current_source_version(name):
 
 
 def latest_github_release(config):
-    releases = json.loads(fetch_text(config["release_api"], token=os.environ.get("GH_TOKEN")))
     tag_pattern = re.compile(config["tag_pattern"])
 
-    for release in releases:
-        tag = release.get("tag_name", "")
-        if not tag_pattern.match(tag):
-            continue
-        version = config["version_from_tag"](tag)
-        required_assets = {asset.format(version=version) for asset in config["assets"].values()}
-        assets = {asset["name"] for asset in release.get("assets", [])}
-        if required_assets <= assets:
-            return version
+    # Keep the original 100-release search limit without requesting all at once:
+    # Codex's release assets make that large request time out.
+    for page in range(1, 11):
+        releases = json.loads(
+            fetch_text(f"{config['release_api']}?per_page=10&page={page}", token=os.environ.get("GH_TOKEN"))
+        )
+        for release in releases:
+            tag = release.get("tag_name", "")
+            if not tag_pattern.match(tag):
+                continue
+            version = config["version_from_tag"](tag)
+            required_assets = {asset.format(version=version) for asset in config["assets"].values()}
+            assets = {asset["name"] for asset in release.get("assets", [])}
+            if required_assets <= assets:
+                return version
+        if len(releases) < 10:
+            break
 
     raise RuntimeError(f"could not find a release with all required assets for {config['path'].name}")
 
