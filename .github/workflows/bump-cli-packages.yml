@@ -40,6 +40,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
 
+      - name: Test package updater
+        run: python3 .github/scripts/test_bump_cli_packages.py
+
       - name: Install Nix
         uses: nixbuild/nix-quick-install-action@v35
 
