@@ -6,7 +6,6 @@
   pnpm_12,
   pnpmConfigHook,
   nodejs-slim,
-  gitMinimal,
   python3,
   autoPatchelfHook,
   makeBinaryWrapper,
@@ -19,9 +18,14 @@ stdenv.mkDerivation (finalAttrs: {
     owner = "stablyai";
     repo = "orca";
     tag = "v${finalAttrs.version}";
-    # Orcad embeds the source commit to pin official skills to the same build.
+    # Keep the commit for Orcad's official skills, but exclude Git pack bytes
+    # from the fixed-output hash: their compression can change upstream.
     leaveDotGit = true;
-    hash = "sha256-LbGP8VimdgTVbdI8O2u1JAXvUJ0zE7jh1ni/jn8RbRo=";
+    postFetch = ''
+      git -C "$out" rev-parse HEAD > "$out/.source-commit"
+      rm -r "$out/.git"
+    '';
+    hash = "sha256-tpF0+7JXozhaWgQ8EA7EU4xIsF3WhpAxnmM5Ueu8mj4=";
   };
 
   pnpmDeps = fetchPnpmDeps {
@@ -42,7 +46,6 @@ stdenv.mkDerivation (finalAttrs: {
 
   nativeBuildInputs = [
     nodejs-slim
-    gitMinimal
     python3
     pnpm_12
     pnpmConfigHook
@@ -52,6 +55,9 @@ stdenv.mkDerivation (finalAttrs: {
   buildInputs = [stdenv.cc.cc.lib];
 
   postPatch = ''
+    substituteInPlace config/scripts/build-source-commit.mjs \
+      --replace-fail "execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()" "'$(cat .source-commit)'"
+
     # Build against Nix's Node headers and libraries instead of downloading a
     # runtime or enforcing the portable release's Ubuntu library versions.
     substituteInPlace config/scripts/build-orcad-prebuilds.mjs \

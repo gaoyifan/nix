@@ -2,6 +2,7 @@
 {
   config,
   lib,
+  pkgs,
   username,
   ...
 }: let
@@ -95,6 +96,8 @@ in {
   fileSystems."/".options = ["compress=zstd" "noatime"];
 
   hardware.enableRedistributableFirmware = true;
+
+  environment.systemPackages = [pkgs.python3];
 
   environment.interactiveShellInit = ''
     export PATH="$HOME/.local/share/nix-lazy-apps/bin:$PATH"
