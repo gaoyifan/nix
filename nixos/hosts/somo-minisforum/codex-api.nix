@@ -6,7 +6,7 @@
   ...
 }: let
   hermesUsers = builtins.attrNames config.services.hermes-nspawn.containers;
-  apiKeyIds = ["honcho" "immersive-translation"] ++ map (user: "hermes-${user}") hermesUsers;
+  apiKeyIds = ["honcho" "immersive-translation" "library"] ++ map (user: "hermes-${user}") hermesUsers;
   weeklyLimitOverrides = import (config.services.secrets.filesDir + "/nixos/somo-minisforum/codex-api-weekly-limits.nix");
   certDir = "${config.services.acmeCertificates.directory}/yfgao";
 in {
