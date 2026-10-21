@@ -283,11 +283,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1792611045,
-        "narHash": "sha256-v1MZdQWGy5u2zoyQVGirT45zaHuHG8PIfU1PL8Vtmb0=",
+        "lastModified": 1792616715,
+        "narHash": "sha256-vMODzV/6mb81LerA6JBM0XFye2COUDLXl6P+KN11xuM=",
         "owner": "gaoyifan",
         "repo": "findmy-history",
-        "rev": "20971abc44bb7da45e0c838f51f0114e03a5b1a8",
+        "rev": "4f755fb8f29a0e6f972489c5c657bb2d43466e27",
         "type": "github"
       },
       "original": {
