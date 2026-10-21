@@ -96,21 +96,38 @@ in {
           "--network-alias=blog-mysql"
         ];
       };
-      blog = {
-        # gaoyifan/wordpress:latest — PHP 8.2.20, nginx 1.27.0
-        image = "localhost/gaoyifan/wordpress@sha256:73c33c5362e90373224f35252e3139ffc45284b9b7abaf41c67b7a4f89947f17";
+      blog-php = {
+        # Official wordpress:php8.2-fpm — PHP 8.2.35.
+        image = "docker.io/library/wordpress@sha256:f92d17271a6bdaffe116d59e3fc7209aeb60d96bc960cafc8a6e092db109973a";
         dependsOn = ["blog-mysql"];
+        workdir = "/var/www/public";
+        volumes = ["/srv/docker/blog/www:/var/www/public"];
+        environment.TZ = "Asia/Shanghai";
+        extraOptions = [
+          "--memory=1g"
+          "--network-alias=blog-php"
+        ];
+      };
+      blog = {
+        # Official nginx:stable-alpine — nginx 1.30.6 with HTTP/3.
+        image = "docker.io/library/nginx@sha256:959ae6b898852db82e5b29b929388e59914f42be0a8f4d44c89a4c1f53b49208";
+        dependsOn = ["blog-php"];
         ports = [
           "10080:80"
           "10443:443"
           "10443:443/udp"
         ];
         volumes = [
-          "/srv/docker/blog/www:/var/www/public"
-          "/srv/docker/blog/log:/var/log"
+          "/srv/docker/blog/www:/var/www/public:ro"
+          "/srv/docker/blog/log/nginx:/var/log/nginx"
+          "${./nginx.conf.template}:/etc/nginx/templates/nginx.conf.template:ro"
           "${certDir}:/etc/ssl/private:ro"
         ];
-        environment.TZ = "Asia/Shanghai";
+        environment = {
+          TZ = "Asia/Shanghai";
+          NGINX_ENTRYPOINT_LOCAL_RESOLVERS = "1";
+          NGINX_ENVSUBST_OUTPUT_DIR = "/etc/nginx";
+        };
         extraOptions = ["--memory=1g"];
       };
       light-single = {
@@ -124,6 +141,7 @@ in {
 
   systemd.tmpfiles.rules = [
     "d /srv/docker/blog/log 0755 root root -"
+    "d /srv/docker/blog/log/nginx 0755 root root -"
     "d /srv/docker/blog/mysql/conf.d 0755 root root -"
     "d /srv/docker/blog/mysql/data 0755 root root -"
     "d /srv/docker/blog/www 0755 root root -"

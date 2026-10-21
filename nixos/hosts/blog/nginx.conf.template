@@ -1,0 +1,59 @@
+user nginx;
+worker_processes auto;
+pid /var/run/nginx.pid;
+
+events {
+    worker_connections 768;
+}
+
+http {
+    sendfile on;
+    tcp_nopush on;
+    gzip on;
+    server_tokens off;
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_certificate /etc/ssl/private/fullchain.pem;
+    ssl_certificate_key /etc/ssl/private/privkey.pem;
+
+    access_log /var/log/nginx/access.log;
+    error_log /var/log/nginx/error.log;
+
+    resolver ${NGINX_LOCAL_RESOLVERS} valid=10s;
+    upstream wordpress {
+        zone wordpress 64k;
+        server blog-php:9000 resolve;
+    }
+
+    server {
+        listen 80 default_server;
+        listen [::]:80 default_server;
+        listen 443 ssl default_server;
+        listen [::]:443 ssl default_server;
+        listen 443 quic reuseport;
+        listen [::]:443 quic reuseport;
+        http2 on;
+
+        add_header Alt-Svc 'h3=":$server_port"; ma=86400';
+        add_header X-protocol $server_protocol always;
+
+        root /var/www/public;
+        index index.html index.php;
+        server_name _;
+
+        location / {
+            try_files $uri $uri/ /index.php?$query_string;
+        }
+
+        location ~ \.php$ {
+            try_files $uri =404;
+            include fastcgi_params;
+            fastcgi_pass wordpress;
+            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+            fastcgi_param REMOTE_ADDR $http_x_real_ip;
+            fastcgi_index index.php;
+        }
+    }
+}
