@@ -24,6 +24,7 @@ rec {
   loft = inputs.loft.packages.${pkgs.stdenv.hostPlatform.system}.default;
   pve-edk2-firmware-ovmf = import ./pve-edk2-firmware-ovmf.nix {inherit pkgs;};
   tssh = import ./tssh.nix {inherit pkgs;};
+  tmate = import ./tmate.nix {inherit pkgs;};
   htop = import ./htop.nix {inherit pkgs;};
   inetutils-minimal = import ./inetutils-minimal.nix {inherit pkgs;};
   tailscale = import ./tailscale.nix {inherit pkgs;};
