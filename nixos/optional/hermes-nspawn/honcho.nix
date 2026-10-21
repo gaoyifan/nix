@@ -12,7 +12,7 @@
   honchoImage = "ghcr.io/plastic-labs/honcho:v3.0.12@sha256:1e9dbc40136d3f9213ce7482b0eecac914b630ee3e714ea961bd763945f94be5";
   runtimeEnvironmentFile = "/run/honcho/env";
   postgresqlSocket = "/run/postgresql";
-  model = "gpt-5.6-luna";
+  model = "gpt-6-luna";
   embeddingModel = "Qwen/Qwen3-Embedding-8B";
   healthCheck = pkgs.writeText "honcho-healthcheck.py" ''
     import json
