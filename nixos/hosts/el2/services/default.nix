@@ -5,6 +5,7 @@
     ./bitmagnet.nix
     ./derp.nix
     ./dnsmonster.nix
+    ./findmy.nix
     ./github-runner.nix
     ./icloud-photos.nix
     ./immich.nix

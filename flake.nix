@@ -18,6 +18,11 @@
     nixpkgs-darwin.url = "github:nixos/nixpkgs/nixpkgs-26.05-darwin";
     systems.url = "github:nix-systems/default";
 
+    findmy-history = {
+      url = "github:gaoyifan/findmy-history";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     pyproject-nix = {
       url = "github:pyproject-nix/pyproject.nix";
       inputs.nixpkgs.follows = "nixpkgs";

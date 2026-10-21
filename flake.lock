@@ -276,6 +276,26 @@
         "type": "github"
       }
     },
+    "findmy-history": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1792611045,
+        "narHash": "sha256-v1MZdQWGy5u2zoyQVGirT45zaHuHG8PIfU1PL8Vtmb0=",
+        "owner": "gaoyifan",
+        "repo": "findmy-history",
+        "rev": "20971abc44bb7da45e0c838f51f0114e03a5b1a8",
+        "type": "github"
+      },
+      "original": {
+        "owner": "gaoyifan",
+        "repo": "findmy-history",
+        "type": "github"
+      }
+    },
     "flake-compat": {
       "flake": false,
       "locked": {
@@ -1061,6 +1081,7 @@
         "codex-capacity-proxy": "codex-capacity-proxy",
         "deploy-rs": "deploy-rs",
         "disko": "disko",
+        "findmy-history": "findmy-history",
         "flake-compat": "flake-compat",
         "flake-utils": "flake-utils",
         "github-backup": "github-backup",

@@ -7,6 +7,7 @@
 }: {
   imports = [
     inputs.agenix.homeManagerModules.default
+    inputs.findmy-history.homeManagerModules.source
     ./shell.nix
     ./ssh-auth-sock.nix
     ./htop.nix
@@ -39,6 +40,11 @@
       inputs.nixpkgs.outPath
       inputs.nixpkgs-darwin.outPath
     ];
+  };
+
+  services.findmy-source = {
+    enable = true;
+    host = "100.64.2.80";
   };
 
   programs.git = {

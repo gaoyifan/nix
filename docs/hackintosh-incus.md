@@ -38,7 +38,7 @@ authentication.
 | Apple `BaseSystem.dmg` | `edddd0d5869caaa12e29e6996a04f11590280580976a119dbd42c24fa62fe18e` |
 | Converted `BaseSystem.img` | `4aec7443daa3851effb6ffbba97b34bf2896acf1a28ca152e0c3d0f073c3097e` |
 | Recovery copy of personalized `OpenCore.raw` | `4d919698c8181efd1792681667f74e49a00f35422ae28133985923e180dbc6e2` |
-| Installed OpenCore `config.plist` | `418652df3f1d8bce143a1dc83e84916946bbd847f8cc0c6c30aba8dc7124cf9f` |
+| Installed OpenCore `config.plist` | `f6f2dd853cb8ae79950c17aac145ae3357ab3df3ec31740d1fd70c4809dd7ab0` |
 
 `BaseSystem.img`, the recovery copy of `OpenCore.raw`, the official 1.0.7 archive,
 the pre-upgrade OpenCore image, a pre-upgrade system EFI copy, and the private
@@ -64,6 +64,16 @@ swap required for Apple Account attestation on Sequoia and Tahoe. After a normal
 guest restart, `sysctl -n kern.hv_vmm_present` returns `0`; applying only the
 `hibernatecount` half of this patch leaves the real VM-present OID visible and
 does not fix sign-in. The detached recovery copy carries the same patch pair.
+
+Find My Items requires the HCI controller to initialize. The previous
+`IOBluetoothHCIController::start` return-false CPU workaround is disabled in the
+installed configuration. Boot arguments are `vsmcgen=2 bt-transport-override=10`;
+the latter selects the built-in virtual Bluetooth transport on macOS 26.6.2,
+avoiding physical-controller startup retries while preserving item synchronization.
+SIP and authenticated root remain enabled. The private boot argument needs
+revalidation after a macOS upgrade. See [the verification record](research/hackintosh-idle-cpu.md).
+The detached recovery image predates this Find My change; reapply these two
+settings if restoring its configuration.
 
 ## Declarative deployment
 

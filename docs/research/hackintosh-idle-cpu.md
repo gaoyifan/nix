@@ -4,6 +4,9 @@
 Tahoe 26.6.2（25G83）、QEMU 10.2.4、4 vCPU、VirtualSMC 1.3.7。
 最初调查只研究和采样；随后按用户要求完成两项修复，验证记录见文末。
 
+2026-10-21 后续：禁用 HCI 的补丁会阻塞 Find My 物品同步，已撤销；见文末的
+AirTag 修复记录。不要为降低 CPU 重新启用该补丁。
+
 ## 结论与优先级
 
 值得处理的是两条独立的异常路径：蓝牙控制器初始化失败反复重启，以及
@@ -387,3 +390,52 @@ inode 与大小不变，没有重写媒体内容。迁移依据归档而非当�
 的 `pre-cpu-fix-20260926`（分别约 5.17 GiB、57.2 GiB）。这些名称在上文中
 保留为历史实施记录，已不能作为回滚目标。更早的 accepted-baseline、OpenCore
 身份和 Apple ID 补丁前快照保留；EFI 私有备份与归档迁移清单也保留。
+
+## Find My / AirTag 后续修复（2026-10-21）
+
+原来的 HCI 禁用补丁有功能副作用：Find My 的 Items 页一直 Loading，
+`Items.data` 不存在。采样显示 `searchpartyuseragent` 的启动任务卡在
+`FindMyBluetooth -> CBManager.sharedPairingAgent -> CBXpcConnection.sendSyncMsg`；
+`bluetoothd` 在 `MacUserClient::Setup` 中每五秒等待被补丁移除的
+`IOBluetoothHCIController`。不能以这两个进程不占 CPU 作为功能正常的依据。
+
+仅关闭该 Kernel Patch、保留 SIP 和其他配置后重启，HCI 控制器重新注册，
+系统生成了可通过 AEAD 校验的七条物品记录。采集器随后暴露出独立的字段错误：
+Items 使用 `identifier`，Devices 使用 `id`。已修复字段映射，并用合成加密缓存
+在既有测试文件中复现 `KeyError: 'id'`，修复后五项 reader 测试在本地和 guest 均通过。
+六条物品有坐标及源定位时间，一条音频配件暂时无位置；七条不是七个 AirTag。
+
+撤销 HCI 补丁后也复现了原先的物理蓝牙初始化失败。现场检查目标系统的
+`/usr/sbin/bluetoothd` x86_64 二进制，确认其读取 `kern.bootargs` 中的
+`bt-transport-override`，十进制值 `10` 选择 virtual transport，并将 chipset
+设为 `APPLE_VIRTUAL=6000`。后续 `initCoreStack` 为该类型注册内置虚拟 HCI
+回调，因此采用该参数，而不是只通过环境变量切换接口。此参数是针对实际
+macOS 26.6.2（25G83）二进制确认的私有选项，升级系统后需重新验证。
+
+最终配置仅相对先前正常配置改变两处：
+
+- 关闭 `Disable unused Bluetooth HCI controller on Darwin 25.6.0` 条目。
+- `boot-args` 改为 `vsmcgen=2 bt-transport-override=10`。
+
+OpenCore 1.0.7 `ocvalidate` 检查无问题。配置 SHA-256 为
+`f6f2dd853cb8ae79950c17aac145ae3357ab3df3ec31740d1fd70c4809dd7ab0`；
+原始与候选配置保留在 guest 私有的 `~/.local/state/findmy/airtag-debug/`，
+并已按相同摘要备份到 el2 的 root-only `/var/lib/incus-macos/findmy-20261021/`，
+不进入 Git 或 Nix store。SMC 修复、机器身份、账户 sysctl 补丁均保持原状。
+
+最终重启后，实际启动参数匹配，SIP、authenticated root 均 enabled，
+`kern.hv_vmm_present=0`。`bluetoothd` 超过三分钟仍为 `runs=1`、从未退出，
+蓝牙、无线电管理及物品同步进程降至接近零 CPU。启动阶段仍有一次 BlueTool
+固件探测超时，但没有造成虚拟 transport 的守护进程退出或再次初始化；不应
+把历史日志中的这一次超时误判成原先每 15–32 秒的重启循环。
+
+采集器与 SSH 隧道重启后自动重连，七条物品保持可读；六件有位置物品的源时间
+在重启后均继续推进，21:24 CST 物品历史已有 33 个去重定位点。
+SQLite `quick_check=ok`。真实浏览器已检查 AirTag 地图、时间线与桌面/手机布局，
+应用控制台无错误或警告。采集实现及运行说明见
+[Find My 服务](../findmy.md)。
+
+排查中发现的两条无效路径也已清理：SIP 开启时 `launchctl disable` 的内存状态
+不会让这个受保护系统服务在下次启动保持禁用；两个 `/etc/bluetool/Skip…` 标记
+分别只影响串口 flash 更新阶段及 UART 波特率分支，不是停止整个固件启动的开关。
+临时标记已移除，未留下蓝牙服务禁用设置。整个修复未关闭 SIP/AMFI，未重启 el2。
