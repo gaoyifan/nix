@@ -8,6 +8,7 @@
   hermesUsers = builtins.attrNames config.services.hermes-nspawn.containers;
   apiKeyIds = ["honcho" "immersive-translation"] ++ map (user: "hermes-${user}") hermesUsers;
   weeklyLimitOverrides = import (config.services.secrets.filesDir + "/nixos/somo-minisforum/codex-api-weekly-limits.nix");
+  certDir = "${config.services.acmeCertificates.directory}/yfgao";
 in {
   imports = [inputs.codex-api.nixosModules.default];
 
@@ -35,6 +36,18 @@ in {
           })
           apiKeyIds
         );
+
+      services.acmeCertificates.restartServices = ["tailscale-serve"];
+      services.tailscale.serve = {
+        enable = true;
+        services.codex-api = {
+          certificate = {
+            certFile = "${certDir}/fullchain.pem";
+            keyFile = "${certDir}/privkey.pem";
+          };
+          tlsEndpoints."tcp:443" = "http://127.0.0.1:3002";
+        };
+      };
 
       services.codex-api = {
         enable = true;
