@@ -14,6 +14,9 @@ stdenv.mkDerivation (finalAttrs: {
   pname = "orcad";
   version = "1.4.230";
 
+  # Keep dependency sources out of fetchPnpmDeps' JSON metadata fixup.
+  ORCA_PNPM_GLOBAL_VIRTUAL_STORE = "0";
+
   src = fetchFromGitHub {
     owner = "stablyai";
     repo = "orca";
@@ -29,7 +32,7 @@ stdenv.mkDerivation (finalAttrs: {
   };
 
   pnpmDeps = fetchPnpmDeps {
-    inherit (finalAttrs) pname src;
+    inherit (finalAttrs) pname src ORCA_PNPM_GLOBAL_VIRTUAL_STORE;
     pnpm = pnpm_12;
     fetcherVersion = 4;
     postInstall = ''
