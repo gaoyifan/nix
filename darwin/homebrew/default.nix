@@ -24,7 +24,7 @@
     "anomalyco/tap/opencode"
 
     # Other tools
-    "huggingface-cli" # Hugging Face CLI
+    "hf" # Hugging Face CLI
     "ffmpeg" # Audio/video processing toolkit
     "yt-dlp" # Video downloader (YouTube, etc.)
   ];
