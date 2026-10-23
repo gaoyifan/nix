@@ -6,17 +6,17 @@
       x86_64-linux = {
         platform = "linux-x64";
         asset = "cli_linux_x64.tar.gz";
-        hash = "sha256-kMwYlLaGJRCGmtTPGm9MBDt658CVutjVw1V4igypNcc=";
+        hash = "sha256-UTx0rT5wMjg5pl2NzMb5l3sJA+X6zZFMuwa+KDwrtkA=";
       };
       aarch64-linux = {
         platform = "linux-arm";
         asset = "cli_linux_arm64.tar.gz";
-        hash = "sha256-iCa4DEsBPwh3NPJMXq3MOGAOdKGvQRJy1CqEDVLtPuc=";
+        hash = "sha256-74jJlheLVaPFQW8si2epw0OsCmLJAOe3FY7i/xE1rZY=";
       };
       aarch64-darwin = {
         platform = "darwin-arm";
         asset = "cli_mac_arm64.tar.gz";
-        hash = "sha256-bWKNfSXfoYjvZ2Vk45cUZnxImbUr6mtWOdZZG8IrhpY=";
+        hash = "sha256-iFRRT8P1d8i0Jx5zWnYFVi7NNTquJwwyPD7mh26JIpY=";
       };
     }
     .${
@@ -26,7 +26,7 @@
 in
   stdenv.mkDerivation rec {
     pname = "antigravity-cli";
-    version = "1.4.5-4952523841339392";
+    version = "1.4.6-4884751325200384";
 
     src = fetchurl {
       url = "https://storage.googleapis.com/antigravity-public/antigravity-cli/${version}/${platform.platform}/${platform.asset}";
