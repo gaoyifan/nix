@@ -7,6 +7,7 @@
     ./dnsmonster.nix
     ./findmy.nix
     ./github-runner.nix
+    ./auramont-runner.nix
     ./icloud-photos.nix
     ./immich.nix
     ./kopia.nix
