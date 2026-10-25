@@ -87,13 +87,6 @@
   };
 
   systemd.services = {
-    # During switches, udev sockets may be stopped before these services restart.
-    # In containers, networkd disables its udev monitor if /run/udev/control is absent.
-    systemd-networkd.wants = ["systemd-udevd.service"];
-    tailscaled = {
-      wants = ["systemd-udevd.service"];
-      after = ["systemd-udevd.service"];
-    };
     systemd-oomd.serviceConfig.WatchdogSec = 0;
     systemd-userdbd.serviceConfig.WatchdogSec = 0;
     systemd-udevd.serviceConfig.WatchdogSec = 0;

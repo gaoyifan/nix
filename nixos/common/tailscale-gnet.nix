@@ -27,6 +27,18 @@ in {
   };
 
   config = {
+    # Keep udev available before Tailscale recreates its interface during switches.
+    # networkd also needs udev present at startup to monitor device events in containers.
+    systemd.services = lib.mkIf cfg.enable {
+      systemd-networkd = lib.mkIf config.systemd.network.enable {
+        wants = ["systemd-udevd.service"];
+      };
+      tailscaled = {
+        wants = ["systemd-udevd.service"];
+        after = ["systemd-udevd.service"];
+      };
+    };
+
     age.secrets =
       lib.mkIf (
         config.services.secrets.hasRealFiles
