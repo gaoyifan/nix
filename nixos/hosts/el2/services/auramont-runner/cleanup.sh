@@ -8,3 +8,7 @@ docker network prune --force
 docker image prune --all --force --filter until=168h
 docker builder prune --force --keep-storage 40GB
 rm -rf -- "$HOME/.ssh" "$HOME/.docker"
+
+docker load --input @ownershipImage@ >/dev/null
+docker run --rm --network none --read-only \
+  --mount type=bind,src=/var/lib/github-runner-work,dst=/workspace auramont-ci-cleanup:1

@@ -7,6 +7,12 @@ daemon, work directory and HOME. No host Docker socket, Nix daemon or home
 files are mounted. Its private network namespace joins the internal LAN at
 `100.64.2.82`; Docker bridges and firewall rules stay in that namespace.
 
+Both runners share `nixos/hosts/el2/services/github-runner/nspawn.nix` for host
+startup and `github-runner/guest-base.nix` for the guest's Nix configuration,
+garbage collection, nested namespaces and runner defaults. Their profiles keep
+repository identity, networking, tools and resource limits separate. Auramont's
+complete job cleanup is in `auramont-runner/cleanup.sh`.
+
 The host unit is `github-runner-auramont.service`, the machine is `auramont-ci`,
 and its runner labels are `self-hosted, Linux, X64, el2, auramont`. The unit has
 a 32 GiB memory limit and a 12-core CPU quota. Exactly one runner executes jobs
