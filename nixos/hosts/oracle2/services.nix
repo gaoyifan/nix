@@ -1,7 +1,6 @@
 {
   config,
   inputs,
-  lib,
   ...
 }: let
   certDir = "${config.services.acmeCertificates.directory}/yfgao";
@@ -11,10 +10,6 @@ in {
     ../../optional/acme-certificates.nix
     ../../optional/bitmagnet.nix
   ];
-
-  age.secrets = lib.mkIf config.services.secrets.hasRealFiles {
-    acme-repository-pull-key.file = config.services.secrets.filesDir + "/nixos/acme-repository-pull-key.age";
-  };
 
   services = {
     codex-capacity-proxy.enable = true;

@@ -1,6 +1,5 @@
 {
   config,
-  lib,
   username,
   ...
 }: let
@@ -12,10 +11,6 @@ in {
     ../../optional/tailscale-gnet-vm-exit.nix
     ./disk-config.nix
   ];
-
-  age.secrets = lib.mkIf config.services.secrets.hasRealFiles {
-    acme-repository-pull-key.file = config.services.secrets.filesDir + "/nixos/acme-repository-pull-key.age";
-  };
 
   networking = {
     hostName = "blog";

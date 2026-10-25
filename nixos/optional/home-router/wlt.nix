@@ -95,9 +95,6 @@ in {
       };
 
       age.secrets = lib.mkIf config.services.secrets.hasRealFiles {
-        acme-repository-pull-key = lib.mkIf config.services.wlt.enable {
-          file = config.services.secrets.filesDir + "/nixos/acme-repository-pull-key.age";
-        };
         wlt-ssh-host-key.file = config.services.secrets.filesDir + "/nixos/wlt-ssh-host-key.age";
       };
 

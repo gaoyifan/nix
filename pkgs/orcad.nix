@@ -10,7 +10,12 @@
   autoPatchelfHook,
   makeBinaryWrapper,
 }:
-stdenv.mkDerivation (finalAttrs: {
+stdenv.mkDerivation (finalAttrs: let
+  target =
+    if stdenv.hostPlatform.isAarch64
+    then "linux-arm64-glibc"
+    else "linux-x64-glibc";
+in {
   pname = "orcad";
   version = "1.4.239";
 
@@ -41,10 +46,11 @@ stdenv.mkDerivation (finalAttrs: {
       node --input-type=module <<'JS'
       import { materializeWatcherPackage } from './config/scripts/orcad-watcher-package.mjs';
       await materializeWatcherPackage('linux-x64-glibc');
+      await materializeWatcherPackage('linux-arm64-glibc');
       JS
       cp -r out/.orcad-watchers "$out/orcad-watchers"
     '';
-    hash = "sha256-yGIFQi5F9Kv0rbb+she0WD9fQyz2TueEXXFhzY+K5t8=";
+    hash = "sha256-gaeLQzgbf/LKVtpbMhf/yfQ8bvYoK6Xa/5LPKM5ihOM=";
   };
 
   nativeBuildInputs = [
@@ -78,7 +84,7 @@ stdenv.mkDerivation (finalAttrs: {
     const hash = createHash('sha256').update(readFileSync(process.execPath)).digest('hex');
     writeFileSync(path, readFileSync(path, 'utf8')
       .replace("version: '" + NODE_RUNTIME_PIN.version + "'", "version: '" + process.versions.node + "'")
-      .replace("executableSha256: '" + NODE_RUNTIME_ASSETS['linux-x64-glibc'].executableSha256 + "'", "executableSha256: '" + hash + "'"));
+      .replace("executableSha256: '" + NODE_RUNTIME_ASSETS['${target}'].executableSha256 + "'", "executableSha256: '" + hash + "'"));
     JS
   '';
 
@@ -88,7 +94,7 @@ stdenv.mkDerivation (finalAttrs: {
     pnpm --dir mobile run postinstall
     pnpm run build:mobile-web
     cp -r --no-preserve=mode ${finalAttrs.pnpmDeps}/orcad-watchers out/.orcad-watchers
-    pnpm run build:orcad --target linux-x64-glibc
+    pnpm run build:orcad --target ${target}
     runHook postBuild
   '';
 
@@ -118,6 +124,6 @@ stdenv.mkDerivation (finalAttrs: {
     homepage = "https://github.com/stablyai/orca";
     license = lib.licenses.mit;
     mainProgram = "orcad";
-    platforms = ["x86_64-linux"];
+    platforms = ["x86_64-linux" "aarch64-linux"];
   };
 })

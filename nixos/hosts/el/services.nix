@@ -1,17 +1,9 @@
-{
-  config,
-  lib,
-  ...
-}: let
+{config, ...}: let
   certDir = "${config.services.acmeCertificates.directory}/yfgao";
 in {
   imports = [
     ../../optional/acme-certificates.nix
   ];
-
-  age.secrets = lib.mkIf config.services.secrets.hasRealFiles {
-    acme-repository-pull-key.file = config.services.secrets.filesDir + "/nixos/acme-repository-pull-key.age";
-  };
 
   services.openssh.settings.MaxStartups = 100;
 

@@ -1,4 +1,4 @@
-# Orca on el2
+# Orca on el2 and nixos-orbstack
 
 el2 runs `orcad` directly with the flake's Node runtime as `yifan`. Connect the MacBook's Orca
 desktop app to `wss://orcad.ts.gaof.net` through Tailscale Serve. Orcad uses its
@@ -7,9 +7,23 @@ terminates TLS on port 443 using the existing ACME certificate and forwards
 WebSocket connections to it. No host Tailscale IP is pinned, and no Orca Cloud
 relay, Electron, or Xvfb is involved.
 
+`nixos-orbstack` runs the same service with a native ARM64 package. Its separate
+Tailscale Service is `orcad-orbstack`, at `wss://orcad-orbstack.ts.gaof.net`.
+Both hosts pull the shared ACME certificates and refresh Tailscale Serve when
+certificates change. The `orcad-orbstack` Service has endpoint `tcp:443` and
+`nixos-orbstack` is approved as its service host. The encrypted Tailscale management
+key is `secrets/files/nixos/el2/tailscale-api-key.age`; it can manage Service
+creation and host approval without a browser. Keep decrypted keys out of the Nix
+store and command output. The existing DNS syncer publishes the Service VIP in
+`ts.gaof.net`; resolvers can cache an earlier NXDOMAIN response for five minutes.
+
+The deployment was verified from the Mac's bundled Orca CLI through the hostname:
+TLS validation, paired runtime status, worktree creation, and a terminal command
+round trip all passed. The temporary terminal and worktree were removed afterward.
+
 ## Pair the MacBook
 
-On el2, retrieve the latest startup pairing link:
+On the host to pair, retrieve the latest startup pairing link:
 
 ```sh
 sudo journalctl -u orcad -b -o cat --no-pager |
@@ -20,6 +34,14 @@ sudo journalctl -u orcad -b -o cat --no-pager |
 In the MacBook's Orca app, choose **Add remote server** and paste the complete
 `orca://pair?...` link. It contains a device credential; keep it private. Choose
 the existing server pairing flow rather than installing another runtime over SSH.
+
+## Shared configuration
+
+Import `nixos/optional/orcad.nix` to enable the runtime, Tailscale TLS ingress, and
+shared ACME certificates. The only host-specific option is
+`services.orcad.tailscaleServiceName`, which defaults to `orcad`; OrbStack uses
+`orcad-orbstack`. The public hostname is `<service-name>.ts.gaof.net`.
+The ACME module owns its secret declaration and uses the host's chosen resolver.
 
 ## State and maintenance
 
@@ -45,7 +67,7 @@ the daemon runs in a separate user scope with linger enabled and the incoming
 version supports its protocol. In-process sessions do not survive. Keep the old
 daemon's bundle and runtime available while it is live.
 The runtime and dependency hashes are pinned in `pkgs/orcad.nix`; deploy changes
-with `just nixos` from el2. Deployment leaves the running version unchanged
+with `just nixos` on the target host. Deployment leaves the running version unchanged
 (`restartIfChanged = false`); activate the installed version with
 `sudo systemctl restart orcad`.
 Scheduled updates select stable GitHub releases, rather than snapshots of `main`.

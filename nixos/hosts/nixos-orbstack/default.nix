@@ -6,6 +6,7 @@
   ...
 }: {
   imports = [
+    ../../optional/orcad.nix
     "${modulesPath}/virtualisation/lxc-container.nix"
   ];
 
@@ -84,6 +85,7 @@
     ];
     resolved.enable = false;
     tailscale.gnetMode = "client";
+    orcad.tailscaleServiceName = "orcad-orbstack";
   };
 
   systemd.services = {

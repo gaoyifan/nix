@@ -18,7 +18,7 @@
     ./new-api.nix
     ./open-webui.nix
     ./openlist.nix
-    ./orca.nix
+    ../../../optional/orcad.nix
     ./powerdns.nix
     ./py-kms.nix
     ./rakazo

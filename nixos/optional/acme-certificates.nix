@@ -55,13 +55,18 @@ in {
     restartServices = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       default = [];
+      apply = lib.unique;
       description = "Services refreshed after the certificate repository changes; active units are restarted and failed units are started.";
     };
   };
 
   config = lib.mkIf cfg.enable {
+    age.secrets.acme-repository-pull-key = lib.mkIf config.services.secrets.hasRealFiles {
+      file = config.services.secrets.filesDir + "/nixos/acme-repository-pull-key.age";
+    };
+
     services.resolved = {
-      enable = true;
+      enable = lib.mkDefault true;
       dnsDelegates.acmeGithub.Delegate = {
         DNS = [
           "223.5.5.5"
@@ -80,7 +85,7 @@ in {
             "systemd-resolved.service"
           ];
           wants = ["network-online.target"];
-          requires = ["systemd-resolved.service"];
+          requires = lib.optional config.services.resolved.enable "systemd-resolved.service";
           serviceConfig = {
             Type = "oneshot";
             StateDirectory = "acme-certificates";
