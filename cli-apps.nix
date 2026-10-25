@@ -254,7 +254,7 @@ in {
             exec "$program"${appArgs} "$@" 9>&-
           fi
           cached_program="$program"
-          refresh_timeout=10
+          refresh_timeout=120
         fi
 
         echo "${name}: checking for updates..." >&2
