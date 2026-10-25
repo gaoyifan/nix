@@ -1,6 +1,7 @@
 import importlib.util
 import os
 import sys
+from unittest.mock import patch
 
 import httpx
 
@@ -42,3 +43,40 @@ response = FailingResponse()
 view_syncer.client = type("Client", (), {"get": lambda _self, _url: response})()
 assert view_syncer.get_current_state() == (None, None)
 assert response.checked
+
+# A failed netmap fetch must not reconcile a partial node-only DNS snapshot.
+with (
+    patch.object(
+        tailscale_syncer,
+        "fetch_ts_nodes",
+        return_value={"Self": {"DNSName": "node.ts.gaof.net", "TailscaleIPs": ["100.64.0.1"]}},
+    ),
+    patch.object(tailscale_syncer, "fetch_ts_netmap", return_value=None),
+    patch.object(tailscale_syncer.httpx, "Client") as client,
+):
+    tailscale_syncer.sync()
+    client.assert_not_called()
+
+# A complete snapshot still publishes both node and Service records.
+with (
+    patch.object(
+        tailscale_syncer,
+        "fetch_ts_nodes",
+        return_value={"Self": {"DNSName": "node.ts.gaof.net", "TailscaleIPs": ["100.64.0.1"]}},
+    ),
+    patch.object(
+        tailscale_syncer,
+        "fetch_ts_netmap",
+        return_value={"DNS": {"ExtraRecords": [{"Name": "svc.ts.gaof.net.", "Value": "100.64.0.2", "Type": "A"}]}},
+    ),
+    patch.object(tailscale_syncer.httpx, "Client") as client,
+):
+    api = client.return_value.__enter__.return_value
+    api.get.return_value.status_code = 200
+    api.get.return_value.json.return_value = {"rrsets": []}
+    tailscale_syncer.sync()
+    updates = api.patch.call_args.kwargs["json"]["rrsets"]
+    assert {(r["name"], r["records"][0]["content"]) for r in updates} == {
+        ("node.ts.gaof.net.", "100.64.0.1"),
+        ("svc.ts.gaof.net.", "100.64.0.2"),
+    }

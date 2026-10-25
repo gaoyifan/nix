@@ -120,27 +120,30 @@ def sync():
             desired_records[key].add(ip)
 
     netmap = fetch_ts_netmap()
-    if netmap:
-        extra_records = (netmap.get("DNS") or {}).get("ExtraRecords") or []
-        for record in extra_records:
-            name = record.get("Name") or ""
-            value = record.get("Value") or ""
-            rtype = (record.get("Type") or "").upper()
-            if not rtype:
-                if is_ip(value):
-                    rtype = "AAAA" if ":" in value else "A"
-                else:
-                    log(f"Skipping ExtraRecord without type: {record}")
-                    continue
-            fqdn = normalize_name(name, suffix, base)
-            if not fqdn:
-                log(f"Skipping ExtraRecord outside base zone: {record}")
+    if netmap is None:
+        log("Skipping DNS reconciliation: no complete Tailscale netmap.")
+        return
+
+    extra_records = (netmap.get("DNS") or {}).get("ExtraRecords") or []
+    for record in extra_records:
+        name = record.get("Name") or ""
+        value = record.get("Value") or ""
+        rtype = (record.get("Type") or "").upper()
+        if not rtype:
+            if is_ip(value):
+                rtype = "AAAA" if ":" in value else "A"
+            else:
+                log(f"Skipping ExtraRecord without type: {record}")
                 continue
-            key = (fqdn, rtype)
-            if key not in desired_records:
-                desired_records[key] = set()
-            if value:
-                desired_records[key].add(value)
+        fqdn = normalize_name(name, suffix, base)
+        if not fqdn:
+            log(f"Skipping ExtraRecord outside base zone: {record}")
+            continue
+        key = (fqdn, rtype)
+        if key not in desired_records:
+            desired_records[key] = set()
+        if value:
+            desired_records[key].add(value)
 
     headers = {"X-API-Key": PDNS_API_KEY}
     with httpx.Client(headers=headers, timeout=30.0) as client:
