@@ -5,6 +5,7 @@
 rec {
   agenix = inputs.agenix.packages.${pkgs.stdenv.hostPlatform.system}.default;
   lazyssh = import ./lazyssh.nix {inherit pkgs;};
+  nix-output-monitor = import ./nix-output-monitor.nix {inherit pkgs;};
   dcv = import ./dcv.nix {inherit pkgs;};
   restic = import ./restic.nix {inherit pkgs;};
   mcat = import ./mcat.nix {inherit pkgs;};

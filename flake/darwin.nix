@@ -60,7 +60,7 @@
             nixpkgs.overlays = [
               (final: prev: {
                 copilot-cli = null;
-                inherit (overlay final prev) osxphotos;
+                inherit (overlay final prev) osxphotos nix-output-monitor;
               })
             ];
           }
