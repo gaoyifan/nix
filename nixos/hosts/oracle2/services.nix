@@ -1,6 +1,7 @@
 {
   config,
   inputs,
+  pkgs,
   ...
 }: let
   certDir = "${config.services.acmeCertificates.directory}/yfgao";
@@ -32,4 +33,17 @@ in {
       };
     };
   };
+
+  systemd.services.btrfs-defrag-srv = {
+    description = "Defragment and compress /srv";
+    startAt = "weekly";
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${pkgs.btrfs-progs}/bin/btrfs filesystem defragment -r -czstd /srv";
+      Nice = 19;
+      IOSchedulingClass = "idle";
+    };
+  };
+
+  systemd.timers.btrfs-defrag-srv.timerConfig.Persistent = true;
 }
