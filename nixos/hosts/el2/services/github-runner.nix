@@ -1,6 +1,8 @@
 {
   imports = [
-    (import ./github-runner/nspawn.nix {
+    (import ../../../optional/github-runner/nspawn.nix {
+      wantedBy = ["el2-services.target"];
+      requires = ["zfs-unlock-mount.service"];
       name = "github-runner-el2";
       root = "/pool1/services/github-runner/root";
       tokenFile = "/var/lib/github-runner-el2/token";

@@ -24,7 +24,9 @@
   ];
 in {
   imports = map (runner:
-    import ./github-runner/nspawn.nix {
+    import ../../../optional/github-runner/nspawn.nix {
+      wantedBy = ["el2-services.target"];
+      requires = ["zfs-unlock-mount.service"];
       name = "github-runner-auramont${runner.suffix}";
       inherit (runner) machine;
       root = "/pool1/services/auramont-runner${runner.suffix}/root";

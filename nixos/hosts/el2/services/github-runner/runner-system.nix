@@ -1,6 +1,6 @@
 {pkgs, ...}: {
   imports = [
-    (import ./guest-base.nix {
+    (import ../../../../optional/github-runner/guest-base.nix {
       name = "el2";
       user = "yifan";
     })

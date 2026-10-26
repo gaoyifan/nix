@@ -5,6 +5,8 @@
   tokenFile,
   guestModule,
   nspawnArgs,
+  wantedBy ? ["multi-user.target"],
+  requires ? [],
 }: {
   config,
   inputs,
@@ -14,15 +16,14 @@
 }: let
   runnerToplevel =
     (inputs.nixpkgs.lib.nixosSystem {
-      system = "x86_64-linux";
+      system = pkgs.stdenv.hostPlatform.system;
       modules = [guestModule];
     }).config.system.build.toplevel;
 in {
   # Keep workflow builds and garbage collection in an independent guest store.
   systemd.services.${name} = {
-    wantedBy = ["el2-services.target"];
-    requires = ["zfs-unlock-mount.service"];
-    after = ["zfs-unlock-mount.service" "network-online.target"];
+    inherit wantedBy requires;
+    after = requires ++ ["network-online.target"];
     wants = ["network-online.target"];
     unitConfig.ConditionPathExists = tokenFile;
     path = [config.nix.package pkgs.coreutils];

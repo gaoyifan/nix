@@ -1,8 +1,8 @@
 {
   name,
   user,
-}: let
-  cache = import ../../../../../nix-cache.nix;
+}: {lib, ...}: let
+  cache = import ../../../nix-cache.nix;
 in {
   boot.isContainer = true;
   networking = {
@@ -17,10 +17,10 @@ in {
       trusted-users = [user];
       substituters = cache.extra-substituters ++ [cache.official-substituter];
       trusted-public-keys = cache.extra-trusted-public-keys ++ [cache.official-public-key];
-      max-jobs = 8;
+      max-jobs = lib.mkDefault 8;
       keep-env-derivations = true;
       keep-outputs = true;
-      min-free = 2 * 1024 * 1024 * 1024;
+      min-free = lib.mkDefault (2 * 1024 * 1024 * 1024);
     };
     gc = {
       automatic = true;

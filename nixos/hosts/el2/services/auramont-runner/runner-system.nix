@@ -12,10 +12,10 @@
   cleanup =
     pkgs.writeShellScript "auramont-ci-cleanup.sh"
     (builtins.replaceStrings ["@ownershipImage@"] ["${ownershipImage}"] (builtins.readFile ./cleanup.sh));
-  tools = with pkgs; [curl git gh jq gnused gnugrep gawk findutils util-linux xz zip unzip python3 rsync openssh nodejs_24 docker docker-compose];
+  tools = (import ../../../../optional/github-runner/auramont-tools.nix {inherit pkgs;}) ++ (with pkgs; [nodejs_24 docker docker-compose]);
 in {
   imports = [
-    (import ../github-runner/guest-base.nix {
+    (import ../../../../optional/github-runner/guest-base.nix {
       name = "auramont";
       user = "runner";
     })

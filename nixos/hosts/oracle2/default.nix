@@ -2,6 +2,7 @@
   imports = [
     ../../optional/tailscale-gnet-vm-exit.nix
     ../../optional/vm-oracle-cloud.nix
+    ./auramont-runner.nix
     ./disk-config.nix
     ./github-backup.nix
     ./services.nix

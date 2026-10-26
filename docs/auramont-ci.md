@@ -1,4 +1,4 @@
-# Auramont CI on el2
+# Auramont CI runners
 
 Four dedicated systemd-nspawn runners serve `cardio-angel/auramont-mono` with
 labels `self-hosted, Linux, X64, el2, auramont`.
@@ -24,8 +24,8 @@ namespace, work directory, HOME and tool cache; no host Docker socket, Nix daemo
 or HOME is mounted. Keep exactly one runner per guest because jobs use fixed
 Compose project names and daemon-wide job cleanup.
 
-Host startup reuses `github-runner/nspawn.nix`; guest Nix, garbage collection,
-namespaces and runner defaults reuse `github-runner/guest-base.nix`. Nix, Node 24,
+Host startup reuses `nixos/optional/github-runner/nspawn.nix`; guest Nix, garbage collection,
+namespaces and runner defaults reuse `nixos/optional/github-runner/guest-base.nix`. Nix, Node 24,
 Python, Docker/Compose and nix-ld come from the pinned guest closure. The existing
 `el2-nspawn` runner remains separate. Auramont's `cleanup.sh` cleans only its
 own guest's Docker resources, SSH and Docker authentication and workspace ownership;
@@ -91,3 +91,27 @@ the baseline is retained at `/nix/var/nix/gcroots/auramont-runner-before-mlock`.
 Actual guest-user syscall checks passed after the idle runner restarted; Orca's
 existing process remained running. This maintenance did not migrate Auramont's
 production MongoDB or importer.
+
+## ARM64 on oracle2
+
+`oracle2-auramont` uses labels `self-hosted, Linux, ARM64, oracle2, auramont`.
+It serves Board image builds, provisioning checks and the manual RPi artifact
+workflow. One runner fits the shared 4-core, 24 GiB host: CPU quota 300%, memory
+high 10 GiB, memory maximum 12 GiB; Nix runs one derivation at a time with three
+build cores. Guest GC starts below 10 GiB free and targets 20 GiB free.
+
+The host unit is `github-runner-auramont.service`, machine `auramont-ci`, with
+root `/var/lib/auramont-runner/root` and registration token
+`/var/lib/github-runner-auramont/token`. Bootstrap it with the same token pipeline
+above, targeting `oracle2` without a suffix. The shared nspawn module derives the
+guest architecture from the host. EL2 keeps its ZFS dependencies and LAN bridge;
+oracle2 uses a private veth subnet `192.168.247.0/30` with host masquerading.
+No host Nix store, HOME, Docker socket or secrets are mounted into the guest.
+
+The guest provides Nix, Node 22 and the common Auramont command-line tools.
+Its Nix store and workspace persist; job hooks remove release SSH credentials.
+Image ownership uses nested user namespaces through the shared procfs setup.
+Image structure checks run natively. Oracle2 has no `/dev/kvm`; the existing
+secrets VM test explicitly permits software emulation. KVM-required VM tests
+need a different host.
+Validate both board images and their structure checks before publishing releases.
