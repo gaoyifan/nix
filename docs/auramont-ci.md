@@ -62,3 +62,26 @@ CI-branch pushes remain validation-only. Release tags and the existing protected
 production dispatch conditions retain deployment control. Run only trusted
 repository code on this persistent runner. CI validation does not authorize an
 application production release.
+
+## MongoDB memory locking and scoped repair (2026-10-26)
+
+Native MongoDB authentication tests require `mlock` and `munlock` to keep SCRAM
+credentials in locked memory. The Auramont nspawn allowlist permits exactly
+these two calls; it does not add `CAP_IPC_LOCK` or raise the existing 8 MiB
+memlock limit. Without this allowance, MongoDB aborts during user creation.
+
+The repair passed the `ci` branch matrix before promotion to `main` as
+`e645176`. Before the el2 switch, the real encrypted secrets submodule was
+initialized, `hasRealFiles` and `system.switch.enable` were asserted, and all
+22 secrets were decrypted to `/dev/null` using el2's host identity.
+
+The scoped deployment retained the running Orca 1.4.239 package through a Nix
+overlay rather than bringing in unrelated updates. Its reconstructed baseline
+exactly matched `/nix/store/adv0rigj3vllv51zf80nqwkdlyk46y3z-nixos-system-el2-26.05.20261020.cd4ea8d`.
+Only the two allowlist arguments changed in the generated runner unit;
+`dry-activate` listed only that runner for restart. The accepted generation is
+`/nix/store/9c0ys37vxbwqxp4wyksxk8d5aa79pg1r-nixos-system-el2-26.05.20261020.cd4ea8d`;
+the baseline is retained at `/nix/var/nix/gcroots/auramont-runner-before-mlock`.
+Actual guest-user syscall checks passed after the idle runner restarted; Orca's
+existing process remained running. This maintenance did not migrate Auramont's
+production MongoDB or importer.
