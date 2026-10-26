@@ -11,6 +11,9 @@
         "--capability=CAP_NET_ADMIN"
         # runc installs cgroup-v2 device rules through BPF.
         "--system-call-filter=bpf"
+        # MongoDB locks SCRAM credentials within the guest's existing memlock limit.
+        "--system-call-filter=mlock"
+        "--system-call-filter=munlock"
       ];
     })
   ];
