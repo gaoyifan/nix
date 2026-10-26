@@ -1,4 +1,8 @@
-{pkgs, ...}: let
+{
+  machine,
+  address,
+  runnerName,
+}: {pkgs, ...}: let
   ownershipImage = pkgs.dockerTools.buildLayeredImage {
     name = "auramont-ci-cleanup";
     tag = "1";
@@ -17,13 +21,13 @@ in {
     })
   ];
   networking = {
-    hostName = "auramont-ci";
+    hostName = machine;
     useNetworkd = true;
     nameservers = ["100.64.2.254"];
   };
   systemd.network.networks."10-host0" = {
     matchConfig.Name = "host0";
-    address = ["100.64.2.82/24"];
+    address = [address];
     routes = [{Gateway = "100.64.2.254";}];
   };
   nix.settings.max-free = 10 * 1024 * 1024 * 1024;
@@ -38,7 +42,7 @@ in {
   ];
   services.github-runners.auramont = {
     url = "https://github.com/cardio-angel/auramont-mono";
-    name = "el2-auramont";
+    name = runnerName;
     extraLabels = ["el2" "auramont"];
     extraPackages = tools;
     extraEnvironment = {

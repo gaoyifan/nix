@@ -1,67 +1,73 @@
 # Auramont CI on el2
 
-`el2-auramont` is a dedicated systemd-nspawn runner for
-`cardio-angel/auramont-mono`, following the existing `el2-nspawn` runner pattern.
-It has its own root at `/pool1/services/auramont-runner/root`, Nix store, Docker
-daemon, work directory and HOME. No host Docker socket, Nix daemon or home
-files are mounted. Its private network namespace joins the internal LAN at
-`100.64.2.82`; Docker bridges and firewall rules stay in that namespace.
+Four dedicated systemd-nspawn runners serve `cardio-angel/auramont-mono` with
+labels `self-hosted, Linux, X64, el2, auramont`.
 
-Both runners share `nixos/hosts/el2/services/github-runner/nspawn.nix` for host
-startup and `github-runner/guest-base.nix` for the guest's Nix configuration,
-garbage collection, nested namespaces and runner defaults. Their profiles keep
-repository identity, networking, tools and resource limits separate. Auramont's
-complete job cleanup is in `auramont-runner/cleanup.sh`.
+| Runner | Machine | LAN address |
+| --- | --- | --- |
+| `el2-auramont` | `auramont-ci` | `100.64.2.82` |
+| `el2-auramont-2` | `auramont-ci2` | `100.64.2.83` |
+| `el2-auramont-3` | `auramont-ci3` | `100.64.2.84` |
+| `el2-auramont-4` | `auramont-ci4` | `100.64.2.85` |
 
-The host unit is `github-runner-auramont.service`, the machine is `auramont-ci`,
-and its runner labels are `self-hosted, Linux, X64, el2, auramont`. The unit has
-a 32 GiB memory limit and a 12-core CPU quota. Exactly one runner executes jobs
-in this container: Web, Supabase and Coordinator tests use fixed Compose project
-names and must not share a Docker daemon with concurrent jobs. ARM64 and mobile
-workflows are unchanged in this first migration.
+Host units are `github-runner-auramont.service` and
+`github-runner-auramont-{2,3,4}.service`. The original root remains
+`/pool1/services/auramont-runner/root`; new roots are
+`/pool1/services/auramont-runner-{2,3,4}/root`. The short machine names keep
+`vb-<machine>` within Linux's 15-character interface-name limit. Addresses are
+outside the LAN's DHCP pool (`100.64.2.100`–`100.64.2.200`).
 
-Nix, Node 24, Python, Docker/Compose and the runner are supplied by the pinned
-NixOS guest closure. Application dependencies remain owned by Auramont's locks.
-The guest uses the same nested Nix namespace support as the existing Nix runner.
+Each unit has an 8-core CPU quota, 24 GiB memory high watermark and 32 GiB memory
+limit: at most 32 CPU equivalents and 128 GiB across the pool. These are caps,
+not resource reservations. Each guest owns its Nix store, Docker daemon, network
+namespace, work directory, HOME and tool cache; no host Docker socket, Nix daemon
+or HOME is mounted. Keep exactly one runner per guest because jobs use fixed
+Compose project names and daemon-wide job cleanup.
+
+Host startup reuses `github-runner/nspawn.nix`; guest Nix, garbage collection,
+namespaces and runner defaults reuse `github-runner/guest-base.nix`. Nix, Node 24,
+Python, Docker/Compose and nix-ld come from the pinned guest closure. The existing
+`el2-nspawn` runner remains separate. Auramont's `cleanup.sh` cleans only its
+own guest's Docker resources, SSH and Docker authentication and workspace ownership;
+recent build and SDK caches persist.
 
 ## Registration and activation
 
-Supply a short-lived repository registration token through standard input,
-never a Nix value or tracked file:
+Supply a short-lived repository registration token through standard input for
+**new or replacement guests only**. Existing registered guests keep their token
+files and credentials unchanged. For example, to bootstrap slot 2:
 
 ```sh
+suffix=-2
 gh api --method POST repos/cardio-angel/auramont-mono/actions/runners/registration-token --jq .token \
-  | ssh el2 'sudo install -d -m 0700 /var/lib/github-runner-auramont; sudo install -m 0600 /dev/stdin /var/lib/github-runner-auramont/token'
+  | ssh el2 "sudo install -d -m 0700 /var/lib/github-runner-auramont${suffix}; sudo install -m 0600 /dev/stdin /var/lib/github-runner-auramont${suffix}/token"
 just sync-and-rebuild el2
 ```
 
-The host unit seeds the independent guest store and boots its declared NixOS
-closure. Only the protected registration-token file is bound read-only into the
-guest; systemd credentials deliver it to registration. Registered credentials
-remain in the guest. Refresh the host token before registering a replacement
-root, and drain the runner before changing or stopping its container.
+Slots 3 and 4 use `-3` and `-4`; the original slot uses an empty suffix. Never put
+registration tokens in Git, Nix values or the Nix store. Refreshing an existing
+guest's token file causes the NixOS runner module to reset its registration state.
 
-The job hooks remove guest Docker containers, volumes and networks before and
-after each job, retain recent image/build caches, and remove job-created SSH
-and Docker login files. A Nix-built cleanup container restores ownership of
-the runner work directory after Compose creates database bind mounts, so the
-next checkout can clean it. These operations are scoped to this single-runner
-container. Do not attach other workloads or a second runner to its Docker daemon.
+Drain a runner before changing or stopping its container: temporarily remove its
+`auramont` routing label through GitHub's runner-label API, wait for `busy=false`,
+then switch. Restore the label only after the container passes checks. No host
+reboot is needed. Check the activation diff and preserve unrelated services and
+real encrypted secrets; a routine whole-host switch may include unrelated updates.
 
 ## Verification
 
 ```sh
 gh api repos/cardio-angel/auramont-mono/actions/runners
-ssh el2 'sudo systemctl status github-runner-auramont --no-pager'
-ssh el2 'sudo machinectl status auramont-ci'
-ssh el2 'sudo systemd-run --machine=auramont-ci --wait --pipe docker info'
+ssh el2 'sudo systemctl status github-runner-auramont{,-2,-3,-4} --no-pager'
+ssh el2 'sudo machinectl list --no-pager'
+ssh el2 'sudo systemd-run --machine=auramont-ci2 --wait --pipe docker info'
 ```
 
-Test workflow changes on Auramont's `ci` branch before promoting them to `main`.
-CI-branch pushes remain validation-only. Release tags and the existing protected
-production dispatch conditions retain deployment control. Run only trusted
-repository code on this persistent runner. CI validation does not authorize an
-application production release.
+Verify four online runners, distinct Docker daemon IDs and network namespaces,
+and simultaneous jobs without cross-guest cleanup. Workflow validation uses the
+monorepo's `ci` branch before promotion to `main`. PRs cancel their own stale runs;
+Coordinator publishes immutable per-tag images/releases without a global lock.
+Existing Supabase/Web production deployment serialization remains in place.
 
 ## MongoDB memory locking and scoped repair (2026-10-26)
 
