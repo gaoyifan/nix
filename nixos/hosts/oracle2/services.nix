@@ -36,7 +36,6 @@ in {
 
   systemd.services.btrfs-defrag-srv = {
     description = "Defragment and compress /srv";
-    startAt = "weekly";
     serviceConfig = {
       Type = "oneshot";
       ExecStart = "${pkgs.btrfs-progs}/bin/btrfs filesystem defragment -r -czstd /srv";
@@ -45,5 +44,11 @@ in {
     };
   };
 
-  systemd.timers.btrfs-defrag-srv.timerConfig.Persistent = true;
+  systemd.timers.btrfs-defrag-srv = {
+    wantedBy = ["timers.target"];
+    timerConfig = {
+      OnActiveSec = "14d";
+      OnUnitActiveSec = "14d";
+    };
+  };
 }
