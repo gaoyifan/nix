@@ -4,22 +4,22 @@
   sources = {
     x86_64-linux = {
       asset = "linux-x64";
-      hash = "sha256-RIcEK0xPXYjUVo9orpiq4LH/rliGTPV/uGhkG8X4RZQ=";
+      hash = "sha256-/RPHAAD+w/IRbfvLthISELSikyi/DkYhClndWUpn2CQ=";
     };
     aarch64-linux = {
       asset = "linux-arm64";
-      hash = "sha256-pmwKj10Mh6Q5lT15eYUZK7y677zi4Ney6qjfMO8PPvI=";
+      hash = "sha256-Vc244WLRkEMmlupUAQ4Pyi4Y0G+npxJ/1WO5/9TyJiQ=";
     };
     aarch64-darwin = {
       asset = "darwin-arm64";
-      hash = "sha256-Idbnuabwe0z8t98Tdgs7cqol4IThOlNUQTOCmHuoMu0=";
+      hash = "sha256-ZMMn6SssXg94wKmAxaUYEh4fDRQMp3HKXdRIjRotyz8=";
     };
   };
   platform = sources.${stdenvNoCC.hostPlatform.system};
 in
   stdenvNoCC.mkDerivation rec {
     pname = "claude-code";
-    version = "2.1.314";
+    version = "2.1.316";
 
     src = fetchurl {
       url = "https://downloads.claude.ai/claude-code-releases/${version}/${platform.asset}/claude";
