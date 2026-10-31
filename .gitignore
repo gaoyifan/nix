@@ -5,6 +5,9 @@ result-*
 # Ignore automatically generated direnv output
 .direnv
 
+# Local tool caches
+.cache/
+
 # Private secrets submodule (use secrets-example for CI)
 secrets/files/
 

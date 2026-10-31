@@ -397,8 +397,10 @@ sync-and-rebuild target:
     fi
     host="$(nix eval --accept-flake-config "$FLAKE_REF#deploy.nodes.$target.hostname" --raw)"
     ssh -A "$host" install -d -m 700 .cache/nixos-deploy
+    # Secrets are ignored by Git but required on the deployment target.
     rsync -az --delete --delete-excluded \
-        --exclude='result' \
+        --include='/secrets/files/***' \
+        --filter=':- .gitignore' \
         ./ "$host:.cache/nixos-deploy/"
     # A reused SSH master may forward a stale agent instead of the current one.
     ssh -S none -A "$host" bash -s -- "$target" <<'REMOTE'
