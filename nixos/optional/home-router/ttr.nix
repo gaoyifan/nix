@@ -29,6 +29,8 @@ in {
       wantedBy = ["multi-user.target"];
       serviceConfig = {
         ExecStart = "${lib.getExe pkgs.tcp-transparent-repeater} 0.0.0.0:${port}";
+        StandardOutput = "null";
+        StandardError = "null";
         DynamicUser = true;
         AmbientCapabilities = ["CAP_NET_ADMIN"];
         CapabilityBoundingSet = ["CAP_NET_ADMIN"];
