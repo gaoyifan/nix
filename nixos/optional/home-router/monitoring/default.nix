@@ -280,6 +280,10 @@ in {
             requires = ["nftables.service"];
             serviceConfig = {
               Type = "oneshot";
+              # Avoid three informational lifecycle messages every 15 seconds.
+              LogLevelMax = "notice";
+              # Keep collector diagnostics, which arrive on stdout/stderr without a priority.
+              SyslogLevel = "warning";
               RuntimeDirectory = "home-router-wan-metrics";
               RuntimeDirectoryPreserve = true;
               ExecStart = collectWanMetrics;
