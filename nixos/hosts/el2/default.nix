@@ -17,6 +17,7 @@
 in {
   imports = [
     ../../optional/zfs-unlock.nix
+    ./bees.nix
     ./disk-config.nix
     ./hardware-configuration.nix
     ./services
