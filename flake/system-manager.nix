@@ -7,16 +7,13 @@
   ...
 }: let
   resticBackupHosts = [
-    "bitmagnet-db2"
     "debian41"
-    "debian20"
     "debian22"
     "misc0-61"
     "misc0-sz"
     "oracle"
   ];
   tailscaleUserspaceHosts = [
-    "debian20"
     "debian22"
     "debian40"
     "debian41"
