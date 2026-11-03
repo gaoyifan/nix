@@ -7,7 +7,7 @@
   services.bitmagnet = {
     enable = true;
     settings = {
-      http_server.port = "127.0.0.1:3333";
+      http_server.local_address = "127.0.0.1:3333";
       postgres = {
         user = "postgres";
       };

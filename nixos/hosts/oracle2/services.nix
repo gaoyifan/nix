@@ -22,7 +22,7 @@ in {
     tailscale.serve = {
       enable = true;
       services = {
-        bitmagnet.endpoints."tcp:80" = "http://${config.services.bitmagnet.settings.http_server.port}";
+        bitmagnet.endpoints."tcp:80" = "http://${config.services.bitmagnet.settings.http_server.local_address}";
         codex-capacity-proxy = {
           certificate = {
             certFile = "${certDir}/fullchain.pem";
