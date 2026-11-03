@@ -10,6 +10,8 @@
     })
   ];
 
+  networking.edgeFirewall.extraForwardRules = [''iifname "ve-auramont-ci" accept''];
+
   systemd.network.networks."20-auramont-ci" = {
     matchConfig.Name = "ve-auramont-ci";
     address = ["192.168.247.1/30"];
