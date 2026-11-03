@@ -73,6 +73,8 @@ in
     installCheckPhase = ''
       runHook preInstallCheck
 
+      # --help initializes the project trust store and needs a writable home.
+      export HOME="$(mktemp -d)"
       test "$("$out/bin/pi" --version)" = "${version}"
       "$out/bin/pi" --help >/dev/null
 
