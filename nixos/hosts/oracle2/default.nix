@@ -1,5 +1,6 @@
-{...}: {
+{config, ...}: {
   imports = [
+    ../../optional/edge-firewall.nix
     ../../optional/tailscale-gnet-vm-exit.nix
     ../../optional/vm-oracle-cloud.nix
     ./auramont-runner.nix
@@ -11,7 +12,13 @@
 
   networking = {
     hostName = "oracle2";
-    firewall.enable = false;
+    edgeFirewall = {
+      enable = true;
+      extraPublicUdpPorts = [
+        (toString config.services.bitmagnet.settings.dht_server.port)
+        "41642" # Dedicated Tailscale node for GitHub backup.
+      ];
+    };
   };
 
   boot = {
