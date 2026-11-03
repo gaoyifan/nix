@@ -46,7 +46,14 @@ The ACME module owns its secret declaration and uses the host's chosen resolver.
 ## State and maintenance
 
 - Runtime state and pairing keys: `/var/lib/orca`, owned by `yifan:users`, mode `0700`.
-- Codex uses the existing `/home/yifan/.syncd-dotfiles/.codex` configuration.
+- Codex uses `/home/yifan/.codex`, which links to the existing
+  `/home/yifan/.syncd-dotfiles/.codex` configuration. Keep `CODEX_HOME` spelled as
+  `~/.codex`: Orca compares paths without resolving symlinks and treats the
+  `.syncd-dotfiles` path as a custom home, selecting its legacy managed mirror.
+  On el2, importing history into that mirror falls back to symlinks because
+  `/var/lib/orca` and `/home` are on different filesystems; Codex fork rejects
+  those external rollout paths. New system-default launches use the original
+  home directly; already-running Codex processes retain their previous home.
 - Worktrees use Orca's default `~/orca/workspaces` location unless changed in Orca.
 - Telemetry is disabled. Mobile push, cloud sign-in, and cloud sharing are outside
   this deployment; use runtime pairing for the desktop client.

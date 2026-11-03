@@ -38,7 +38,9 @@ in {
       restartIfChanged = false;
       path = [pkgs.orcad pkgs.codex pkgs.git pkgs.openssh pkgs.bash];
       environment = {
-        CODEX_HOME = "/home/${username}/.syncd-dotfiles/.codex";
+        # Orca recognizes this spelling as the system default, even when
+        # ~/.codex is a symlink. A custom path selects its managed mirror.
+        CODEX_HOME = "/home/${username}/.codex";
         ORCA_USER_DATA = "/var/lib/orca";
         ORCA_USER_DATA_PATH = "/var/lib/orca";
         ORCA_TELEMETRY_DISABLED = "1";
