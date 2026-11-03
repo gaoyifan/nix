@@ -1,10 +1,20 @@
 # Core system defaults shared by all NixOS hosts.
 {
+  config,
   lib,
   pkgs,
   ...
 }: {
   time.timeZone = lib.mkDefault "Asia/Singapore";
+
+  # Containers use their host's kernel; other hosts build in livepatch support.
+  boot.kernelPatches = lib.mkIf config.boot.kernel.enable [
+    {
+      name = "livepatch";
+      patch = null;
+      structuredExtraConfig.LIVEPATCH = lib.kernel.yes;
+    }
+  ];
 
   programs = {
     nix-ld.enable = true;
