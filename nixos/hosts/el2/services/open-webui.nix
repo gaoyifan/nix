@@ -14,7 +14,7 @@ in {
 
   virtualisation.oci-containers.containers.open-webui = {
     autoStart = false;
-    image = "ghcr.io/open-webui/open-webui@sha256:0b399a8ba34558e181d316750455f2a95376a38cd60a61b9c942e138898944bd";
+    image = "ghcr.io/open-webui/open-webui@sha256:975e3965dcf5832804d2f77e167920794757027c5a2046917d42023d75fac431";
     environmentFiles = ["/run/agenix/open-webui-env"];
     ports = ["127.0.0.1:3002:8080"];
     volumes = ["${dataDirectory}:/app/backend/data"];
