@@ -171,8 +171,10 @@ in {
 
   services.hermes-agent = {
     enable = true;
-    package = basePackage.override {
-      extraPythonPackages = [honchoSdk];
+    package = hostPkgs.hermes-agent.override {
+      package = basePackage.override {
+        extraPythonPackages = [honchoSdk];
+      };
     };
     user = "agent";
     group = "agent";
