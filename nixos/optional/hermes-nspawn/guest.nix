@@ -171,11 +171,40 @@ in {
 
   services.hermes-agent = {
     enable = true;
-    package = hostPkgs.hermes-agent.override {
-      package = basePackage.override {
-        extraPythonPackages = [honchoSdk];
+    # Upstream's Nix package supplies binaries but does not register them with PM.
+    package = (basePackage.override {extraPythonPackages = [honchoSdk];}).overrideAttrs (old: let
+      upstream = inputs.hermes-agent;
+      packages = upstream.packages.${pkgs.stdenv.hostPlatform.system};
+      tools = {
+        node = basePackage.hermesNpmLib.nodejs;
+        npm = basePackage.hermesNpmLib.nodejs;
+        ripgrep = packages.pm-ripgrep;
+        ffmpeg = packages.pm-ffmpeg;
+        python = packages.pm-python; # Required by PM's ripgrep dependency graph.
       };
-    };
+    in {
+      postInstall =
+        (old.postInstall or "")
+        + ''
+          ${lib.concatStringsSep "\n" (lib.mapAttrsToList (name: tool: ''
+              mkdir -p "$out/tools/${name}"
+              cp -rs ${tool}/. "$out/tools/${name}/"
+            '')
+            tools)}
+          PYTHONPATH=${upstream} ${basePackage.hermesVenv}/bin/python3 - "$out" <<'PY'
+          import json, pathlib, sys
+          from scripts.bundles.payload import record_tools
+
+          root = pathlib.Path(sys.argv[1])
+          target = json.loads((root / "manifest.json").read_text())["target"]
+          entries = {entry.name: entry.name for entry in (root / "tools").iterdir()}
+          record_tools(root, pathlib.Path("${upstream}/pm/lock.json"), target, entries)
+          PY
+          for command in "$out"/bin/*; do
+            wrapProgram "$command" --set HERMES_RUNTIME_DIR "$out/tools"
+          done
+        '';
+    });
     user = "agent";
     group = "agent";
     createUser = false;

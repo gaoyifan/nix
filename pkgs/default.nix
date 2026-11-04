@@ -37,7 +37,6 @@ rec {
   agentreach = import ./agentreach.nix {inherit pkgs;};
   honcho-ai = pkgs.callPackage ./honcho-ai.nix {};
   honcho-plugin = import ./honcho-plugin.nix {inherit pkgs;};
-  hermes-agent = pkgs.callPackage ./hermes-agent.nix {inherit inputs;};
 }
 // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
   orcad = pkgs.callPackage ./orcad.nix {};
