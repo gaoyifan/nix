@@ -20,6 +20,8 @@
     npm = package.hermesNpmLib.nodejs;
     ripgrep = upstream.packages.${system}.pm-ripgrep;
     ffmpeg = upstream.packages.${system}.pm-ffmpeg;
+    # PM declares this dependency for ripgrep on every platform.
+    python = upstream.packages.${system}.pm-python;
   };
   entries = pkgs.writeText "hermes-pm-tool-entries.json" (builtins.toJSON (lib.mapAttrs (name: _: name) tools));
 in
@@ -74,6 +76,12 @@ in
           version = subprocess.check_output([executable, "--version"], env=env, text=True).strip().removeprefix("v")
           assert version == lock[name]["version"], (name, version)
       subprocess.run([str(package / "bin/hermes"), "pm", "doctor"], check=True)
+      os.environ["HERMES_RUNTIME_DIR"] = str(package / "tools")
+      os.environ["HERMES_INSTALL_ROOT"] = str(package / "share/hermes-agent")
+      from pm.install import activate, ensure
+      assert activate() == []
+      for name in ("node", "npm", "ripgrep", "ffmpeg"):
+          ensure(name)
       assert user_facts.read_bytes() == before, "package startup changed user tool records"
       PY
       runHook postInstallCheck
