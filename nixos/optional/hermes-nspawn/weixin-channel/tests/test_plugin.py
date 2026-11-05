@@ -20,9 +20,13 @@ def _load_plugin():
     gateway_status.read_runtime_status = Mock(return_value={})
     gateway.status = gateway_status
 
-    platforms = types.ModuleType("gateway.platforms")
+    plugins = types.ModuleType("plugins")
+    plugins.__path__ = []
+    platforms = types.ModuleType("plugins.platforms")
     platforms.__path__ = []
-    weixin = types.ModuleType("gateway.platforms.weixin")
+    weixin_package = types.ModuleType("plugins.platforms.weixin")
+    weixin_package.__path__ = []
+    weixin = types.ModuleType("plugins.platforms.weixin.adapter")
     weixin.ILINK_BASE_URL = "https://ilink.example"
     weixin.EP_GET_BOT_QR = "get-qr"
     weixin.EP_GET_QR_STATUS = "get-status"
@@ -32,8 +36,9 @@ def _load_plugin():
     weixin._make_ssl_connector = Mock(return_value=None)
     weixin._api_get = AsyncMock()
     weixin.aiohttp = types.SimpleNamespace(ClientSession=Mock())
-    platforms.weixin = weixin
-    gateway.platforms = platforms
+    weixin_package.adapter = weixin
+    platforms.weixin = weixin_package
+    plugins.platforms = platforms
 
     hermes_constants = types.ModuleType("hermes_constants")
     hermes_constants.get_hermes_home = Mock(return_value="/tmp/hermes")
@@ -67,8 +72,10 @@ def _load_plugin():
     modules = {
         "gateway": gateway,
         "gateway.status": gateway_status,
-        "gateway.platforms": platforms,
-        "gateway.platforms.weixin": weixin,
+        "plugins": plugins,
+        "plugins.platforms": platforms,
+        "plugins.platforms.weixin": weixin_package,
+        "plugins.platforms.weixin.adapter": weixin,
         "hermes_constants": hermes_constants,
         "tools": tools,
         "tools.registry": registry,

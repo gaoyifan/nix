@@ -19,8 +19,8 @@ from typing import Any
 from urllib.parse import quote
 
 from gateway import status as gateway_status
-from gateway.platforms import weixin
 from hermes_constants import get_hermes_home
+from plugins.platforms.weixin import adapter as weixin
 from tools.registry import tool_result
 from utils import atomic_json_write, atomic_replace
 

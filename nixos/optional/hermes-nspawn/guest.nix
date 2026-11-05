@@ -39,6 +39,17 @@
   weixinChannelPlugin = pkgs.runCommand "weixin-channel" {} ''
     install -Dm0444 ${./weixin-channel/plugin.yaml} $out/plugin.yaml
     install -Dm0444 ${./weixin-channel/__init__.py} $out/__init__.py
+    # Import against the pinned Hermes environment so upstream module moves
+    # fail the build instead of silently disabling onboarding in production.
+    HERMES_HOME="$TMPDIR/hermes-home" ${basePackage.hermesVenv}/bin/python3 - "$out/__init__.py" <<'PY'
+    import importlib.util, sys
+
+    spec = importlib.util.spec_from_file_location("weixin_channel", sys.argv[1])
+    plugin = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = plugin
+    spec.loader.exec_module(plugin)
+    assert plugin._check_requirements()
+    PY
   '';
   managedSkills = pkgs.runCommand "hermes-managed-skills" {} ''
     mkdir -p $out
@@ -386,7 +397,7 @@ in {
   };
 
   systemd.services.hermes-agent = {
-    restartTriggers = [config.environment.etc."hermes/config.yaml".source pkgs.honcho-plugin];
+    restartTriggers = [config.environment.etc."hermes/config.yaml".source pkgs.honcho-plugin weixinChannelPlugin];
     after = [
       "hermes-terminal-image.service"
       "lark-cli-init.service"
@@ -412,7 +423,7 @@ in {
 
   systemd.services.hermes-dashboard = {
     description = "Hermes Agent Dashboard";
-    restartTriggers = [config.environment.etc."hermes/config.yaml".source pkgs.honcho-plugin];
+    restartTriggers = [config.environment.etc."hermes/config.yaml".source pkgs.honcho-plugin weixinChannelPlugin];
     wantedBy = ["multi-user.target"];
     after = [
       "hermes-terminal-image.service"
