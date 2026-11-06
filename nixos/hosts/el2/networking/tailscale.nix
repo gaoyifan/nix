@@ -264,6 +264,12 @@ in
   lib.mkMerge (
     [
       {
+        # Bootstrap Tailscale independently of WLT's WireGuard-backed DNS.
+        services.resolved.dnsDelegates.tailscaleBootstrap.Delegate = {
+          DNS = ["223.5.5.5" "119.29.29.29"];
+          Domains = ["tailscale.com"];
+        };
+
         age.secrets.tailscale-api-key = lib.mkIf config.services.secrets.hasRealFiles {
           file = config.services.secrets.filesDir + "/nixos/el2/tailscale-api-key.age";
         };
