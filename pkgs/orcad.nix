@@ -17,7 +17,7 @@ stdenv.mkDerivation (finalAttrs: let
     else "linux-x64-glibc";
 in {
   pname = "orcad";
-  version = "1.4.250";
+  version = "1.4.251";
 
   # Keep dependency sources out of fetchPnpmDeps' JSON metadata fixup.
   ORCA_PNPM_GLOBAL_VIRTUAL_STORE = "0";
@@ -33,7 +33,7 @@ in {
       git -C "$out" rev-parse HEAD > "$out/.source-commit"
       rm -r "$out/.git"
     '';
-    hash = "sha256-rsaXleKbHOykiFsRliGC0NQxHeZTNsb6+8xcXT2SCng=";
+    hash = "sha256-HKb2fj7ygDiVTkX/x3o1KXvtLodkr0mDT0WYKUDD2Z0=";
   };
 
   pnpmDeps = fetchPnpmDeps {
@@ -44,7 +44,7 @@ in {
       # The mobile web bundle uses a separate workspace and lockfile.
       pnpm --dir mobile install --store-dir "$storePath" --force --ignore-scripts --frozen-lockfile
       node --input-type=module <<'JS'
-      import { materializeWatcherPackage } from './config/scripts/orcad-watcher-package.mjs';
+      import { materializeWatcherPackage } from './config/scripts/orcad-distribution/server-bundle/orcad-watcher-package.mjs';
       await materializeWatcherPackage('linux-x64-glibc');
       await materializeWatcherPackage('linux-arm64-glibc');
       JS
@@ -64,15 +64,15 @@ in {
   buildInputs = [stdenv.cc.cc.lib];
 
   postPatch = ''
-    substituteInPlace config/scripts/build-source-commit.mjs \
+    substituteInPlace config/scripts/build-identity/build-source-commit.mjs \
       --replace-fail "execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()" "'$(cat .source-commit)'"
 
     # Build against Nix's Node headers and libraries instead of downloading a
     # runtime or enforcing the portable release's Ubuntu library versions.
-    substituteInPlace config/scripts/build-orcad-prebuilds.mjs \
+    substituteInPlace config/scripts/orcad-distribution/prebuilds/build-orcad-prebuilds.mjs \
       --replace-fail "await preparePinnedNodeDir({ target: slot, workDir: join(workDir, 'nodedir') })" "'${nodejs-slim}'" \
       --replace-fail 'glibcFloor: slotGlibcFloor(slot)' 'glibcFloor: { label: "Nix store libraries", families: [] }'
-    substituteInPlace config/scripts/build-orcad-node.mjs \
+    substituteInPlace config/scripts/orcad-distribution/prebuilds/build-orcad-node.mjs \
       --replace-fail 'await ensurePinnedNodeExecutable({ target })' "'${lib.getExe nodejs-slim}'"
 
     # The runtime marker and startup handoff must identify the actual Nix Node.
