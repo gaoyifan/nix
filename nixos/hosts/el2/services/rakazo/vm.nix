@@ -13,7 +13,7 @@
         microvm = {
           hypervisor = "cloud-hypervisor";
           vcpu = 8;
-          mem = 16384;
+          mem = 24576;
           balloon = true;
           vsock.cid = 1001;
           interfaces = [

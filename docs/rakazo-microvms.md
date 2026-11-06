@@ -21,6 +21,8 @@ exported read-only; Docker data is stored in the guest's persistent disk.
 The DHCP lease and Tailscale advertisement are configured directly in
 `nixos/hosts/el2/services/rakazo/default.nix`. The application's public environment
 is defined in `guest-os.nix` in the same directory.
+`RAKAZO_WEB_BIND=100.64.2.81` uses upstream's listener setting to expose the web
+port to el2's Tailscale proxy.
 
 The guest uses `100.64.2.81` from el2's existing `100.64.2.0/24`, outside the
 `.100–.200` DHCP pool. The host binds the address to MAC `02:52:00:00:00:01`
@@ -29,7 +31,7 @@ and DNS (`100.64.2.254`); no address or route is set statically in the guest.
 TAP `rakazo-tap` joins VLAN 642 through `homeRouter.switch.ports`; dnsmasq derives
 the `/24` netmask from the existing LAN interface.
 
-The guest has 8 vCPUs, 16384 MiB RAM, and an 81920 MiB sparse ext4 disk, set
+The guest has 8 vCPUs, 24576 MiB RAM, and an 81920 MiB sparse ext4 disk, set
 directly in `nixos/hosts/el2/services/rakazo/vm.nix`. The volume size only
 controls initial creation; changing it does not grow an existing filesystem.
 
@@ -38,16 +40,30 @@ It contains independent random values for:
 
 ```dotenv
 POSTGRES_PASSWORD=<32 hexadecimal characters>
+POSTGRES_APP_PASSWORD=<32 hexadecimal characters>
 BETTER_AUTH_SECRET=<64 hexadecimal characters>
 ENCRYPTION_KEY=<64 hexadecimal characters>
 SCREEN_PROXY_SECRET=<64 hexadecimal characters>
 SANDBOX_SUPERVISOR_TOKEN=<64 hexadecimal characters>
+KEENABLE_API_KEY=<Keenable API key>
 ```
 
 The existing el2 recipient rules cover these top-level host secrets. Preserve
 `ENCRYPTION_KEY` and the database password when updating the deployment.
 Credentials are decrypted on el2 and exported to that VM through a read-only
 directory under `/run/rakazo`. Plaintext credentials never enter the Nix store.
+
+`WEB_PROVIDER=keenable` selects Keenable for both internet search and webpage
+extraction. Its key is passed to the API and worker from the encrypted environment
+above. Update it with `just edit-secret secrets/files/nixos/el2/rakazo-env.age`
+and apply with `just nixos`.
+
+The 2026-11-06 upgrade adds `POSTGRES_APP_PASSWORD` for the `rakazo_app` runtime
+login; `POSTGRES_PASSWORD` remains the migration owner's password. The published
+images Compose file keeps PostgreSQL 16. New content uses upstream's default
+encryption at rest, so rolling back across this upgrade requires restoring the
+matching database and app data backup, or decrypting content with the newer
+version before a downgrade.
 
 Apply with `just nixos` on el2. Configuration or credential changes
 restart the MicroVM. Guest services can be inspected from el2:
@@ -60,9 +76,11 @@ ssh root@100.64.2.81 docker ps
 
 Prepare the first owner account before setting `advertised = true`. The service
 is available at `https://rakazo.ts.gaof.net`, using el2's
-existing certificate and Tailscale DNS synchronization. Create the owner account,
-then close registration through Rakazo's deployment settings before advertising
-the service. The web port is also reachable from the LAN when the VM starts;
+existing certificate and Tailscale DNS synchronization. Registration is closed
+with `SIGNUPS_ENABLED=false` in `guest-os.nix`. The upgraded API takes its signup
+policy from the environment and mirrors it into the database at each startup;
+changing only the database setting no longer closes registration.
+The web port is also reachable from the LAN when the VM starts;
 `advertised` only controls the Tailscale advertisement. An allowlist requires email
 delivery, so the default empty allowlist is used. SMTP and
 password recovery are not configured. Users connect their own model credentials
@@ -146,8 +164,10 @@ el2's existing outlets.
 
 Cloud Hypervisor ballooning enables free-page reporting. Actual host memory is
 measured through the VMM process's `smaps_rollup`, together with guest memory and
-Docker statistics. The shared guest has a 16384 MiB ceiling. The pinned Compose
-release defaults each computer to a 2 GiB and 2 CPU limit.
+Docker statistics. The shared guest has a 24576 MiB ceiling.
+`RAKAZO_COMPUTER_MEMORY=8g` sets each computer's memory limit to 8 GiB; the CPU
+limit remains 2. Existing computer containers also need their Docker memory and
+memory-swap limits updated to 8 GiB; this retains the no-swap policy.
 
 On 2026-09-30, the pilot's VMM and virtiofs processes together measured about
 2.6 GiB PSS with its computer stopped and 3.6 GiB with one Chromium desktop.
@@ -176,6 +196,17 @@ from a snapshot. Restore its
 matching encrypted credentials, preserve the disk owner, and start the VM again.
 Verify the owner account and closed registration before advertising the service.
 The database dump can be inspected with `pg_restore --list` inside the PostgreSQL container.
+
+The 2026-11-06 upgrade to `46e95fa8314324cbcf6e4e33c7ed06dbbc68b923`
+was rehearsed on a restored database dump before applying it. A stopped-VM
+snapshot is retained at
+`pool1/services@rakazo-pre-upgrade-20261106T055324Z`; recover only its
+`rakazo/var.img`, since that dataset also contains other services. The previous
+encrypted credentials, logical dump, and deployment records are kept separately
+on el2 in `~yifan/.local/state/rakazo-upgrade-20261106/` (owner-only access).
+That deployment preserves the running host's unrelated service configuration
+through a local `deployment.nix` overlay; a later plain `just nixos` also applies
+any differences between the repository and those preserved services.
 
 Installer configurations disable the MicroVM host module.
 

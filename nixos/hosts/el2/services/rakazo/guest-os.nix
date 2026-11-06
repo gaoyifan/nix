@@ -11,8 +11,11 @@
       WEB_ORIGIN=https://rakazo.ts.gaof.net
       API_URL=https://rakazo.ts.gaof.net
       RAKAZO_HOST=rakazo.ts.gaof.net
-      RAKAZO_WEB_BIND_IP=100.64.2.81
+      RAKAZO_WEB_BIND=100.64.2.81
       RAKAZO_IMAGE_TAG=sha-${inputs.rakazo-src.rev}
+      WEB_PROVIDER=keenable
+      SIGNUPS_ENABLED=false
+      RAKAZO_COMPUTER_MEMORY=8g
     '';
   in {
     config = lib.mkIf config.microvm.host.enable {
@@ -59,12 +62,9 @@
     ...
   }: let
     computer = import ./computer.nix {inherit pkgs rakazoSource;};
-    # Keep the release's Compose topology; only the web listener needs to be
-    # reachable from el2's Tailscale proxy instead of guest loopback.
-    composeFile = pkgs.writeText "rakazo-compose.yml" (lib.replaceStrings
-      ["127.0.0.1:\${RAKAZO_WEB_PORT:-5173}:5173"]
-      ["\${RAKAZO_WEB_BIND_IP:-127.0.0.1}:\${RAKAZO_WEB_PORT:-5173}:5173"]
-      (builtins.readFile "${rakazoSource}/infra/compose/docker-compose.images.yml"));
+    composeFile =
+      pkgs.writeText "rakazo-compose.yml"
+      (builtins.readFile "${rakazoSource}/infra/compose/docker-compose.images.yml");
     compose = "${pkgs.docker-compose}/bin/docker-compose --project-directory /run/rakazo -f ${composeFile} -f ${composeOverrides}";
     composeOverrides = (pkgs.formats.json {}).generate "rakazo-compose-overrides.json" {
       # The supervisor attaches these containers to computer networks at runtime.
