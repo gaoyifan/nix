@@ -8,7 +8,12 @@
     microvm.vms.rakazo = {
       autostart = false;
       config = {
-        imports = [((import ./guest-os.nix).guest inputs.rakazo-src)];
+        imports = [
+          ((import ./guest-os.nix).guest {
+            rakazoSource = inputs.rakazo-src;
+            anthropicSkills = inputs.anthropic-skills;
+          })
+        ];
 
         microvm = {
           hypervisor = "cloud-hypervisor";

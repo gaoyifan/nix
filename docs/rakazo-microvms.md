@@ -107,10 +107,46 @@ tailscale serve drain svc:rakazo
 tailscale serve advertise svc:rakazo
 ```
 
+## Computer tools and Skills
+
+`computer.nix` extends the pinned upstream computer image with:
+
+- Long-file transcription: `transcribe-audio` and `estimate-transcription-time`,
+  reusing the existing external ASR services and the shared Hermes scripts.
+- Office/OCR: LibreOffice Writer, Calc and Impress, Tesseract English/simplified
+  Chinese, qpdf, document Python libraries, and the locked docx/pptxgenjs Node
+  dependencies copied directly from the existing `pkgs.node-docx` package.
+  Node scripts find these modules through `NODE_PATH`.
+- Media: ffmpeg/ffprobe and yt-dlp with curl-cffi and bundled EJS scripts.
+  Node 22 is installed for JavaScript challenge solving; use `--js-runtimes node`.
+- The native Codex CLI package pinned by `pkgs/codex.nix`, including its companion
+  resources. The image does not configure Codex authentication or copy chat-model
+  credentials; users can configure CLI authorization separately later.
+
+Complete Skill resources live under `/opt/rakazo/skills/`. The `docx`, `xlsx`,
+`pdf` and `pptx` Skills come from the existing `anthropic-skills` Flake input;
+their upstream scripts and references are preserved, with an appended environment
+note explaining how to resolve relative paths in Rakazo. Local
+`audio-transcription`, `video-processing` and `codex` Skills use Rakazo's `shell`
+and `attach_file` interfaces. Long jobs run independently with `nohup` and report
+through workspace log/result files. Deliverables go in the Bot's `exports/`.
+
+Web uploads currently retain Rakazo's default 10 MiB per-file limit. Larger media
+can be downloaded into the Bot's computer from a URL and processed there.
+The upstream attachment allowlist accepts PDF, XLSX and ZIP, but not DOCX or PPTX.
+Bundle Word/PowerPoint originals in ZIP for upload or delivery.
+
+Installing these files in the image does not register them in the application.
+Import each `/opt/rakazo/skills/<name>/SKILL.md` through Rakazo's Skills library
+for the relevant user. The existing two users have the seven additional Skills
+installed; new users need their own imports. Existing computers must receive the
+new image through Rakazo's native computer update, which retains their home
+files; changing only the supervisor's default image does not replace them.
+
 ## Tushare SDK and Skill
 
-`nixos/hosts/el2/services/rakazo/computer.nix` declares a thin extension of the
-upstream computer image. It installs Tushare 1.4.29 with the image's existing uv
+`nixos/hosts/el2/services/rakazo/computer.nix` also installs Tushare 1.4.29 with
+the image's existing uv
 into its existing system Python, and adds the official Skill/reference files at
 `/opt/rakazo/skills/tushare-data/`. No additional Python installation or venv is
 created. The image retains the upstream desktop entrypoint and runtime user.
@@ -207,6 +243,44 @@ on el2 in `~yifan/.local/state/rakazo-upgrade-20261106/` (owner-only access).
 That deployment preserves the running host's unrelated service configuration
 through a local `deployment.nix` overlay; a later plain `just nixos` also applies
 any differences between the repository and those preserved services.
+
+The capability rollout on 2026-11-06 updated both existing computers through
+Rakazo's native update queue and imported `audio-transcription`, `video-processing`,
+`codex`, `docx`, `xlsx`, `pdf`, and `pptx` for both users. All 22 recorded
+non-hidden home/artifact files retained their checksums. Its stopped-VM snapshot
+is `pool1/services@rakazo-pre-capabilities-20261106T093459Z`; the matching logical
+dump, file manifests, and before/after system paths are in
+`~yifan/.local/state/rakazo-capabilities-20261106/`.
+
+Validation covered DOCX/PPTX creation, XLSX formula recalculation, Office-to-PDF
+conversion, English/Chinese OCR on an image-only PDF, public sample video download,
+trimming/transcoding, and audio conversion. A 330-second, 10560078-byte test recording
+was transcribed by the external service in 6.709 seconds with 48 timestamped
+segments. Node 22.23.3 was recognized by yt-dlp's JS runtime discovery; Codex CLI
+0.167.0 starts successfully, while authenticated coding runs remain untested by
+request. For mixed Chinese/English OCR, select `chi_sim+eng` and page segmentation
+appropriate to the scan's layout.
+
+Browser end-to-end validation on 2026-11-06 signed in as `yifan@rakazo.invalid`
+and sent short requests to the existing `helper`, without tool names or execution
+instructions (except explicitly requesting Codex for the delegation check):
+
+| Request | Verified result after downloading from chat |
+| --- | --- |
+| 把这个英文录音转成文字。 | A 330-second file (an 11-second public excerpt looped 30 times) produced a 3107-character transcript with 28 recognized repetitions; this checks the file workflow, not transcription accuracy. |
+| 把这份扫描预算表做成能自动合计的 Excel。 | Three scanned rows matched; `=SUM(B3:B5)` was preserved with cached value 500. |
+| 做一份 Rakazo 简介，给我 Word、PDF 和一页 PPT。 | ZIP contained readable DOCX, a one-page PDF with legible Chinese, and a one-slide PPTX. PDF also downloaded separately. |
+| 下载这个视频，截取前3秒并提取音频：[MDN sample](https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4) | Downloaded MP4 had audio/video and duration 3.003 s; extracted M4A had audio only and duration 5.055 s. |
+| 用 Codex 写一个命令行待办清单工具。 | Bot invoked Codex CLI, observed HTTP 401, and reported that authorization was required; no code was generated. |
+| 做一页介绍太阳系的 PPT。 | After redeployment, a readable one-slide PPTX was downloaded in ZIP. No Skill-file or attachment-type refusal recurred; packaging recovered from one interpreter-heredoc refusal. |
+
+The browser runs exposed Skill-environment mismatches missed by container smoke
+tests: the shell guard rejects `$!` and interpreter heredocs, supporting Skill
+files are available through `shell` rather than `skill_read`, and DOCX/PPTX need
+ZIP delivery. The managed instructions now account for these constraints.
+The standard-library ZIP command and all three background-command examples were
+also checked against the deployed desktop guard. The original interpreter-heredoc
+refusal reproduced, while the documented commands were accepted.
 
 Installer configurations disable the MicroVM host module.
 

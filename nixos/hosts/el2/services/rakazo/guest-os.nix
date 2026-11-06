@@ -56,12 +56,15 @@
     };
   };
 
-  guest = rakazoSource: {
+  guest = {
+    rakazoSource,
+    anthropicSkills,
+  }: {
     lib,
     pkgs,
     ...
   }: let
-    computer = import ./computer.nix {inherit pkgs rakazoSource;};
+    computer = import ./computer.nix {inherit pkgs rakazoSource anthropicSkills;};
     composeFile =
       pkgs.writeText "rakazo-compose.yml"
       (builtins.readFile "${rakazoSource}/infra/compose/docker-compose.images.yml");
