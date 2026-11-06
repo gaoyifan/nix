@@ -46,6 +46,8 @@ ENCRYPTION_KEY=<64 hexadecimal characters>
 SCREEN_PROXY_SECRET=<64 hexadecimal characters>
 SANDBOX_SUPERVISOR_TOKEN=<64 hexadecimal characters>
 KEENABLE_API_KEY=<Keenable API key>
+PHOTON_PROJECT_ID=<Photon/Spectrum project ID>
+PHOTON_PROJECT_SECRET=<Photon/Spectrum project secret>
 ```
 
 The existing el2 recipient rules cover these top-level host secrets. Preserve
@@ -57,6 +59,19 @@ directory under `/run/rakazo`. Plaintext credentials never enter the Nix store.
 extraction. Its key is passed to the API and worker from the encrypted environment
 above. Update it with `just edit-secret secrets/files/nixos/el2/rakazo-env.age`
 and apply with `just nixos`.
+
+Photon/Spectrum iMessage uses `PHOTON_PROJECT_ID` and `PHOTON_PROJECT_SECRET`
+from the same encrypted environment. These are Rakazo's names for the Spectrum
+project credentials. Upstream Compose passes them to both the API and worker;
+the API receives messages over an outbound gRPC stream and the worker sends
+replies. Leave `PHOTON_WEBHOOK_SECRET` unset for this stream mode, which needs no
+public webhook or additional listener.
+
+An existing user links a Bot under **Settings → Messaging → Connect a chat app →
+iMessage (Photon)**, then sends the displayed code from their own iMessage within
+10 minutes. This step proves ownership of that messaging identity. Photon shared
+lines require the person to message first; the current Rakazo Photon adapter
+supports direct messages only. Messaging open signup remains disabled.
 
 The 2026-11-06 upgrade adds `POSTGRES_APP_PASSWORD` for the `rakazo_app` runtime
 login; `POSTGRES_PASSWORD` remains the migration owner's password. The published
