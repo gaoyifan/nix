@@ -3,6 +3,8 @@
     ./acme.nix
     ./atuin.nix
     ./bitmagnet.nix
+    ./codex-auto-reset.nix
+    ./codex-monitoring.nix
     ./derp.nix
     ./dnsmonster.nix
     ./findmy.nix
