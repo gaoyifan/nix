@@ -7,7 +7,7 @@
       root = "/pool1/services/github-runner/root";
       tokenFile = "/var/lib/github-runner-el2/token";
       guestModule = ./github-runner/runner-system.nix;
-      nspawnArgs = ["--resolv-conf=bind-host --link-journal=try-guest"];
+      nspawnArgs = ["--resolv-conf=replace-host --link-journal=try-guest"];
     })
   ];
   systemd.services.github-runner-el2 = {
