@@ -3,36 +3,39 @@
   pkgs,
   ...
 }: let
-  metricsFile = "/var/lib/codex-monitoring/codex.prom";
+  metricsPort = 9842;
   grafanaDashboard = import ../../../optional/grafana-dashboard.nix;
 in {
-  # Reuse the existing textfile collector; the service owns only its own state directory.
-  systemd.tmpfiles.rules = [
-    "L /var/lib/prometheus-node-exporter-text-files/codex.prom - - - - ${metricsFile}"
-  ];
+  systemd.sockets.codex-usage-metrics = {
+    wantedBy = ["sockets.target"];
+    listenStreams = ["127.0.0.1:${toString metricsPort}"];
+    socketConfig.Accept = true;
+  };
 
-  systemd.services.codex-usage-metrics = {
-    description = "Record Codex weekly quota usage";
+  systemd.services."codex-usage-metrics@" = {
+    description = "Export Codex weekly quota usage";
     after = ["network-online.target"];
     wants = ["network-online.target"];
     path = [pkgs.codex];
     environment.CODEX_HOME = "${config.users.users.yifan.home}/.syncd-dotfiles/.codex";
+    unitConfig.CollectMode = "inactive-or-failed";
     serviceConfig = {
-      Type = "oneshot";
       User = "yifan";
-      StateDirectory = "codex-monitoring";
-      TimeoutStartSec = "60s";
-      ExecStart = "${pkgs.python3}/bin/python3 ${./codex-usage-metrics.py} ${metricsFile}";
+      StandardInput = "socket";
+      StandardOutput = "journal";
+      RuntimeMaxSec = "60s";
+      ExecStart = "${pkgs.python3}/bin/python3 ${./codex-usage-metrics.py}";
     };
   };
 
-  systemd.timers.codex-usage-metrics = {
-    wantedBy = ["timers.target"];
-    timerConfig = {
-      OnCalendar = "*:0/30";
-      Persistent = true;
-    };
-  };
+  services.prometheus.scrapeConfigs = [
+    {
+      job_name = "codex";
+      scrape_interval = "30m";
+      scrape_timeout = "60s";
+      static_configs = [{targets = ["127.0.0.1:${toString metricsPort}"];}];
+    }
+  ];
 
   services.grafana.provision.dashboards.settings.providers = [
     {
@@ -70,8 +73,8 @@ in {
               {
                 id = 1;
                 title = "Weekly quota used";
-                description = "Codex is sampled every 30 minutes; Prometheus scrapes the cached sample.";
-                expr = ''codex_weekly_used_percent{job="node"}'';
+                description = "Prometheus samples Codex directly every 30 minutes.";
+                expr = ''last_over_time(codex_weekly_used_percent{job="codex"}[1h])'';
                 legendFormat = "Used";
                 fieldDefaults = {
                   unit = "percent";
@@ -81,7 +84,7 @@ in {
               {
                 id = 3;
                 title = "Until weekly reset";
-                expr = ''clamp_min(codex_weekly_reset_timestamp_seconds{job="node"} - time(), 0)'';
+                expr = ''clamp_min(last_over_time(codex_weekly_reset_timestamp_seconds{job="codex"}[1h]) - time(), 0)'';
                 fieldDefaults = {
                   unit = "dtdurations";
                   noValue = "No data";
@@ -90,7 +93,7 @@ in {
               {
                 id = 4;
                 title = "Age of last successful sample";
-                expr = ''time() - codex_usage_last_success_timestamp_seconds{job="node"}'';
+                expr = ''time() - last_over_time(codex_usage_last_success_timestamp_seconds{job="codex"}[24h])'';
                 fieldDefaults = {
                   unit = "dtdurations";
                   noValue = "No data";
