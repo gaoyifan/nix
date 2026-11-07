@@ -34,6 +34,8 @@
         peerName = userName;
         aiPeer = containerName;
         pinUserPeer = true;
+        timeout = 180;
+        dialecticCadence = 3;
         dialecticReasoningLevel = "high";
       };
     };
