@@ -115,6 +115,8 @@
       "d /var/lib/rakazo/appdata 0750 1000 1000 -"
       "d /var/lib/rakazo/pgdata 0700 root root -"
       "d /var/lib/rakazo/backups 0700 root root -"
+      "d /run/rakazo 0700 root root -"
+      "L+ /run/rakazo/.env - - - - /etc/rakazo-secrets/env"
     ];
     systemd.services.rakazo = {
       description = "Rakazo application and local Docker computers";
@@ -129,10 +131,6 @@
         UMask = "0077";
         ExecStop = "${compose} stop";
       };
-      preStart = ''
-        install -d -m 0700 /run/rakazo
-        ln -sfn /etc/rakazo-secrets/env /run/rakazo/.env
-      '';
       script = ''
         ${pkgs.docker}/bin/docker build --tag ${computer.imageRef} ${computer.buildContext}
         ${compose} up -d --wait
