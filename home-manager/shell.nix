@@ -187,10 +187,7 @@ in {
     '';
   };
 
-  programs.zoxide = {
-    enable = true;
-    enableZshIntegration = true;
-  };
+  programs.zoxide.enable = true;
 
   programs.tmux = {
     enable = true;
@@ -213,7 +210,6 @@ in {
   # Zsh Configuration
   programs.zsh = {
     enable = true;
-    enableCompletion = true;
     autosuggestion = {
       enable = true;
       strategy = [

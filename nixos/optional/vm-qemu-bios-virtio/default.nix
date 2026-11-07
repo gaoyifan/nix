@@ -27,7 +27,6 @@
   };
 
   boot = {
-    loader.grub.enable = true;
     kernelParams = ["console=tty0"];
     zswap.enable = true;
   };
