@@ -12,15 +12,9 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
-  virtualisation.vmware.guest = {
-    enable = true;
-    headless = true;
-  };
+  virtualisation.vmware.guest.enable = true;
 
-  zramSwap = {
-    enable = true;
-    memoryPercent = 50;
-  };
+  zramSwap.enable = true;
 
   system.stateVersion = "26.05";
 }

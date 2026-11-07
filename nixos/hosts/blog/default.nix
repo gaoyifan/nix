@@ -63,8 +63,6 @@ in {
     tmate-ssh-server = {
       enable = true;
       host = "tmate.yfgao.com";
-      port = 2222;
-      advertisedPort = 2222;
     };
   };
 

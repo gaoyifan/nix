@@ -19,10 +19,7 @@ in {
   networking.hostName = "somo-gw";
 
   boot.loader.systemd-boot.enable = true;
-  boot.loader.efi = {
-    canTouchEfiVariables = true;
-    efiSysMountPoint = "/boot";
-  };
+  boot.loader.efi.canTouchEfiVariables = true;
   boot.kernelPackages = pkgs.linuxPackages_6_12;
   boot.kernelParams = [
     "console=ttyS0,115200n8"
@@ -43,7 +40,6 @@ in {
 
   services.caddy = {
     enable = true;
-    openFirewall = false;
     virtualHosts = caddySecrets.virtualHosts or {};
   };
 

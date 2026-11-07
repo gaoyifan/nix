@@ -13,7 +13,6 @@
 
   boot = {
     loader.grub = {
-      enable = true;
       device = "nodev";
       efiInstallAsRemovable = true;
       efiSupport = true;

@@ -15,7 +15,6 @@
     firewall.enable = false;
     resolvconf.enable = false;
     useDHCP = false;
-    useHostResolvConf = false;
     useNetworkd = true;
   };
 

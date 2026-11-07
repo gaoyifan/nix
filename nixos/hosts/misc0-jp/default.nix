@@ -27,8 +27,6 @@
     linkConfig.RequiredForOnline = "routable";
   };
 
-  boot.loader.grub.enable = true;
-
   networking.firewall.enable = false;
 
   system.stateVersion = "26.05";
