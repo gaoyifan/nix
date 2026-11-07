@@ -67,12 +67,10 @@ in {
       just
       fzf
       inetutils-minimal
+      dcv
 
       # lowPrio to avoid conflict with nix-darwin's nh
       (lib.lowPrio nh)
-
-      # Custom package from ./pkgs (via overlay)
-      dcv
 
       # External flake package
       inputs.witr.packages.${stdenv.hostPlatform.system}.default
