@@ -25,9 +25,19 @@
     else pkgs.atuin;
   cliApps = import ../cli-apps.nix {inherit lib;};
   dynamicCli = cliApps.mkHomeManager pkgs;
-  codexWrapperPath = "${dynamicCli.relBinDir}/codex";
-  codexReindexWrapperPath = "${dynamicCli.relBinDir}/codex-reindex";
-  reachWrapperPath = "${dynamicCli.relBinDir}/reach";
+  # AgentReach copies Codex auth and config before it launches codex, so it
+  # must see the same default CODEX_HOME as the codex wrapper.
+  codexHomeWrappers = lib.listToAttrs (map (name: let
+    path = "${dynamicCli.relBinDir}/${name}";
+  in
+    lib.nameValuePair path {
+      source = pkgs.writeShellScript name ''
+        if [[ ! -v CODEX_HOME ]]; then
+          export CODEX_HOME=${lib.escapeShellArg "${config.home.homeDirectory}/.syncd-dotfiles/.codex"}
+        fi
+        exec ${dynamicCli.wrapperFiles.${path}.source} "$@"
+      '';
+    }) ["codex" "codex-reindex" "reach"]);
   zsh-codex-mode = pkgs.fetchFromGitHub {
     owner = "gaoyifan";
     repo = "zsh-codex-mode";
@@ -84,28 +94,7 @@ in {
 
   home.file =
     dynamicCli.wrapperFiles
-    // lib.optionalAttrs config.services.mutagen.dotfileSync.enable {
-      "${codexWrapperPath}".source = pkgs.writeShellScript "codex" ''
-        if [[ ! -v CODEX_HOME ]]; then
-          export CODEX_HOME=${lib.escapeShellArg "${config.home.homeDirectory}/.syncd-dotfiles/.codex"}
-        fi
-        exec ${dynamicCli.wrapperFiles.${codexWrapperPath}.source} "$@"
-      '';
-      "${codexReindexWrapperPath}".source = pkgs.writeShellScript "codex-reindex" ''
-        if [[ ! -v CODEX_HOME ]]; then
-          export CODEX_HOME=${lib.escapeShellArg "${config.home.homeDirectory}/.syncd-dotfiles/.codex"}
-        fi
-        exec ${dynamicCli.wrapperFiles.${codexReindexWrapperPath}.source} "$@"
-      '';
-      # AgentReach copies Codex auth and config before it launches codex, so it
-      # must see the same default CODEX_HOME as the codex wrapper.
-      "${reachWrapperPath}".source = pkgs.writeShellScript "reach" ''
-        if [[ ! -v CODEX_HOME ]]; then
-          export CODEX_HOME=${lib.escapeShellArg "${config.home.homeDirectory}/.syncd-dotfiles/.codex"}
-        fi
-        exec ${dynamicCli.wrapperFiles.${reachWrapperPath}.source} "$@"
-      '';
-    };
+    // lib.optionalAttrs config.services.mutagen.dotfileSync.enable codexHomeWrappers;
 
   programs.powerline-go.enable = true;
 
