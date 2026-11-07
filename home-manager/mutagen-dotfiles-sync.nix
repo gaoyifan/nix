@@ -386,6 +386,12 @@
     '';
   };
   daemonServiceName = "mutagen-daemon-start";
+  daemonEnvironment = {
+    MUTAGEN_DATA_DIRECTORY = mutagenDataDir;
+    MUTAGEN_SSH_PATH = "${sshWrapper}/bin";
+    SSH_AUTH_SOCK = "";
+    SSH_AGENT_PID = "";
+  };
 in {
   options.services.mutagen.dotfileSync = {
     enable = lib.mkEnableOption "Mutagen sync for ~/.syncd-dotfiles";
@@ -448,12 +454,7 @@ in {
         };
         Service = {
           Type = "oneshot";
-          Environment = [
-            "MUTAGEN_DATA_DIRECTORY=${mutagenDataDir}"
-            "MUTAGEN_SSH_PATH=${sshWrapper}/bin"
-            "SSH_AUTH_SOCK="
-            "SSH_AGENT_PID="
-          ];
+          Environment = lib.mapAttrsToList (name: value: "${name}=${value}") daemonEnvironment;
           ExecStart = "${pkgs.mutagen}/bin/mutagen daemon start";
           RemainAfterExit = true;
         };
@@ -467,12 +468,7 @@ in {
       "${daemonServiceName}" = {
         enable = true;
         config = {
-          EnvironmentVariables = {
-            MUTAGEN_DATA_DIRECTORY = "${mutagenDataDir}";
-            MUTAGEN_SSH_PATH = "${sshWrapper}/bin";
-            SSH_AUTH_SOCK = "";
-            SSH_AGENT_PID = "";
-          };
+          EnvironmentVariables = daemonEnvironment;
           ProgramArguments = [
             "${pkgs.mutagen}/bin/mutagen"
             "daemon"
