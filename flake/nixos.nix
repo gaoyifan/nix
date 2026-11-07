@@ -18,15 +18,9 @@
     ../nixos/common
     ../nixos/nylon/fleet.nix
     home-manager.nixosModules.home-manager
+    disko.nixosModules.disko
   ];
-  mkDeployableHost = system: modules: {
-    inherit system modules;
-    deploy = true;
-  };
-  mkNixosOnlyHost = system: modules: {
-    inherit system modules;
-    deploy = false;
-  };
+  mkHost = system: modules: {inherit system modules;};
   mkNixosHost = name: host:
     nixpkgs.lib.nixosSystem {
       inherit (host) system;
@@ -41,6 +35,18 @@
       };
       modules = sharedModules ++ host.modules;
     };
+  mkNanopiImageHost = module: specialArgs:
+    nixpkgs.lib.nixosSystem {
+      system = "aarch64-linux";
+      inherit specialArgs;
+      modules = [
+        {
+          nixpkgs.overlays = [overlay];
+          nixpkgs.config.allowUnfree = true;
+        }
+        module
+      ];
+    };
   mkDeployNode = name: host: {
     hostname = "${name}.ts.gaof.net";
     sshUser = "root";
@@ -51,83 +57,45 @@
     };
   };
   hostInventory = {
-    ali-sg = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/ali-sg];
-    baihualin = mkDeployableHost "aarch64-linux" [../nixos/hosts/baihualin];
-    blog = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/blog];
-    cjia = mkDeployableHost "aarch64-linux" [../nixos/hosts/cjia];
-    el = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/el];
-    el2 = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/el2];
-    el2-install = mkNixosOnlyHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/el2 ../nixos/hosts/el2/install.nix];
-    google = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/google];
-    hhost-jp = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/hhost-jp];
-    misc0-jp = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/misc0-jp];
-    misc1-sz = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/misc1-sz];
-    misc1-sh = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/misc1-sh];
-    nfs = mkDeployableHost "x86_64-linux" [../nixos/hosts/nfs];
-    nixos-orbstack = mkDeployableHost "aarch64-linux" [../nixos/hosts/nixos-orbstack];
-    oracle = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/oracle];
-    oracle2 = mkDeployableHost "aarch64-linux" [disko.nixosModules.disko ../nixos/hosts/oracle2];
-    oracle3 = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/oracle3 ../nixos/hosts/oracle3/services.nix];
-    somo-minisforum = mkDeployableHost "x86_64-linux" [../nixos/hosts/somo-minisforum];
-    somo-nanopi-r4s = mkDeployableHost "aarch64-linux" [../nixos/hosts/somo-nanopi-r4s];
-    somo-gw = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/somo-gw];
-    xtom-hkg = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/xtom-hkg];
-    xtom-sjc = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/xtom-sjc];
-    xtom-syd = mkDeployableHost "x86_64-linux" [disko.nixosModules.disko ../nixos/hosts/xtom-syd];
+    ali-sg = mkHost "x86_64-linux" [../nixos/hosts/ali-sg];
+    baihualin = mkHost "aarch64-linux" [../nixos/hosts/baihualin];
+    blog = mkHost "x86_64-linux" [../nixos/hosts/blog];
+    cjia = mkHost "aarch64-linux" [../nixos/hosts/cjia];
+    el = mkHost "x86_64-linux" [../nixos/hosts/el];
+    el2 = mkHost "x86_64-linux" [../nixos/hosts/el2];
+    google = mkHost "x86_64-linux" [../nixos/hosts/google];
+    hhost-jp = mkHost "x86_64-linux" [../nixos/hosts/hhost-jp];
+    misc0-jp = mkHost "x86_64-linux" [../nixos/hosts/misc0-jp];
+    misc1-sz = mkHost "x86_64-linux" [../nixos/hosts/misc1-sz];
+    misc1-sh = mkHost "x86_64-linux" [../nixos/hosts/misc1-sh];
+    nfs = mkHost "x86_64-linux" [../nixos/hosts/nfs];
+    nixos-orbstack = mkHost "aarch64-linux" [../nixos/hosts/nixos-orbstack];
+    oracle = mkHost "x86_64-linux" [../nixos/hosts/oracle];
+    oracle2 = mkHost "aarch64-linux" [../nixos/hosts/oracle2];
+    oracle3 = mkHost "x86_64-linux" [../nixos/hosts/oracle3 ../nixos/hosts/oracle3/services.nix];
+    somo-minisforum = mkHost "x86_64-linux" [../nixos/hosts/somo-minisforum];
+    somo-nanopi-r4s = mkHost "aarch64-linux" [../nixos/hosts/somo-nanopi-r4s];
+    somo-gw = mkHost "x86_64-linux" [../nixos/hosts/somo-gw];
+    xtom-hkg = mkHost "x86_64-linux" [../nixos/hosts/xtom-hkg];
+    xtom-sjc = mkHost "x86_64-linux" [../nixos/hosts/xtom-sjc];
+    xtom-syd = mkHost "x86_64-linux" [../nixos/hosts/xtom-syd];
   };
-  deployableHosts = nixpkgs.lib.filterAttrs (_: host: host.deploy) hostInventory;
-  deployNodes = nixpkgs.lib.mapAttrs mkDeployNode deployableHosts;
-  deployableHostNames = nixpkgs.lib.attrNames deployableHosts;
+  deployNodes = nixpkgs.lib.mapAttrs mkDeployNode hostInventory;
   nylonTopology = import ../nixos/nylon/compile.nix {
     lib = nixpkgs.lib;
     mesh = import ../nixos/nylon/mesh.nix;
     nodes = import ../nixos/nylon/nodes;
-    deployableHosts = deployableHostNames;
+    deployableHosts = nixpkgs.lib.attrNames hostInventory;
   };
   configs =
     nixpkgs.lib.mapAttrs mkNixosHost hostInventory
     // {
       # The universal bootstrap image is not a deployable host and intentionally
       # omits shared modules.
-      nanopi-r4s-bootstrap = nixpkgs.lib.nixosSystem {
-        system = "aarch64-linux";
-        modules = [
-          ({lib, ...}: {
-            nixpkgs = {
-              overlays = [overlay];
-              config.allowUnfreePredicate = package:
-                lib.getName package == "arm-trusted-firmware-rk3399";
-            };
-          })
-          ../nixos/hosts/nanopi-r4s-bootstrap
-        ];
-      };
-      nanopi-r5c-bootstrap = nixpkgs.lib.nixosSystem {
-        system = "aarch64-linux";
-        modules = [
-          ({lib, ...}: {
-            nixpkgs = {
-              overlays = [overlay];
-              config.allowUnfreePredicate = package:
-                lib.getName package == "rkbin";
-            };
-          })
-          ../nixos/hosts/nanopi-r5c-bootstrap
-        ];
-      };
-      nanopi-r5c-emmc-flasher = nixpkgs.lib.nixosSystem {
-        system = "aarch64-linux";
-        specialArgs.bootstrapImage = configs.nanopi-r5c-bootstrap.config.system.build.sdImage;
-        modules = [
-          ({lib, ...}: {
-            nixpkgs = {
-              overlays = [overlay];
-              config.allowUnfreePredicate = package:
-                lib.getName package == "rkbin";
-            };
-          })
-          ../nixos/hosts/nanopi-r5c-emmc-flasher
-        ];
+      nanopi-r4s-bootstrap = mkNanopiImageHost ../nixos/hosts/nanopi-r4s-bootstrap {};
+      nanopi-r5c-bootstrap = mkNanopiImageHost ../nixos/hosts/nanopi-r5c-bootstrap {};
+      nanopi-r5c-emmc-flasher = mkNanopiImageHost ../nixos/hosts/nanopi-r5c-emmc-flasher {
+        bootstrapImage = configs.nanopi-r5c-bootstrap.config.system.build.sdImage;
       };
     };
   mkNixosDiskImage = {host}: let
@@ -183,7 +151,7 @@ in {
     # their platform. CI can then evaluate each profile independently.
     nixosHostProfiles = forAllLinuxSystems (system:
       nixpkgs.lib.mapAttrs (name: _: deployNodes.${name}.profiles.system.path)
-      (nixpkgs.lib.filterAttrs (_: host: host.system == system) deployableHosts));
+      (nixpkgs.lib.filterAttrs (_: host: host.system == system) hostInventory));
   };
 
   deploy.nodes = deployNodes;

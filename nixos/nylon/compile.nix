@@ -719,7 +719,7 @@
   ];
 
   allPeers = attrValues normalizedManaged;
-  forbiddenMembers = ["google" "los6" "oracle" "el2-install"];
+  forbiddenMembers = ["google" "los6" "oracle"];
   expected = mesh.expected;
   checks =
     [
@@ -745,7 +745,7 @@
       (ensure (builtins.all (name: elem name deployableHosts) managedNames)
         "every managed Nylon node must be a deployable NixOS host")
       (ensure (builtins.all (name: !elem name managedNames) forbiddenMembers)
-        "google, los6, oracle, and el2-install cannot be managed Nylon members")
+        "google, los6, and oracle cannot be managed Nylon members")
       (ensure (builtins.all (peer: !elem peer.numericId mesh.reservedNumericIds) allPeers)
         "managed nodes cannot use a reserved numeric ID")
       (ensure (allUnique (map (peer: peer.numericId) allPeers)) "numeric IDs must be unique")
