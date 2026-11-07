@@ -1,0 +1,15 @@
+{
+  "name": "rakazo-office-kit-runtime",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "@office-kit/docx": "0.2.0",
+    "@office-kit/xlsx": "0.26.0",
+    "@office-kit/pptx": "0.28.0",
+    "@office-kit/pptx-dsl": "0.15.0",
+    "@office-kit/pptx-dev": "0.14.5",
+    "typescript": "6.0.3",
+    "@types/node": "24.13.2"
+  }
+}

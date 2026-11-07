@@ -1,0 +1,47 @@
+--- a/SKILL.md
++++ b/SKILL.md
+@@ -3 +3 @@
+-description: Create and revise editable presentations with typed TSX and a live slide preview. Use for a new slide deck, changes to an existing PPTX or template, or iterative presentation design with office-kit. Handles project setup, preview, checking and PPTX export.
++description: Create and revise editable presentations with typed TSX and a live slide preview. Use for a new slide deck, changes to an existing PPTX or template, or iterative presentation design with office-kit. Handles project setup, preview, checking and PPTX export; preserves saved browser edits on revisions.
+@@ -28 +28 @@
+-npx --yes --registry=https://registry.npmjs.org @office-kit/pptx-dev@latest init my-slides
++office-pptx init my-slides
+@@ -30 +29,0 @@
+-npm install --registry=https://registry.npmjs.org
+@@ -55,2 +54,3 @@
+-For a new deck, gather the user's real material first and agree a one-line-per-slide
+-storyline before building. Never invent figures, customers, quotes or anecdotes; ask,
++For a new deck, use the user's real material. Confirm an outline when the brief
++needs clarification; a clear, simple request can proceed directly.
++Never invent figures, customers, quotes or anecdotes; ask,
+@@ -92,0 +93,7 @@
++The current document includes saved canvas edits, which may be newer than
++`deck.pptx`, an earlier attachment, or the TSX source. Before editing source,
++run `npm run build` once and use that fresh merged export as the baseline for
++unchanged slides. Keep `.office-kit` state and export normally after the edit.
++Do not splice parts from an older export to undo differences caused by saved
++canvas edits.
++
+@@ -112,2 +119,4 @@
+-support. Wait for `Preview: ...`, open that exact URL if browser tools are
+-available, and give it to the user. Keep the server running while iterating and
++support. Wait for `Preview: ...` and open that exact URL in the Bot's browser
++on its assigned desktop. The user accesses this editor through Rakazo's computer
++view; the loopback URL is internal to that computer, not the user's own browser.
++Keep the server running while iterating and
+@@ -128 +137,4 @@
+-The viewer does not contain an AI chat; the conversation stays in Claude Code.
++The conversation stays in Rakazo. The preview's embedded agent terminals are not
++configured here. Canvas edits are saved in `.office-kit/*.editor.zip`; keep this
++state with the project. After user edits, build from the same project so exported
++files include the saved canvas changes.
+@@ -146 +158,2 @@
+-new deck or a substantial rewrite run one fresh-eye review by a separate agent. The SVG preview is a rendering
++new deck or a substantial rewrite review the complete deck again before delivery.
++The SVG preview is a rendering
+@@ -154,2 +167,3 @@
+-Deliver the preview URL, the generated `deck.pptx` path and the editable project
+-path. State any unverified rendering or unsupported requested feature. On the
++Deliver the generated PPTX through Rakazo's attachment workflow and retain the
++editable project. Point the user to the preview in Rakazo's computer view.
++State any unverified rendering or unsupported requested feature. On the

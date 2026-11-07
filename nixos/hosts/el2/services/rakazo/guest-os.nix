@@ -74,6 +74,10 @@
       # Preserve their default gateway so the first desktop request keeps its
       # connection to the host's web proxy while that network is attached.
       services = {
+        api.volumes = [
+          "${./publish-skills.mjs}:/app/apps/api/publish-computer-skills.mjs:ro"
+          "${computer.buildContext}/skills:/opt/rakazo/skills:ro"
+        ];
         web.networks.app.gw_priority = 1;
         supervisor = {
           networks.app.gw_priority = 1;
@@ -134,6 +138,7 @@
       script = ''
         ${pkgs.docker}/bin/docker build --tag ${computer.imageRef} ${computer.buildContext}
         ${compose} up -d --wait
+        ${compose} exec -T --workdir /app/apps/api api node --import tsx publish-computer-skills.mjs /opt/rakazo/skills
       '';
     };
 

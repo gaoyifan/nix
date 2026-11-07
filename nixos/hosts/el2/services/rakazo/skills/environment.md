@@ -4,13 +4,16 @@
 The complete Skill files are installed under `/opt/rakazo/skills/`, in a folder
 matching each Skill's name. Resolve this Skill's relative script, reference, and
 asset paths against its installed folder, and inspect them with `shell` when
-needed. Only `SKILL.md` is imported into Rakazo's library; read supporting files
-with `shell`, not `skill_read`.
+needed. These image-provided Skills keep their supporting files in that installed
+folder; read them with `shell`. Other plugins can expose their own files via
+`skill_read`.
 For example, run the DOCX validator as
 `python3 /opt/rakazo/skills/docx/scripts/office/validate.py /absolute/path/report.docx`.
 Resolve links inside reference documents relative to the document containing them.
 
-Use the preinstalled system `python3` and `node` for document scripts. The image
+Use the preinstalled system `python3` and `node` for document scripts. Office Kit
+dependencies resolve through `/node_modules` without a project-specific install
+or symlink; existing projects can retain their own dependencies. The image
 provides the document Python/Node dependencies, LibreOffice (`soffice`),
 Tesseract with English and simplified Chinese, Poppler, Pandoc, and qpdf.
 Save multiline scripts with `write_file` before running them; the shell guard

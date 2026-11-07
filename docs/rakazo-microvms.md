@@ -153,10 +153,122 @@ Bundle Word/PowerPoint originals in ZIP for upload or delivery.
 
 Installing these files in the image does not register them in the application.
 Import each `/opt/rakazo/skills/<name>/SKILL.md` through Rakazo's Skills library
-for the relevant user. The existing two users have the seven additional Skills
-installed; new users need their own imports. Existing computers must receive the
+for the relevant user. Existing users have the managed Skills imported; new users need their own imports. Existing computers must receive the
 new image through Rakazo's native computer update, which retains their home
 files; changing only the supervisor's default image does not replace them.
+
+## Office Kit document authoring
+
+The computer image includes pinned `@office-kit/docx` 0.2.0,
+`@office-kit/xlsx` 0.26.0, `@office-kit/pptx` 0.28.0, DSL 0.15.0 and dev CLI
+0.14.5, together with TypeScript 6.0.3. The service-local
+`nixos/hosts/el2/services/rakazo/office-kit/package-lock.json` locks the published
+npm packages. Docker installs them with `npm ci` using the image's Node 22, before
+copying Skills so instruction edits reuse the dependency layer. This build needs
+npm registry access, like the existing apt/uv installation steps.
+Node modules live at `/opt/rakazo/office-kit/node_modules`, also exposed through
+`/node_modules` for standard Node/TypeScript ancestor lookup. New projects need
+neither a dependency symlink nor an npm installation. Existing projects retain
+their own dependencies and the old shared path remains valid. The `office-pptx`
+command initializes and builds TSX projects. Node shebangs use the image's Node executable.
+The CLI's embedded agent terminals are not configured.
+Host-to-desktop clipboard paste is limited to Latin-1 by the pinned noVNC 1.3 /
+x11vnc 0.9.16 stack; Chinese paste can be corrupted. Unicode keyboard events
+were verified through the existing computer view. This is separate from Office
+Kit's document text support; see the [upstream clipboard limitation](https://github.com/LibVNC/x11vnc/issues/77).
+
+For a PPTX project, keep `npm run dev -- --port 0` running and open its printed
+loopback URL with `browser_navigate` on the Bot's assigned desktop. The user
+views and edits it through Rakazo's existing computer view; no extra public
+port or custom editor embedding is required. Canvas edits live in the project
+as `.office-kit/*.editor.zip`, not in TSX. Preserve that state and export from
+the same project so browser edits are included. Reuse the server for follow-up
+chat edits and review any source/canvas conflicts before export. Before changing
+source, build the current merged presentation once and use that fresh export as
+the unchanged-slide baseline. Older exports and attachments can predate browser
+edits; do not restore their OOXML parts over the saved canvas version. The
+image corrects the pinned CLI generator's outdated claim that canvas edits are
+written into TSX in its generated CLAUDE.md/AGENTS.md guidance.
+
+Three additional Skills are installed at `/opt/rakazo/skills/office-kit-{docx,pptx,xlsx}/`.
+DOCX and XLSX have local entrypoints and pinned upstream references. PPTX uses
+the pinned official Skill with `skills/office-kit-pptx.patch` for the preinstalled
+runtime, ordinary-request flow, Rakazo preview access and attachment delivery;
+its upstream references, examples and review scripts are retained. Package
+READMEs are available beside their installed Node modules rather than copied into
+the Skills. Noto CJK fonts are installed for Chinese text. The older document
+Skills remain available for existing-file utilities,
+conversion, validation and specialised operations, and route creation and ordinary
+revisions to the Office Kit Skills. Import the entrypoints as full SKILL.md
+content through Rakazo's native Skill interface, including the environment notes.
+The seven document Skills carry `metadata.managed-by: rakazo-computer`. After
+Compose starts, `publish-skills.mjs` updates only existing user Skill records
+with that marker through `createAgentSkillsService`, preserving IDs, ownership
+and availability and skipping unchanged content. Other user Skills are untouched.
+New accounts import these Skills normally; this publisher is not an account
+provisioner. Current user-Skill APIs cannot import companion files. Plugin
+imports can store text companions but reject scripted Skills and do not update
+these existing user records in place, so their supporting files remain installed
+in the computer image and are read through shell.
+
+Use LibreOffice to render final documents for visual review; the internal
+PPTX preview is approximate. Keep formulas in XLSX as formulas, with correct
+cached results when known: Office Kit does not calculate formulas. DOCX/PPTX
+still need ZIP delivery through Rakazo's existing attachment allowlist.
+
+This pinned PPTX version has demonstrated cross-library chart limitations:
+it can miss direct-string series names and emit a dangling workbook relationship
+when rebuilding a foreign chart that has no embedded XLSX. See
+[the matched comparison](research/office-kit-pptx-comparison.md). Do not infer
+arbitrary-template editing compatibility from successful new-file generation.
+
+### Browser acceptance checks (2026-11-07)
+
+Signed in as `yifan@rakazo.invalid` and sent short, ordinary prompts to `helper`,
+then downloaded and checked the chat attachments:
+
+| Scenario | Verified result |
+| --- | --- |
+| One-page meeting notes in Word/PDF | One A4 PDF page and a DOCX with two editable tables. |
+| Three-page solar-system PPT, then change the second title | Three native slides; slide 1 and 3 XML stayed byte-identical after the revision. |
+| Activity budget, then change venue cost and add a pie chart | Office Kit authored and revised values/styles/charts; SUM result changed from 1300 to 1500. |
+
+These checks exposed and corrected broad legacy Skill matching and invisible
+implicit chart colours in workbooks without a theme. The XLSX entrypoint now
+requires explicit fills and visual chart review. Final native files passed
+Microsoft OpenXML SDK validation and LibreOffice rendering review. A separate
+copy also passed actual formula recalculation; Microsoft Office desktop GUI
+remains untested.
+
+Detailed prompts, command evidence, generated source, validation logs and images
+are retained locally under `output/playwright/rakazo-officekit-20261107/`.
+The shorter local PPTX entrypoint was also checked through two-page generation
+and a title-only revision; the untouched first slide remained byte-identical.
+Resource comparison and regression artifacts are in
+`output/playwright/rakazo-officekit-simplify-20261107/`.
+Owner-only backup/deployment records are in the `rakazo-officekit*` directories
+under `~/.local/state/`. Native computer updates preserved
+the recorded app/home/artifact files; revision markers were excluded.
+
+### Canvas and chat revision acceptance (2026-11-07)
+
+Sent short requests through the existing test account: create a three-slide
+coffee PPT and open its preview, reopen that preview after deployment, then
+change only the second title. In Rakazo's computer view, took control, edited
+the first title with Unicode keyboard events and saved it before the chat edit.
+The final downloaded PPTX retained that exact manual title; only slide 2 XML
+changed relative to the saved editor version, and slide 3 stayed byte-identical
+to the initial deck. The manual and final files passed Microsoft365 OpenXML
+validation, and all three final pages rendered correctly in the computer
+image's LibreOffice 7.4.
+
+The first run exposed a stale-baseline error: the CLI merged canvas edits
+correctly, but the Bot restored parts from an older export. The Skill now
+requires a fresh merged export before source revisions, and the CLI's generated
+project guidance reflects sidecar persistence. Six unchanged generated guides
+were migrated by exact content match. Existing user files outside that intended
+guide update passed their recorded hashes. Artifacts and the rejected first
+attempt are retained under `output/playwright/rakazo-officekit-upstream-20261107/`.
 
 ## Tushare SDK and Skill
 
