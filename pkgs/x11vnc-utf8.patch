@@ -1,0 +1,375 @@
+--- a/src/inet.c
++++ b/src/inet.c
+@@ -700,6 +700,7 @@
+ 	socklen_t fromlen;
+ 	struct sockaddr_un fsaun;
+ 
++	fromlen = sizeof(fsaun);
+ 	fd = accept(s, (struct sockaddr *)&fsaun, &fromlen);
+ 	if (fd < 0) {
+ 		rfbLogPerror("accept_unix: accept");
+--- a/src/screen.c
++++ b/src/screen.c
+@@ -3650,6 +3650,7 @@
+ 	screen->kbdAddEvent = keyboard;
+ 	screen->ptrAddEvent = pointer_event;
+ 	screen->setXCutText = xcut_receive;
++	screen->setXCutTextUTF8 = xcut_receive_utf8;
+ 	screen->setTranslateFunction = set_xlate_wrapper;
+ 
+ 	screen->kbdReleaseAllKeys = kbd_release_all_keys; 
+--- a/src/selection.c
++++ b/src/selection.c
+@@ -38,6 +38,8 @@
+ #include "unixpw.h"
+ #include "win_utils.h"
+ #include "xwrappers.h"
++#include <errno.h>
++#include <iconv.h>
+ 
+ /*
+  * Selection/Cutbuffer/Clipboard handlers.
+@@ -51,6 +53,7 @@
+ int sel_waittime = 15;	/* some seconds to skip before first send */
+ Window selwin = None;	/* special window for our selection */
+ Atom clipboard_atom = None;
++Atom utf8_atom = None;
+ 
+ /*
+  * This is where we keep our selection: the string sent TO us from VNC
+@@ -75,8 +78,8 @@
+  * SelectionNotify handling).
+  */
+ static char cutbuffer_str[PROP_MAX+1];
+-static char primary_str[PROP_MAX+1];
+-static char clipboard_str[PROP_MAX+1];
++static char primary_str[2*PROP_MAX+1];
++static char clipboard_str[2*PROP_MAX+1];
+ static int cutbuffer_len = 0;
+ static int primary_len   = 0;
+ static int clipboard_len = 0;
+@@ -87,6 +90,72 @@
+  *
+  * n.b.: our caller already has the X_LOCK.
+  */
++/* Keep the X11 selection in UTF-8 and convert only at legacy boundaries. */
++char *clipboard_convert(const char *text, int len, const char *to,
++    const char *from, int *converted_len) {
++	iconv_t converter = iconv_open(to, from);
++	size_t capacity = (size_t)len * 2 + 1, input_left = len, output_left = capacity - 1;
++	char *result, *input = (char *)text, *output;
++	if (converter == (iconv_t)-1) {
++		return NULL;
++	}
++	result = malloc(capacity);
++	if (!result) {
++		iconv_close(converter);
++		return NULL;
++	}
++	output = result;
++	while (iconv(converter, &input, &input_left, &output, &output_left) == (size_t)-1) {
++		size_t used = output - result;
++		char *grown;
++		if (errno != E2BIG) {
++			free(result);
++			iconv_close(converter);
++			return NULL;
++		}
++		capacity *= 2;
++		grown = realloc(result, capacity);
++		if (!grown) {
++			free(result);
++			iconv_close(converter);
++			return NULL;
++		}
++		result = grown;
++		output = result + used;
++		output_left = capacity - used - 1;
++	}
++	*output = '\0';
++	*converted_len = output - result;
++	iconv_close(converter);
++	return result;
++}
++
++void clear_selection_cache(void) {
++	primary_str[0] = clipboard_str[0] = '\0';
++	primary_len = clipboard_len = 0;
++}
++
++static void send_selection_utf8(char *text, int len) {
++	int latin1_len = 0;
++	char *latin1 = clipboard_convert(text, len, "ISO-8859-1//TRANSLIT", "UTF-8", &latin1_len);
++	char *wire = malloc((size_t)len * 2 + 1);
++	int i, wire_len = 0;
++	if (!wire) {
++		free(latin1);
++		return;
++	}
++	for (i = 0; i < len; i++) {
++		if (text[i] == '\n' && (i == 0 || text[i-1] != '\r')) {
++			wire[wire_len++] = '\r';
++		}
++		wire[wire_len++] = text[i];
++	}
++	wire[wire_len] = '\0';
++	rfbSendServerCutTextUTF8(screen, wire, wire_len, latin1, latin1_len);
++	free(wire);
++	free(latin1);
++}
++
+ void selection_request(XEvent *ev, char *type) {
+ #if NO_X11
+ 	RAWFB_RET_VOID
+@@ -96,7 +165,7 @@
+ 	XSelectionEvent notify_event;
+ 	XSelectionRequestEvent *req_event;
+ 	XErrorHandler old_handler;
+-	char *str;
++	char *str, *utf8 = NULL;
+ 	unsigned int length;
+ 	unsigned char *data;
+ 	static Atom xa_targets = None;
+@@ -144,6 +213,12 @@
+ 	} else {
+ 		length = 0;
+ 	}
++	if (str && req_event->target == utf8_atom) {
++		int utf8_len;
++		utf8 = clipboard_convert(str, length, "UTF-8", "ISO-8859-1", &utf8_len);
++		str = utf8;
++		length = utf8 ? utf8_len : 0;
++	}
+ 	if (debug_sel) {
+ 		rfbLog("%s\trequest event:   owner=0x%x requestor=0x%x sel=%03d targ=%d prop=%d\n",
+ 			type, req_event->owner, req_event->requestor, req_event->selection,
+@@ -175,15 +250,16 @@
+ 	} else if (xa_targets != None && ev->xselectionrequest.target == xa_targets) {
+ 		/* targets request */
+ 		int ret;
+-		Atom targets[2];
++		Atom targets[3];
+ 		targets[0] = (Atom) xa_targets;
+ 		targets[1] = (Atom) XA_STRING;
++		targets[2] = utf8_atom;
+ 
+ 		ret = XChangeProperty(ev->xselectionrequest.display,
+ 		    ev->xselectionrequest.requestor,
+ 		    ev->xselectionrequest.property,
+ 		    ev->xselectionrequest.target, 32, PropModeReplace,
+-		    (unsigned char *) targets, 2);
++		    (unsigned char *) targets, 3);
+ 		if (debug_sel) {
+ 			rfbLog("TARGETS: XChangeProperty() -> %d -- sz1: %d  sz2: %d\n",
+ 			    ret, sizeof(targets[0]), sizeof(targets)/sizeof(targets[0]));
+@@ -252,6 +328,7 @@
+ 
+ 	XSetErrorHandler(old_handler);
+ 	trapped_xerror = 0;
++	free(utf8);
+ 
+ #endif	/* NO_X11 */
+ }
+@@ -448,6 +525,15 @@
+ 		}
+ 	} while (bytes_after > 0);
+ 
++	if (type == XA_STRING) {
++		int utf8_len;
++		char *utf8 = clipboard_convert(selection_str, slen, "UTF-8", "ISO-8859-1", &utf8_len);
++		if (!utf8) {
++			return;
++		}
++		memcpy(selection_str, utf8, utf8_len + 1);
++		free(utf8);
++	}
+ 	if (! toobig) {
+ 		err = 0;
+ 	} else if (err) {
+@@ -502,7 +588,7 @@
+ 		clipboard_len = len;
+ 	}
+ 	if (check_sel_direction("send", "selection_send", selection_str, len)) {
+-		rfbSendServerCutText(screen, selection_str, len);
++		send_selection_utf8(selection_str, len);
+ 	}
+ #endif	/* NO_X11 */
+ }
+@@ -540,7 +626,11 @@
+ 		len = primary_len;
+ 	}
+ 	if (check_sel_direction("send", "selection_send", selection_str, len)) {
+-		rfbSendServerCutText(screen, selection_str, len);
++		if (!strcmp(type, "cutbuffer")) {
++			rfbSendServerCutText(screen, selection_str, len);
++		} else {
++			send_selection_utf8(selection_str, len);
++		}
+ 	}
+ #endif	/* NO_X11 */
+ }
+--- a/src/selection.h
++++ b/src/selection.h
+@@ -45,6 +45,9 @@
+ extern int sel_waittime;
+ extern Window selwin;
+ extern Atom clipboard_atom;
++extern Atom utf8_atom;
++extern void clear_selection_cache(void);
++extern char *clipboard_convert(const char *text, int len, const char *to, const char *from, int *converted_len);
+ 
+ extern void selection_request(XEvent *ev, char *type);
+ extern int check_sel_direction(char *dir, char *label, char *sel, int len);
+--- a/src/xevents.c
++++ b/src/xevents.c
+@@ -120,6 +120,13 @@
+ 	return;
+ #else
+ 	clipboard_atom = XInternAtom(dpy, "CLIPBOARD", False);
++	utf8_atom = XInternAtom(dpy, "UTF8_STRING", False);
++#if HAVE_LIBXFIXES
++	if (xfixes_present && use_xfixes) {
++		XFixesSelectSelectionInput(dpy, rootwin, clipboard_atom, XFixesSetSelectionOwnerNotifyMask);
++		XFixesSelectSelectionInput(dpy, rootwin, XA_PRIMARY, XFixesSetSelectionOwnerNotifyMask);
++	}
++#endif
+ 	if (clipboard_atom == None) {
+ 		if (! quiet) rfbLog("could not find atom CLIPBOARD\n");
+ 		if (watch_clipboard) {
+@@ -1444,6 +1451,11 @@
+ 		    XFixesCursorNotify, &xev)) {
+ 			got_xfixes_cursor_notify++;
+ 		}
++		while (XCheckTypedEvent(dpy, xfixes_base_event_type + XFixesSelectionNotify, &xev)) {
++			/* Copying the same text again must still update the viewer. */
++			clear_selection_cache();
++			sent_some_sel = 1;
++		}
+ 	}
+ #endif
+ 
+@@ -1455,10 +1467,15 @@
+ 		char *req;
+ 
+ 		if (XCheckTypedEvent(dpy, SelectionNotify, &xev)) {
++			if (xev.xselection.requestor == selwin &&
++			    xev.xselection.property == None &&
++			    xev.xselection.target == utf8_atom) {
++				XConvertSelection(dpy, xev.xselection.selection, XA_STRING, XA_STRING, selwin, CurrentTime);
++			}
+ 			if (xev.type == SelectionNotify &&
+ 			    xev.xselection.requestor == selwin &&
+ 			    xev.xselection.property != None &&
+-			    xev.xselection.target == XA_STRING) {
++			    (xev.xselection.target == XA_STRING || xev.xselection.target == utf8_atom)) {
+ 				Atom s = xev.xselection.selection;
+ 			        if (s == XA_PRIMARY || s == clipboard_atom) {
+ 					/* go retrieve it and check it */
+@@ -1518,7 +1535,7 @@
+ 		}
+ 		if (which != 0 && ! own && have_clients &&
+ 		    XGetSelectionOwner(dpy, atom) != None && selwin != None) {
+-			XConvertSelection(dpy, atom, XA_STRING, XA_STRING,
++			XConvertSelection(dpy, atom, utf8_atom, utf8_atom,
+ 			    selwin, CurrentTime);
+ 			if (debug_sel) {
+ 				rfbLog("request %s\n", req);
+@@ -1678,7 +1695,21 @@
+ /*
+  * hook called when a VNC client sends us some "XCut" text (rfbClientCutText).
+  */
+-void xcut_receive(char *text, int len, rfbClientPtr cl) {
++static void set_selection_utf8(const char *command, const char *text, int len) {
++	FILE *clipboard = popen(command, "w");
++	if (!clipboard) {
++		rfbLogPerror("clipboard: starting xclip");
++		return;
++	}
++	if (fwrite(text, 1, len, clipboard) != (size_t)len) {
++		rfbLogPerror("clipboard: writing to xclip");
++	}
++	if (pclose(clipboard) != 0) {
++		rfbLog("clipboard: xclip failed\n");
++	}
++}
++
++static void xcut_receive_text(char *text, int len, rfbClientPtr cl, int utf8) {
+ 	allowed_input_t input;
+ 
+ 	if (threads_drop_input) {
+@@ -1784,6 +1815,19 @@
+ 	return;
+ #else
+ 
++	if (utf8) {
++		/* xclip already implements X11 UTF8_STRING ownership and requests. */
++		len = strnlen(text, len);
++		setenv("DISPLAY", DisplayString(dpy), 1);
++		if (set_primary) {
++			set_selection_utf8("/usr/bin/xclip -selection primary -in -target UTF8_STRING", text, len);
++		}
++		if (set_clipboard) {
++			set_selection_utf8("/usr/bin/xclip -selection clipboard -in -target UTF8_STRING", text, len);
++		}
++		INPUT_UNLOCK;
++		return;
++	}
+ 	X_LOCK;
+ 
+ 	/* associate this text with PRIMARY (and SECONDARY...) */
+@@ -1815,7 +1859,7 @@
+ 		}
+ 		xcut_str_primary = (char *) malloc((size_t) (len+1));
+ 		strncpy(xcut_str_primary, text, len);
+-		xcut_str_primary[len] = '\0';	/* make sure null terminated */
++		xcut_str_primary[len] = '\0';
+ 		if (debug_sel) {
+ 			rfbLog("Set PRIMARY   '%s'\n", xcut_str_primary);
+ 		}
+@@ -1827,7 +1871,7 @@
+ 		}
+ 		xcut_str_clipboard = (char *) malloc((size_t) (len+1));
+ 		strncpy(xcut_str_clipboard, text, len);
+-		xcut_str_clipboard[len] = '\0';	/* make sure null terminated */
++		xcut_str_clipboard[len] = '\0';
+ 		if (debug_sel) {
+ 			rfbLog("Set CLIPBOARD '%s'\n", xcut_str_clipboard);
+ 		}
+@@ -1843,6 +1887,27 @@
+ 
+ 	set_cutbuffer = 1;
+ #endif	/* NO_X11 */
++}
++
++void xcut_receive(char *text, int len, rfbClientPtr cl) {
++	xcut_receive_text(text, len, cl, 0);
++}
++
++void xcut_receive_utf8(char *text, int len, rfbClientPtr cl) {
++	char *native = malloc((size_t)len + 1);
++	int i, native_len = 0;
++	if (!native) {
++		return;
++	}
++	for (i = 0; i < len; i++) {
++		if (text[i] == '\r' && i + 1 < len && text[i+1] == '\n') {
++			continue;
++		}
++		native[native_len++] = text[i];
++	}
++	native[native_len] = '\0';
++	xcut_receive_text(native, native_len, cl, 1);
++	free(native);
+ }
+ 
+ void kbd_release_all_keys(rfbClientPtr cl) {
+--- a/src/xevents.h
++++ b/src/xevents.h
+@@ -53,6 +53,7 @@
+ extern void set_prop_atom(Atom atom);
+ extern void check_xevents(int reset);
+ extern void xcut_receive(char *text, int len, rfbClientPtr cl);
++extern void xcut_receive_utf8(char *text, int len, rfbClientPtr cl);
+ 
+ extern void kbd_release_all_keys(rfbClientPtr cl);
+ extern void set_single_window(rfbClientPtr cl, int x, int y);

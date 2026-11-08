@@ -4,6 +4,17 @@
   anthropicSkills,
 }: let
   inherit (pkgs) lib;
+  x11vncClosure = pkgs.closureInfo {rootPaths = [pkgs.x11vnc-utf8];};
+  novnc = pkgs.applyPatches {
+    name = "rakazo-novnc-1.3.0";
+    src = pkgs.fetchFromGitHub {
+      owner = "novnc";
+      repo = "noVNC";
+      rev = "v1.3.0";
+      hash = "sha256-Z+bks7kcwj+Z3uf/t0u25DnGOM60QhSH6uuoIi59jqU=";
+    };
+    patches = [./novnc-provide.patch];
+  };
   pythonRequirements = lib.concatStringsSep " " (map
     (package: "${package.pname}==${package.version}")
     (with pkgs.python3Packages; [
@@ -86,9 +97,15 @@
     cp -r ${pkgs.node-docx}/lib/node_modules $out/node/
     mkdir -p $out/office-kit
     cp ${./office-kit}/{package.json,package-lock.json} $out/office-kit/
+    ${pkgs.gnutar}/bin/tar -cf $out/x11vnc.tar -T ${x11vncClosure}/store-paths
+    cp ${novnc}/core/rfb.js $out/rfb.js
     cat > $out/Dockerfile <<'EOF'
     FROM ghcr.io/elie222/rakazo/computer:sha-${rakazoSource.rev}
     USER root
+    ADD x11vnc.tar /
+    RUN ln -sf ${pkgs.x11vnc-utf8}/bin/x11vnc /usr/bin/x11vnc
+    COPY rfb.js /usr/share/novnc/core/rfb.js
+    ENV X11VNC_AVOID_WINDOWS=never
     RUN unset LD_PRELOAD; apt-get update && apt-get install -y --no-install-recommends \
         libreoffice-writer libreoffice-calc libreoffice-impress \
         tesseract-ocr tesseract-ocr-eng tesseract-ocr-chi-sim qpdf ffmpeg bubblewrap \

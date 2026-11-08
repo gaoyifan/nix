@@ -1,0 +1,47 @@
+--- a/core/rfb.js
++++ b/core/rfb.js
+@@ -127,6 +127,7 @@
+         this._clipboardText = null;
+         this._clipboardServerCapabilitiesActions = {};
+         this._clipboardServerCapabilitiesFormats = {};
++        this._clipboardServerMaxUnsolicitedTextSize = 0;
+ 
+         // Internal objects
+         this._sock = null;              // Websock object
+@@ -444,6 +445,14 @@
+         if (this._rfbConnectionState !== 'connected' || this._viewOnly) { return; }
+ 
+         if (this._clipboardServerCapabilitiesFormats[extendedClipboardFormatText] &&
++            this._clipboardServerCapabilitiesActions[extendedClipboardActionProvide] &&
++            this._clipboardServerMaxUnsolicitedTextSize > 0) {
++            const size = encodeUTF8(text.replace(/\r\n|\r|\n/gm, "\r\n") + "\0").length;
++            if (size > this._clipboardServerMaxUnsolicitedTextSize) {
++                throw new Error("Clipboard text exceeds the server's advertised byte limit");
++            }
++            RFB.messages.extendedClipboardProvide(this._sock, [extendedClipboardFormatText], [text]);
++        } else if (this._clipboardServerCapabilitiesFormats[extendedClipboardFormatText] &&
+             this._clipboardServerCapabilitiesActions[extendedClipboardActionNotify]) {
+ 
+             this._clipboardText = text;
+@@ -1877,6 +1886,7 @@
+             let isCaps = (!!(actions & extendedClipboardActionCaps));
+             if (isCaps) {
+                 this._clipboardServerCapabilitiesFormats = {};
++                this._clipboardServerMaxUnsolicitedTextSize = 0;
+                 this._clipboardServerCapabilitiesActions = {};
+ 
+                 // Update our server capabilities for Formats
+@@ -1886,9 +1896,10 @@
+                     // Check if format flag is set.
+                     if ((formats & index)) {
+                         this._clipboardServerCapabilitiesFormats[index] = true;
+-                        // We don't send unsolicited clipboard, so we
+-                        // ignore the size
+-                        this._sock.rQshift32();
++                        const size = this._sock.rQshift32();
++                        if (index === extendedClipboardFormatText) {
++                            this._clipboardServerMaxUnsolicitedTextSize = size;
++                        }
+                     }
+                 }
+ 

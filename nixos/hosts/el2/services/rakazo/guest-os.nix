@@ -12,6 +12,7 @@
       API_URL=https://rakazo.ts.gaof.net
       RAKAZO_HOST=rakazo.ts.gaof.net
       RAKAZO_WEB_BIND=100.64.2.81
+      RAKAZO_IMAGE=ghcr.io/elie222/rakazo/app
       RAKAZO_IMAGE_TAG=sha-${inputs.rakazo-src.rev}
       WEB_PROVIDER=keenable
       SIGNUPS_ENABLED=false

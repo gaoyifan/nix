@@ -172,10 +172,29 @@ neither a dependency symlink nor an npm installation. Existing projects retain
 their own dependencies and the old shared path remains valid. The `office-pptx`
 command initializes and builds TSX projects. Node shebangs use the image's Node executable.
 The CLI's embedded agent terminals are not configured.
-Host-to-desktop clipboard paste is limited to Latin-1 by the pinned noVNC 1.3 /
-x11vnc 0.9.16 stack; Chinese paste can be corrupted. Unicode keyboard events
-were verified through the existing computer view. This is separate from Office
-Kit's document text support; see the [upstream clipboard limitation](https://github.com/LibVNC/x11vnc/issues/77).
+The app, supervisor and Computer base image use the official Rakazo release.
+Clipboard patches live in this repository. The `x11vnc-utf8` package extends
+Nixpkgs' x11vnc with `overrideAttrs`, retaining its build dependencies and package
+fixes. Its existing X11 selection checks guard the UTF-8 callback, which delegates
+selection ownership to Nixpkgs' xclip. `closureInfo` captures the roughly 76 MiB
+runtime closure, and Docker imports it with `ADD`. The image's x11vnc entry points
+to the Nix-built executable.
+
+`applyPatches` patches noVNC 1.3.0 source, which matches the official image's
+client version. Its `rfb.js` uses the server's advertised unsolicited UTF-8 Provide
+capability and byte limit. The stock clipboard bridge sends Ctrl+V after the text
+on the same connection. `X11VNC_AVOID_WINDOWS=never` initializes selections in the
+Computer's direct Xvfb session. The official runtime manages its Unix sockets and
+control leases.
+
+The 2026-11-09 ablation established that both the server and noVNC patches are
+needed for bidirectional Unicode text. Removing the completion callback and paste
+queue preserves the ordinary clipboard cases. Rapid successive pastes can still
+overlap and lose content, a limitation accepted for the minimal implementation.
+Verification uses the official runtime's screen commands and real browser Ctrl+V /
+Ctrl+C events, covering Chinese and emoji, ASCII and Latin-1, multilingual multiline
+text, 8192-character input, repeated copying, classic RFB input and forced writes
+through a view-only connection.
 
 For a PPTX project, keep `npm run dev -- --port 0` running and open its printed
 loopback URL with `browser_navigate` on the Bot's assigned desktop. The user

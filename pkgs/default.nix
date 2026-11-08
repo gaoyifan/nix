@@ -39,6 +39,7 @@ rec {
 }
 // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
   orcad = pkgs.callPackage ./orcad.nix {};
+  x11vnc-utf8 = import ./x11vnc-utf8.nix {inherit pkgs;};
   bitmagnet = import ./bitmagnet.nix {inherit pkgs;};
   dnsmonster = import ./dnsmonster.nix {inherit pkgs;};
   jip = import ./jip.nix {inherit pkgs;};
