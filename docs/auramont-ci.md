@@ -31,6 +31,27 @@ Python, Docker/Compose and nix-ld come from the pinned guest closure. The existi
 own guest's Docker resources, SSH and Docker authentication and workspace ownership;
 recent build and SDK caches persist.
 
+## Nix build UID isolation
+
+Independent stores also need separate build UIDs: host Nix cleanup can kill a
+container builder with the same numeric UID even across PID namespaces.
+`buildUsersUidBase` sets the guest's `ids.uids.nixbld`; accounts start at base + 1
+and are named after their UID (for example, `nixbld40001`).
+EL2 uses base 40000 for `el2-nspawn` and 41000, 42000, 43000 and 44000 for the
+four Auramont guests. Oracle2 uses base 40000 for its Auramont guest. Hosts keep
+the default base 30000. The shared module rejects overlapping build UID pools.
+
+Drain every affected runner before deploying this UID change, then restart its
+container through the normal host switch. NixOS creates the new accounts and removes
+the old declared accounts; using new names avoids its retention of existing UIDs.
+Remove stale temporary build directories from interrupted builds if necessary.
+Keep `/nix/store` owned by root with its existing `nixbld` group and permissions;
+do not recursively chown registered store contents. Completed outputs already
+have normalized ownership.
+
+Run the isolated concurrent-build regression with
+`nix build .#checks.x86_64-linux.nspawn-build-uids --no-link`.
+
 ## Registration and activation
 
 Supply a short-lived repository registration token through standard input for

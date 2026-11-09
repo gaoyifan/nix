@@ -1,14 +1,13 @@
 {
-  imports = [
-    (import ../../optional/github-runner/nspawn.nix {
-      name = "github-runner-auramont";
-      machine = "auramont-ci";
-      root = "/var/lib/auramont-runner/root";
-      tokenFile = "/var/lib/github-runner-auramont/token";
-      guestModule = ./auramont-runner-system.nix;
-      nspawnArgs = ["--network-veth --resolv-conf=off --link-journal=try-guest"];
-    })
-  ];
+  imports = [../../optional/github-runner/nspawn.nix];
+  services.github-runner-nspawn.github-runner-auramont = {
+    machine = "auramont-ci";
+    root = "/var/lib/auramont-runner/root";
+    tokenFile = "/var/lib/github-runner-auramont/token";
+    buildUsersUidBase = 40000;
+    guestModule = ./auramont-runner-system.nix;
+    nspawnArgs = ["--network-veth --resolv-conf=off --link-journal=try-guest"];
+  };
 
   networking.edgeFirewall.extraForwardRules = [''iifname "ve-auramont-ci" accept''];
 

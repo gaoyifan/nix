@@ -70,6 +70,10 @@
             inherit inputs;
             pkgs = x86Pkgs;
           });
+          nspawn-build-uids = x86Pkgs.testers.runNixOSTest (import ../nixos/tests/nspawn-build-uids.nix {
+            inherit inputs;
+            pkgs = x86Pkgs;
+          });
           home-router = x86Pkgs.testers.runNixOSTest (import ../nixos/tests/home-router.nix {inherit inputs;});
           nylon-exit = x86Pkgs.testers.runNixOSTest (import ../nixos/tests/nylon-exit.nix {pkgs = x86Pkgs;});
           low-memory-disk-image = import ../nixos/tests/low-memory-disk-image.nix {
