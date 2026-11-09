@@ -3,7 +3,7 @@
     ../../optional/edge-firewall.nix
     ../../optional/tailscale-gnet-vm-exit.nix
     ../../optional/vm-oracle-cloud.nix
-    ./auramont-runner.nix
+    ./auramont-ci-runner.nix
     ./bees.nix
     ./disk-config.nix
     ./github-backup.nix

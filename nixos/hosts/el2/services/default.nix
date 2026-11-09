@@ -8,9 +8,9 @@
     ./derp.nix
     ./dnsmonster.nix
     ./findmy.nix
-    ./github-runner.nix
+    ./nix-ci-runner.nix
     ./hackintosh-clipboard.nix
-    ./auramont-runner.nix
+    ./auramont-ci-runner.nix
     ./icloud-photos.nix
     ./immich.nix
     ./kopia.nix
