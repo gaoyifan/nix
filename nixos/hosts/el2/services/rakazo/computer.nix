@@ -92,6 +92,8 @@
     install -m 0755 ${transcriptionScripts}/estimate_transcription_time.py $out/bin/estimate-transcription-time
     substituteInPlace $out/bin/{transcribe-audio,estimate-transcription-time} \
       --replace-fail '#!/usr/bin/env python3' '#!/usr/bin/python3'
+    substituteInPlace $out/bin/transcribe-audio \
+      --replace-fail 'http://100.65.3.254:8080' 'http://100.64.2.254:8178'
     tar -xzf ${pkgs.codex.src} -C $out/codex
     tar -xJf ${nodejsBinary} -C $out/nodejs --strip-components=1
     cp -r ${pkgs.node-docx}/lib/node_modules $out/node/

@@ -30,6 +30,7 @@
     ./rakazo
     ./restic.nix
     ./ulogd.nix
+    ./whisper-server.nix
     ./znapzend.nix
   ];
 }
