@@ -99,8 +99,8 @@ The `photos` device references the custom Incus block volume
 `pool0/hackintosh-photos`. macOS owns its GPT and APFS layout and mounts the
 `Photos` volume automatically at `/Volumes/Photos`. Because this is a custom
 volume, instance snapshots do not include its contents; snapshot or back it up
-separately. If encrypted pool0 is unavailable during Incus startup,
-`start-pool0-dependent-vms.service` starts the VM after pool0 is unlocked.
+separately. Incus handles VM autostart directly. The Photos ZFS volume does not
+require a manual unlock.
 
 ## CPU compatibility fixes
 

@@ -4,6 +4,7 @@
   ...
 }: let
   encryptedDatasets = [
+    "pool0/auramont"
     "pool0/backup"
     "pool1/services"
     "pool0/footage"
@@ -63,6 +64,8 @@ in {
   programs.zfsUnlock.datasets = encryptedDatasets;
 
   systemd.services.zfs-unlock-mount = {
+    # Restarting the mount service also restarts services that require it.
+    restartIfChanged = false;
     after = [
       "zfs-import-pool0.service"
       "zfs-import-pool1.service"
@@ -71,10 +74,14 @@ in {
       "zfs-import-pool0.service"
       "zfs-import-pool1.service"
     ];
-    preStart = ''
-      ${pkgs.zfs}/bin/zfs set readonly=on pool0/backup pool0/footage
-    '';
-    serviceConfig.ExecStartPost = "${lib.getExe' pkgs.systemd "systemctl"} --no-ask-password --no-block start el2-services.target";
+    script = lib.mkMerge [
+      (lib.mkBefore ''
+        ${pkgs.zfs}/bin/zfs set readonly=on pool0/backup pool0/footage
+      '')
+      (lib.mkAfter ''
+        ${lib.getExe' pkgs.systemd "systemctl"} --no-ask-password --no-block start el2-services.target
+      '')
+    ];
   };
 
   systemd.targets.el2-services = {

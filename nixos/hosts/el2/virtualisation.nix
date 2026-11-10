@@ -5,6 +5,18 @@
   username,
   ...
 }: let
+  incus = lib.getExe' config.virtualisation.incus.package "incus";
+  findmnt = lib.getExe' pkgs.util-linux "findmnt";
+  pool0VmShares = {
+    auramont-backup = {
+      dataset = "pool0/auramont";
+      source = "/pool0/auramont";
+    };
+    windows60 = {
+      dataset = "pool0/media1";
+      source = "/pool0/media1/downloads";
+    };
+  };
   sshKey = (import ../../common/ssh-keys.nix).userKeys."yifan-macbook";
   pveEdk2Share = "${pkgs.pve-edk2-firmware-ovmf}/usr/share/pve-edk2-firmware";
   ovmf2MB = pkgs.OVMF.override {
@@ -84,6 +96,25 @@ in {
       };
     };
     requiredUnits = ["zfs-import-pool1.service"];
+
+    instances.auramont-backup = {
+      image = "nixos/26.05";
+      vlan = 642;
+      macAddress = "02:54:B9:E6:89:01";
+      rootSize = "32GiB";
+      config = {
+        "boot.autostart" = "false";
+        "limits.cpu" = "4";
+        "limits.memory" = "8GiB";
+        "security.secureboot" = "false";
+      };
+      extraDevices.backup = {
+        type = "disk";
+        inherit (pool0VmShares.auramont-backup) source;
+        path = "/srv/backup";
+        "io.bus" = "virtiofs";
+      };
+    };
 
     instances.kingdee = {
       vlan = 642;
@@ -240,6 +271,7 @@ in {
         "io.cache" = "unsafe";
       };
       config = {
+        "boot.autostart" = "false";
         "limits.cpu" = "8";
         "limits.memory" = "16GiB";
         "security.csm" = "false";
@@ -256,7 +288,7 @@ in {
         };
         downloads = {
           type = "disk";
-          source = "/pool0/media1/downloads";
+          inherit (pool0VmShares.windows60) source;
           path = "/mnt/downloads";
           "io.bus" = "virtiofs";
         };
@@ -415,17 +447,39 @@ in {
     ];
     after = [
       "incus.service"
+      "incus-declarative-vms.service"
       "zfs-unlock-mount.service"
     ];
     serviceConfig.Type = "oneshot";
     script = ''
-      set -euo pipefail
-      for instance in hackintosh windows60; do
-        if [[ "$(${config.virtualisation.incus.package}/bin/incus config get "$instance" volatile.last_state.power)" == RUNNING ]] \
-          && [[ "$(${config.virtualisation.incus.package}/bin/incus list "$instance" --format csv -c s)" == STOPPED ]]; then
-          ${config.virtualisation.incus.package}/bin/incus start "$instance"
+      restore_vm() {
+        local instance=$1 dataset=$2 source=$3 state
+        state=$(${incus} list "name=^$instance$" --format csv -c s,volatile.last_state.power) || return 1
+        case "$state" in
+          STOPPED,RUNNING) ;;
+          "")
+            echo "Cannot restore $instance: VM is missing" >&2
+            return 1
+            ;;
+          *) return 0 ;;
+        esac
+
+        if ! ${findmnt} --noheadings --target "$source" --source "$dataset" --types zfs >/dev/null; then
+          echo "Cannot restore $instance: $source is unavailable on $dataset" >&2
+          return 1
         fi
-      done
+        ${incus} start "$instance"
+      }
+
+      failed=()
+      ${lib.concatStringsSep "\n" (lib.mapAttrsToList (
+          instance: share: "restore_vm ${lib.escapeShellArgs [instance share.dataset share.source]} || failed+=(${lib.escapeShellArg instance})"
+        )
+        pool0VmShares)}
+      if [[ -n "''${failed[*]}" ]]; then
+        echo "Failed to restore Incus VMs: ''${failed[*]}" >&2
+        exit 1
+      fi
     '';
   };
 }

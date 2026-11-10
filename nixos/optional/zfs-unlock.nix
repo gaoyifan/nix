@@ -29,7 +29,8 @@ in {
         trap 'unset passphrase' EXIT
 
         for dataset in ${lib.escapeShellArgs cfg.datasets}; do
-          if [[ "$(${zfs} get -H -o value keystatus "$dataset")" == unavailable ]]; then
+          keystatus=$(${zfs} get -H -o value keystatus "$dataset")
+          if [[ "$keystatus" == unavailable ]]; then
             printf '%s\n' "$passphrase" | ${zfs} load-key "$dataset"
           fi
         done
@@ -37,7 +38,7 @@ in {
         unset passphrase
         trap - EXIT
 
-        ${systemctl} --no-ask-password restart zfs-unlock-mount.service
+        ${systemctl} --no-ask-password reload-or-restart zfs-unlock-mount.service
       '';
     })
   ];
@@ -50,10 +51,13 @@ in {
     };
     script = ''
       for dataset in ${lib.escapeShellArgs cfg.datasets}; do
-        if [[ "$(${zfs} get -H -o value mounted "$dataset")" == no ]]; then
+        mounted=$(${zfs} get -H -o value mounted "$dataset")
+        if [[ "$mounted" == no ]]; then
           ${zfs} mount "$dataset"
         fi
       done
     '';
+    # Repeat mounting without stopping services that require this unit.
+    reload = config.systemd.services.zfs-unlock-mount.script;
   };
 }
