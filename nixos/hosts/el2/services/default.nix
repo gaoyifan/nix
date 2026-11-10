@@ -3,12 +3,14 @@
     ./acme.nix
     ./atuin.nix
     ./bitmagnet.nix
+    ./codex-api.nix
     ./codex-auto-reset.nix
     ./codex-monitoring.nix
     ./derp.nix
     ./dnsmonster.nix
     ./findmy.nix
     ./nix-ci-runner.nix
+    ./honcho.nix
     ./hackintosh-clipboard.nix
     ./auramont-ci-runner.nix
     ./icloud-photos.nix

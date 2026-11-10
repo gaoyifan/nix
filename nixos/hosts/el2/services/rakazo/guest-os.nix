@@ -14,6 +14,7 @@
       RAKAZO_WEB_BIND=100.64.2.81
       RAKAZO_IMAGE=ghcr.io/elie222/rakazo/app
       RAKAZO_IMAGE_TAG=sha-${inputs.rakazo-src.rev}
+      MCP_ALLOW_PRIVATE_ENDPOINT=true
       WEB_PROVIDER=keenable
       SIGNUPS_ENABLED=false
       RAKAZO_COMPUTER_MEMORY=8g
