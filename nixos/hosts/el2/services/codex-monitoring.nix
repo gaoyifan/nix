@@ -65,11 +65,66 @@ in {
                 type = "timeseries";
                 fillOpacity = 10;
                 legendCalcs = ["lastNotNull"];
+                overrides = item.overrides or [];
                 fieldDefaults =
                   {min = 0;}
                   // item.fieldDefaults;
               };
             }) [
+              {
+                id = 2;
+                title = "Weekly quota headroom";
+                description = "Remaining quota fraction / remaining fraction of the 7-day window. The dashed 1× line marks balance; below 1× = tight; above 1× = ample. This compares the remaining daily budget with the standard daily budget, not recent usage speed. Grafana automatically scales the base-2 logarithmic axis to the data. Zero cannot be plotted on a logarithmic axis. Quota samples update every 30 minutes.";
+                expr = ''
+                  (1 - last_over_time(codex_weekly_used_percent{job="codex"}[1h]) / 100)
+                  / ((last_over_time(codex_weekly_reset_timestamp_seconds{job="codex"}[1h]) - time()) / 604800 > 0)
+                '';
+                legendFormat = "Headroom";
+                fieldDefaults = {
+                  unit = "suffix:×";
+                  decimals = 2;
+                  min = null;
+                  noValue = "No data";
+                  thresholds = {
+                    mode = "absolute";
+                    steps = [
+                      {
+                        color = "transparent";
+                        value = null;
+                      }
+                      {
+                        color = "gray";
+                        value = 1;
+                      }
+                    ];
+                  };
+                };
+                overrides = [
+                  {
+                    matcher = {
+                      id = "byName";
+                      options = "Headroom";
+                    };
+                    properties = [
+                      {
+                        id = "custom.scaleDistribution";
+                        value = {
+                          type = "log";
+                          log = 2;
+                        };
+                      }
+                      {
+                        id = "custom.spanNulls";
+                        value = false;
+                      }
+                      {
+                        id = "custom.thresholdsStyle";
+                        value = {mode = "dashed";};
+                      }
+                    ];
+                  }
+                ];
+              }
               {
                 id = 1;
                 title = "Weekly quota used";
@@ -103,7 +158,7 @@ in {
           rows = [
             {
               title = "History";
-              panels = [1 3 4];
+              panels = [2 1 3 4];
               rowHeightMode = "standard";
               maxColumnCount = 1;
             }
