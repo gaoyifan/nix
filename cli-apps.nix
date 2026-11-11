@@ -55,6 +55,7 @@
       hexdump = {};
       hf = from ["python3Packages" "huggingface-hub"];
       iostat = from "sysstat";
+      iotop = {};
       iperf3 = {cacheTtl = oneYearSeconds;};
       loft = {};
       mcat = {
