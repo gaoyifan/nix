@@ -31,7 +31,7 @@ in {
 
     immich-redis = {
       autoStart = false;
-      image = "docker.io/valkey/valkey:9@sha256:c123e3715db63d06d4ad6964884037aa0d5d4d703939b9929954112889708e1d";
+      image = "docker.io/valkey/valkey:9@sha256:418652cfb58ef879d4978c33553735d7147016032d5aefaa14c828e611eb9dfd";
       extraOptions = [
         "--network=immich"
         "--network-alias=redis"
@@ -40,7 +40,7 @@ in {
 
     immich-server = {
       autoStart = false;
-      image = "ghcr.io/immich-app/immich-server:v3.3.6";
+      image = "ghcr.io/immich-app/immich-server:v3.4.0";
       dependsOn = [
         "immich-postgres"
         "immich-redis"
