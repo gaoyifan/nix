@@ -44,7 +44,7 @@
       nanopi-r5c-emmc-flasher-image = self.nixosConfigurations.nanopi-r5c-emmc-flasher.config.system.build.sdImage;
     }
     // nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
-      hermes-npm-deps = inputs.hermes-agent.packages.${system}.web.npmDeps;
+      hermes-npm-deps = inputs.hermes-agent.packages.${system}.pnpm-deps;
       hermes-terminal-image = self.nixosConfigurations.somo-minisforum.config.system.build.hermesTerminalImage;
     });
 
