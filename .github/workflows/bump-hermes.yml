@@ -79,6 +79,8 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ needs.prepare.outputs.revision }}
+          # Include the parent so Git can verify the fast-forward push.
+          fetch-depth: 2
 
       - name: Promote validated commit
         env:
