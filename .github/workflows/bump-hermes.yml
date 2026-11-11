@@ -14,8 +14,13 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  bump:
+  prepare:
     runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.bump.outputs.changed }}
+      revision: ${{ steps.candidate.outputs.revision }}
+      branch: ${{ steps.candidate.outputs.branch }}
+      base: ${{ steps.candidate.outputs.base }}
 
     steps:
       - name: Checkout repository
@@ -30,11 +35,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: python3 .github/scripts/bump-hermes.py
 
-      - name: Evaluate related hosts
-        if: steps.bump.outputs.changed == 'true'
-        run: nix eval .#nixosConfigurations.somo-minisforum.config.system.build.toplevel.drvPath --accept-flake-config >/dev/null
-
-      - name: Commit and push
+      - name: Create candidate commit
+        id: candidate
         if: steps.bump.outputs.changed == 'true'
         env:
           COMMIT_SUBJECT: ${{ steps.bump.outputs.commit_subject }}
@@ -42,18 +44,61 @@ jobs:
         run: |
           set -euo pipefail
 
+          echo "base=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           git add ${{ steps.bump.outputs.files }}
           git \
             -c user.name='github-actions[bot]' \
             -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
             commit -m "$COMMIT_SUBJECT" -m "$COMMIT_BODY"
-          if ! git push origin "HEAD:${GITHUB_REF_NAME}"; then
-            git pull --rebase origin "$GITHUB_REF_NAME"
-            git push origin "HEAD:${GITHUB_REF_NAME}"
+          branch="automation/hermes-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git push origin "HEAD:refs/heads/$branch"
+          echo "revision=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+
+      - name: No update needed
+        if: steps.bump.outputs.changed == 'false'
+        run: echo "${{ steps.bump.outputs.summary }}"
+
+  validate:
+    needs: prepare
+    if: needs.prepare.outputs.changed == 'true'
+    uses: ./.github/workflows/build.yml
+    with:
+      revision: ${{ needs.prepare.outputs.revision }}
+      self-hosted: true
+      publish-cache: false
+    secrets: inherit
+
+  promote:
+    needs: [prepare, validate]
+    runs-on: ubuntu-latest
+    if: needs.prepare.outputs.changed == 'true'
+
+    steps:
+      - name: Checkout validated candidate
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.revision }}
+          # Include the parent so Git can verify the fast-forward push.
+          fetch-depth: 2
+
+      - name: Promote validated commit
+        env:
+          BASE_REVISION: ${{ needs.prepare.outputs.base }}
+        run: |
+          set -euo pipefail
+
+          current=$(git ls-remote origin "refs/heads/$GITHUB_REF_NAME" | cut -f1)
+          if [[ "$current" != "$BASE_REVISION" ]]; then
+            echo "::error::Target branch advanced during validation. Rerun Bump Hermes to validate against the new base."
+            exit 1
           fi
+          # A normal fast-forward push also rejects a concurrent branch update.
+          # Rebasing here would promote a commit that has never passed validation.
+          git push origin "HEAD:refs/heads/$GITHUB_REF_NAME"
 
       - name: Trigger build and cache
-        if: steps.bump.outputs.changed == 'true' && github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -65,6 +110,13 @@ jobs:
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/build.yml/dispatches" \
             --data "{\"ref\":\"${GITHUB_REF_NAME}\",\"inputs\":{\"revision\":\"$(git rev-parse HEAD)\"}}"
 
-      - name: No update needed
-        if: steps.bump.outputs.changed == 'false'
-        run: echo "${{ steps.bump.outputs.summary }}"
+  cleanup:
+    needs: [prepare, validate, promote]
+    if: always() && needs.prepare.outputs.branch != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete candidate branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANDIDATE_BRANCH: ${{ needs.prepare.outputs.branch }}
+        run: gh api --method DELETE "repos/$GITHUB_REPOSITORY/git/refs/heads/$CANDIDATE_BRANCH"

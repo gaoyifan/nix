@@ -5,6 +5,20 @@ on:
     branches: [main, ci]
   pull_request:
     branches: [main]
+  workflow_call:
+    inputs:
+      self-hosted:
+        description: "Run the x86_64-linux build on EL2"
+        default: true
+        type: boolean
+      revision:
+        description: "Exact candidate commit to build"
+        required: true
+        type: string
+      publish-cache:
+        description: "Sign and push closures to the R2 binary cache"
+        default: false
+        type: boolean
   workflow_dispatch:
     inputs:
       self-hosted:
