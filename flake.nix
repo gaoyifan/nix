@@ -187,7 +187,7 @@
 
     hermes-agent = {
       # Hermes runtime patches depend on its own locked nixpkgs toolchain.
-      url = "github:NousResearch/hermes-agent/v0.23.0";
+      url = "github:NousResearch/hermes-agent/v0.23.1";
     };
 
     lark-cli-src = {
