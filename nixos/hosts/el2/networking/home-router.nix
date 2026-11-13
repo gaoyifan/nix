@@ -1,4 +1,12 @@
-{config, ...}: {
+{
+  config,
+  lib,
+  nylonTopology,
+  pkgs,
+  ...
+}: let
+  googleExit = lib.findFirst (exit: exit.nodeId == "hhost-jp" && exit.name == "public") null nylonTopology.topology.catalog;
+in {
   imports = [
     ../../../optional/el-router.nix
     ../../../optional/home-router
@@ -94,6 +102,11 @@
 
     egress = {
       classification = {
+        # iif 0 limits this shared classifier rule to locally generated traffic.
+        extraRules = [
+          ''meta iif 0 ip daddr @google counter meta mark set ${googleExit.markHex} ct mark set meta mark return''
+          ''meta iif 0 ip6 daddr @google6 counter meta mark set ${googleExit.markHex} ct mark set meta mark return''
+        ];
         extraIngressInterfaces = [
           "podman*"
           "wg0"
@@ -102,6 +115,11 @@
       };
     };
   };
+
+  networking.nftables.tables.home-router.content = ''
+    include "${pkgs.nft-geo-sets}/set-google.conf"
+    include "${pkgs.nft-geo-sets}/set-google6.conf"
+  '';
 
   systemd.network.networks."09-management" = {
     matchConfig.Name = "ens49f3";

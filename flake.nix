@@ -143,6 +143,10 @@
       url = "github:gaoyifan/china-operator-ip/ip-lists";
       flake = false;
     };
+    cloud-provider-ip-addresses = {
+      url = "github:rezmoss/cloud-provider-ip-addresses";
+      flake = false;
+    };
 
     # Use fork with fix for Nix 2.33+ show-derivation JSON format
     # See: https://github.com/serokell/deploy-rs/pull/359
