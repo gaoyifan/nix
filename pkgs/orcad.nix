@@ -17,7 +17,7 @@ stdenv.mkDerivation (finalAttrs: let
     else "linux-x64-glibc";
 in {
   pname = "orcad";
-  version = "1.4.257";
+  version = "1.4.258";
 
   # Keep dependency sources out of fetchPnpmDeps' JSON metadata fixup.
   ORCA_PNPM_GLOBAL_VIRTUAL_STORE = "0";
@@ -33,7 +33,7 @@ in {
       git -C "$out" rev-parse HEAD > "$out/.source-commit"
       rm -r "$out/.git"
     '';
-    hash = "sha256-bua+dbXLHDsSmyGUJl6XrjVWJTJlWv05/tE+EFFiidg=";
+    hash = "sha256-T2gcvgm/ejbCpXJxrh/DC2DcjZN7J/2UXVB3rMaUUSE=";
   };
 
   pnpmDeps = fetchPnpmDeps {
@@ -50,7 +50,7 @@ in {
       JS
       cp -r out/.orcad-watchers "$out/orcad-watchers"
     '';
-    hash = "sha256-/tjHciJH+1vR93WPkuFwOazH6zfhv0mP9H7BGYm4n6I=";
+    hash = "sha256-hm/1N6wn579rGqPwgikseF2d9pdKPAIcVBoo40PaPm0=";
   };
 
   nativeBuildInputs = [
