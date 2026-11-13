@@ -7,6 +7,8 @@
 }: {
   time.timeZone = lib.mkDefault "Asia/Singapore";
 
+  boot.kernel.sysctl."net.ipv4.tcp_congestion_control" = "bbr";
+
   # Containers use their host's kernel; other hosts build in livepatch support.
   boot.kernelPatches = lib.mkIf config.boot.kernel.enable [
     {

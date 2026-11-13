@@ -9,7 +9,6 @@
   ];
 
   boot.kernel.sysctl = {
-    "net.ipv4.tcp_congestion_control" = "bbr";
     "net.core.rmem_max" = 134217728;
     "net.core.wmem_max" = 134217728;
     "net.ipv4.tcp_rmem" = "4096 131072 134217728";
