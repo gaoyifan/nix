@@ -5,7 +5,7 @@
   pkgs,
   ...
 }: let
-  googleExit = lib.findFirst (exit: exit.nodeId == "hhost-jp" && exit.name == "public") null nylonTopology.topology.catalog;
+  googleExit = lib.findFirst (exit: exit.nodeId == "oracle2" && exit.name == "public") null nylonTopology.topology.catalog;
 in {
   imports = [
     ../../../optional/el-router.nix
