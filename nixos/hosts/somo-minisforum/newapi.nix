@@ -12,7 +12,7 @@
   ...
 }: {
   virtualisation.oci-containers.containers.new-api = {
-    image = "docker.io/calciumion/new-api@sha256:f03e88226bd054bc5d45f174c58187f70f5db661ace8d252838ae38baa6655fa";
+    image = "docker.io/calciumion/new-api@sha256:d6effcdbc58175494765c0cc5954bdacb2300516eec79ba1a9c61f9b9fae7b49";
     volumes = ["/var/lib/new-api:/data"];
     environment.TZ = "Asia/Shanghai";
     # nftables owns the ruleset, so do not publish ports through a bridge.

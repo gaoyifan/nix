@@ -14,7 +14,7 @@ in {
 
   virtualisation.oci-containers.containers.new-api = {
     autoStart = false;
-    image = "docker.io/calciumion/new-api@sha256:f03e88226bd054bc5d45f174c58187f70f5db661ace8d252838ae38baa6655fa";
+    image = "docker.io/calciumion/new-api@sha256:d6effcdbc58175494765c0cc5954bdacb2300516eec79ba1a9c61f9b9fae7b49";
     environment.TZ = "Asia/Shanghai";
     environmentFiles = ["/run/agenix/new-api-env"];
     ports = ["127.0.0.1:9000:3000"];
