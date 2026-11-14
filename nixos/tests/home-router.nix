@@ -2,6 +2,12 @@
   name = "home-router";
 
   node.specialArgs.inputs = inputs // {chnroutes2 = ./fixtures/chnroutes2;};
+  node.specialArgs.nylonTopology = {
+    topology = {
+      catalog = [];
+      peers = {};
+    };
+  };
 
   nodes.router = {
     config,
