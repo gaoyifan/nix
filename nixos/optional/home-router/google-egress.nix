@@ -20,15 +20,15 @@
     && exit.families.ipv6;
 in {
   # Every home router in the Nylon mesh uses this same Google exit. Hosts outside
-  # the mesh, such as the VM test harness, keep their default routing.
+  # the mesh keep their default routing.
   config = lib.mkIf (lib.hasAttr host topology.peers) {
-    # iif 0 limits these rules to locally generated traffic; forwarded traffic
-    # keeps the normal outlet classification.
-    networking.homeRouter.egress.classification.extraRules =
+    # Host-specific rules keep priority over the Google default.
+    networking.homeRouter.egress.classification.extraRules = lib.mkAfter (
       [
-        ''meta iif 0 ip daddr @google counter meta mark set ${exit.markHex} ct mark set meta mark return''
+        ''ip daddr @google counter meta mark set ${exit.markHex} ct mark set meta mark return''
       ]
-      ++ lib.optional ipv6 ''meta iif 0 ip6 daddr @google6 counter meta mark set ${exit.markHex} ct mark set meta mark return'';
+      ++ lib.optional ipv6 ''ip6 daddr @google6 counter meta mark set ${exit.markHex} ct mark set meta mark return''
+    );
 
     networking.nftables.tables.home-router.content = lib.concatStringsSep "\n" (
       [''include "${pkgs.nft-geo-sets}/set-google.conf"'']
