@@ -36,7 +36,7 @@ in {
       wantedBy = ["multi-user.target"];
       # Activate upgrades on manual restart; avoid client disconnects during NixOS switches.
       restartIfChanged = false;
-      path = [pkgs.orcad pkgs.codex pkgs.git pkgs.openssh pkgs.bash];
+      path = [pkgs.orcad pkgs.codex pkgs.git pkgs.git-lfs pkgs.openssh pkgs.bash];
       environment = {
         # Orca recognizes this spelling as the system default, even when
         # ~/.codex is a symlink. A custom path selects its managed mirror.
