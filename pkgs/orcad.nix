@@ -17,7 +17,7 @@ stdenv.mkDerivation (finalAttrs: let
     else "linux-x64-glibc";
 in {
   pname = "orcad";
-  version = "1.4.259";
+  version = "1.4.261";
 
   # Keep dependency sources out of fetchPnpmDeps' JSON metadata fixup.
   ORCA_PNPM_GLOBAL_VIRTUAL_STORE = "0";
@@ -33,7 +33,7 @@ in {
       git -C "$out" rev-parse HEAD > "$out/.source-commit"
       rm -r "$out/.git"
     '';
-    hash = "sha256-vIx8z3Z3JAfnDKxYCeuzuV8RaFpEszZtk1xQY3hwB5w=";
+    hash = "sha256-dftLM6YS5+keGI/99mK0d9dgVZ2FXn3W9MBzz/g+Qa8=";
   };
 
   pnpmDeps = fetchPnpmDeps {
@@ -79,8 +79,8 @@ in {
     node --input-type=module <<'JS'
     import { createHash } from 'node:crypto';
     import { readFileSync, writeFileSync } from 'node:fs';
-    import { NODE_RUNTIME_ASSETS, NODE_RUNTIME_PIN } from './src/shared/node-runtime-pin.ts';
-    const path = 'src/shared/node-runtime-pin.ts';
+    import { NODE_RUNTIME_ASSETS, NODE_RUNTIME_PIN } from './src/shared/node-runtime/node-runtime-pin.ts';
+    const path = 'src/shared/node-runtime/node-runtime-pin.ts';
     const hash = createHash('sha256').update(readFileSync(process.execPath)).digest('hex');
     writeFileSync(path, readFileSync(path, 'utf8')
       .replace("version: '" + NODE_RUNTIME_PIN.version + "'", "version: '" + process.versions.node + "'")
