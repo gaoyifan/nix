@@ -1,6 +1,7 @@
 {
   numericId = 19;
   publicKey = "xm+vs+haHAj+9DuBbCue/m2+hb9/SgvVlBVkjp4xlxw=";
+  transitCost = "20ms";
 
   selector = {
     enable = true;

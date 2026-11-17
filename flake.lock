@@ -139,6 +139,22 @@
         "type": "github"
       }
     },
+    "cloud-provider-ip-addresses": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1794536649,
+        "narHash": "sha256-id+CJS4AaBLKeenbbLn5fYhm5r/yjMu6VN99OHqkz9w=",
+        "owner": "rezmoss",
+        "repo": "cloud-provider-ip-addresses",
+        "rev": "7f8c2dcc2742c13976e9e35b9d647972544bae93",
+        "type": "github"
+      },
+      "original": {
+        "owner": "rezmoss",
+        "repo": "cloud-provider-ip-addresses",
+        "type": "github"
+      }
+    },
     "codex-api": {
       "inputs": {
         "nixpkgs": [
@@ -1069,6 +1085,7 @@
         "auto-pause-cemu": "auto-pause-cemu",
         "china-operator-ip": "china-operator-ip",
         "chnroutes2": "chnroutes2",
+        "cloud-provider-ip-addresses": "cloud-provider-ip-addresses",
         "codex-api": "codex-api",
         "codex-capacity-proxy": "codex-capacity-proxy",
         "deploy-rs": "deploy-rs",

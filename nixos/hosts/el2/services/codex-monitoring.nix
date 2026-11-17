@@ -160,7 +160,7 @@ in {
               title = "History";
               panels = [2 1 3 4];
               rowHeightMode = "standard";
-              maxColumnCount = 1;
+              maxColumnCount = 2;
             }
           ];
         };

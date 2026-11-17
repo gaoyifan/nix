@@ -22,4 +22,6 @@ pkgs.runCommand "nft-geo-sets" {} ''
   gen chinanet ipv4_addr ${inputs.china-operator-ip}/chinanet.txt
   gen cmcc ipv4_addr ${inputs.china-operator-ip}/cmcc.txt
   gen ustc ipv4_addr ${./nft-geo-sets/ustc.txt}
+  gen google ipv4_addr ${inputs.cloud-provider-ip-addresses}/googleservices/googleservices_ips_merged_v4.txt
+  gen google6 ipv6_addr ${inputs.cloud-provider-ip-addresses}/googleservices/googleservices_ips_merged_v6.txt
 ''

@@ -11,6 +11,7 @@ in {
     ./options.nix
     ./networkd.nix
     ./firewall.nix
+    ./google-egress.nix
     ./services.nix
     ./monitoring
     ./ttr.nix

@@ -12,8 +12,8 @@ import urllib.request
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 # Excluded from "all" (scheduled) bumps; can still be bumped explicitly via
-# workflow_dispatch. copilot-cli is intentionally manual-only.
-AUTO_BUMP_SKIP = {"copilot-cli"}
+# workflow_dispatch. These packages are intentionally manual-only.
+AUTO_BUMP_SKIP = {"copilot-cli", "claude-code"}
 
 
 PACKAGES = {

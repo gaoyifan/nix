@@ -184,6 +184,10 @@ SNAT；本文只负责 RPDB、出口表和 POSTROUTING 的整体关系。
 进入相同的目的地址分类，不使用 output 分类入口接口。guest LAN 等显式源路由策略
 继续由各自模块拥有，不属于 WAN 源地址选择语义。
 
+Nylon mesh 内的 Home Router 将进入分类器且目的地址属于 Google 服务集合的流量
+默认送往 `oracle2/public`，不区分本机与转发流量。已有连接标记、WLT 显式出口选择
+和主机特殊规则优先；IPv6 分流仅在本节点 selector 和出口都支持 IPv6 时生成。
+
 ## POSTROUTING
 
 出口路由和源地址转换是两个独立阶段：
