@@ -21,6 +21,8 @@
             [
               {
                 networking.hostName = nixpkgs.lib.mkIf (hostname != "default") hostname;
+                # Manage the MacBook's display name together with its hostnames.
+                networking.computerName = nixpkgs.lib.mkIf (hostname == "yifans-mba-2022") hostname;
                 nixpkgs.hostPlatform = "aarch64-darwin";
                 nixpkgs.overlays = [overlay];
                 nixpkgs.config.allowUnfree = true;
