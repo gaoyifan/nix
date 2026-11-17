@@ -36,8 +36,8 @@
   ];
 
   expected = {
-    nodeCount = 16;
+    nodeCount = 17;
     exitCount = 25;
-    selectorCount = 5;
+    selectorCount = 6;
   };
 }

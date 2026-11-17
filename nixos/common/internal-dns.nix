@@ -11,6 +11,7 @@
     "el2.gaof.net" = "100.64.2.254";
     "somo.gaof.net" = "100.65.2.254";
     "somo2.gaof.net" = "100.65.12.254";
+    "somo3.gaof.net" = "100.65.4.254";
     "taildeb190.ts.net" = "100.100.100.100";
   };
   zones = config.networking.internalDns.zones;
