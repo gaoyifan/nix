@@ -73,6 +73,7 @@
     oracle = mkHost "x86_64-linux" [../nixos/hosts/oracle];
     oracle2 = mkHost "aarch64-linux" [../nixos/hosts/oracle2];
     oracle3 = mkHost "x86_64-linux" [../nixos/hosts/oracle3 ../nixos/hosts/oracle3/services.nix];
+    somo-hp-pc = mkHost "x86_64-linux" [../nixos/hosts/somo-hp-pc];
     somo-minisforum = mkHost "x86_64-linux" [../nixos/hosts/somo-minisforum];
     somo-nanopi-r4s = mkHost "aarch64-linux" [../nixos/hosts/somo-nanopi-r4s];
     somo-gw = mkHost "x86_64-linux" [../nixos/hosts/somo-gw];
