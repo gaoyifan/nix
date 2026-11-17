@@ -4,6 +4,7 @@
   ...
 }: {
   imports = [../../optional/home-router];
+  disabledModules = [../../optional/home-router/google-egress.nix];
 
   age.secrets.wifi = lib.mkIf config.services.secrets.hasRealFiles {
     file = config.services.secrets.filesDir + "/nixos/somo-hp-pc/wifi.age";
