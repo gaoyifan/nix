@@ -245,7 +245,7 @@ in {
     "hermes/config.yaml".text = builtins.toJSON {
       model = {
         provider = "codex-api";
-        default = "gpt-6.1-sol";
+        default = "gpt-6.2-sol";
         base_url = codexApiBaseUrl;
         api_mode = "codex_responses";
       };
