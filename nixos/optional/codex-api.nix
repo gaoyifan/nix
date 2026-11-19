@@ -12,6 +12,7 @@
   services.codex-api = lib.mkIf config.services.secrets.hasRealFiles {
     enable = true;
     settings = {
+      fallback_model = "gpt-6.1-terra";
       upstream.supports_websockets = true;
       server.enable_websockets = true;
     };
