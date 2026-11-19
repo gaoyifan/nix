@@ -12,13 +12,9 @@
   services.codex-api = lib.mkIf config.services.secrets.hasRealFiles {
     enable = true;
     settings = {
+      fallback_model = "gpt-6.1-terra";
       upstream.supports_websockets = true;
       server.enable_websockets = true;
-      model_prices."gpt-6.1-terra" = {
-        input_usd_per_million = "1.00";
-        cached_input_usd_per_million = "0.05";
-        output_usd_per_million = "5.00";
-      };
     };
   };
 }

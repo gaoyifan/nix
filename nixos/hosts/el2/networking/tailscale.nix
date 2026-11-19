@@ -270,6 +270,19 @@ in
           Domains = ["tailscale.com"];
         };
 
+        # Tailscale's IPv4 control-plane range:
+        # https://tailscale.com/docs/reference/faq/firewall-ports
+        # Override the daemon's bypass mark before ordinary outlet classification.
+        networking.nftables.tables.tailscale-control-egress = {
+          family = "inet";
+          content = ''
+            chain output {
+              type route hook output priority mangle - 2; policy accept;
+              meta mark & 0xff0000 == 0x80000 ip daddr 192.200.0.0/24 tcp dport { 80, 443 } counter meta mark set ${chinanetMark} ct mark set meta mark
+            }
+          '';
+        };
+
         age.secrets.tailscale-api-key = lib.mkIf config.services.secrets.hasRealFiles {
           file = config.services.secrets.filesDir + "/nixos/el2/tailscale-api-key.age";
         };

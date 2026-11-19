@@ -40,7 +40,7 @@ in {
 
     immich-server = {
       autoStart = false;
-      image = "ghcr.io/immich-app/immich-server:v3.4.1";
+      image = "ghcr.io/immich-app/immich-server:v3.4.2";
       dependsOn = [
         "immich-postgres"
         "immich-redis"

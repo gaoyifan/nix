@@ -202,7 +202,9 @@ in {
               cp -rs ${tool}/. "$out/tools/${name}/"
             '')
             tools)}
-          PYTHONPATH=${upstream} ${basePackage.hermesVenv}/bin/python3 - "$out" <<'PY'
+          # PM records install ownership during tool registration.
+          HERMES_HOME="$TMPDIR/hermes-home" PYTHONPATH=${upstream} \
+            ${basePackage.hermesVenv}/bin/python3 - "$out" <<'PY'
           import json, pathlib, sys
           from scripts.bundles.payload import record_tools
 
@@ -245,7 +247,7 @@ in {
     "hermes/config.yaml".text = builtins.toJSON {
       model = {
         provider = "codex-api";
-        default = "gpt-6.1-sol";
+        default = "gpt-6.2-sol";
         base_url = codexApiBaseUrl;
         api_mode = "codex_responses";
       };

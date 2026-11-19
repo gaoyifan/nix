@@ -11,6 +11,7 @@
   misc1-sz = import ./misc1-sz.nix;
   oracle2 = import ./oracle2.nix;
   oracle3 = import ./oracle3.nix;
+  somo-hp-pc = import ./somo-hp-pc.nix;
   somo-minisforum = import ./somo-minisforum.nix;
   # somo-nanopi-r4s is offline; keep its node file for recovery.
   xtom-hkg = import ./xtom-hkg.nix;

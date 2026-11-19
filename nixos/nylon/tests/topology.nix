@@ -14,6 +14,7 @@
     "misc1-sz"
     "oracle2"
     "oracle3"
+    "somo-hp-pc"
     "somo-minisforum"
     "xtom-hkg"
     "xtom-sjc"
@@ -24,6 +25,7 @@
     "cjia"
     "el"
     "el2"
+    "somo-hp-pc"
     "somo-minisforum"
   ];
   expectedNumericIds = {
@@ -39,6 +41,7 @@
     oracle3 = 25;
     oracle2 = 26;
     somo-minisforum = 28;
+    somo-hp-pc = 36;
     xtom-hkg = 29;
     xtom-sjc = 30;
     xtom-syd = 31;
@@ -158,10 +161,10 @@ in
   assert all (name: fleet.topology.peers.${name}.numericId == expectedNumericIds.${name}) expectedHosts;
   assert fleet.manifest.value.counts
   == {
-    peers = 16;
+    peers = 17;
     exits = 25;
-    selectors = 5;
-    dnsRrsets = 32;
+    selectors = 6;
+    dnsRrsets = 34;
   };
   assert routerIds fleet == expectedHosts;
   assert !(elem "los6" (routerIds fleet));
@@ -171,10 +174,10 @@ in
   assert all (exit: exit.nodeId != "los6" && exit.nodeId != "google") fleet.topology.catalog;
   assert fleet.dns.controller == "el2";
   assert fleet.dns.apiUrl == "http://pdns-ui.ts.gaof.net/api/v1/servers/localhost/zones/ny.gaof.net";
-  assert fleet.central.sha256 == "4a8acfee2ca1cd2ee057d13ef4cf8cce3612adc9f49e8272cddb163b18ec9a05";
+  assert fleet.central.sha256 == "ffe5452dd0d0e8bd90f2461b8a361eff930cbc3ff515d83f4c3d00995a308b90";
   assert fleet.central.value.graph == [(concatStringsSep ", " expectedHosts)];
   assert builtins.fromJSON fleet.dns.text == fleet.dns.value;
-  assert builtins.match ".*privateKey.*" fleet.manifest.text == null;
+  assert builtins.replaceStrings ["privateKey"] [""] fleet.manifest.text == fleet.manifest.text;
   assert !hasAttr "exit" fleet.topology.peers.blog.underlays.public;
   assert !hasAttr "key" misc1SzNode.value;
   assert builtins.substring (builtins.stringLength misc1SzNode.text - 1) 1 misc1SzNode.text == "\n";

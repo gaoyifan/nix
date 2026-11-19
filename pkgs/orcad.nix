@@ -17,7 +17,7 @@ stdenv.mkDerivation (finalAttrs: let
     else "linux-x64-glibc";
 in {
   pname = "orcad";
-  version = "1.4.261";
+  version = "1.4.264";
 
   # Keep dependency sources out of fetchPnpmDeps' JSON metadata fixup.
   ORCA_PNPM_GLOBAL_VIRTUAL_STORE = "0";
@@ -33,7 +33,7 @@ in {
       git -C "$out" rev-parse HEAD > "$out/.source-commit"
       rm -r "$out/.git"
     '';
-    hash = "sha256-dftLM6YS5+keGI/99mK0d9dgVZ2FXn3W9MBzz/g+Qa8=";
+    hash = "sha256-zSdxu3+rcz6Zl3YAiMvyo9uVO9o7zmf7598/+09kb3k=";
   };
 
   pnpmDeps = fetchPnpmDeps {
@@ -50,7 +50,7 @@ in {
       JS
       cp -r out/.orcad-watchers "$out/orcad-watchers"
     '';
-    hash = "sha256-1f9sbC/XXsE6ayU4HUMzvHLgZ9jPuMZsPpFFYll0jS4=";
+    hash = "sha256-24985Wll21vDK2ol912EdxXyMEOjGYVGboHsNcxe+do=";
   };
 
   nativeBuildInputs = [
@@ -74,6 +74,10 @@ in {
       --replace-fail 'glibcFloor: slotGlibcFloor(slot)' 'glibcFloor: { label: "Nix store libraries", families: [] }'
     substituteInPlace config/scripts/orcad-distribution/prebuilds/build-orcad-node.mjs \
       --replace-fail 'await ensurePinnedNodeExecutable({ target })' "'${lib.getExe nodejs-slim}'"
+
+    # The provider helper ships with the Nix glibc in its runtime closure.
+    substituteInPlace config/scripts/native-build/posix/build-provider-exec.mjs \
+      --replace-fail '...hostLinkFlags(parsed)' '...LINUX_HARDENING'
 
     # The runtime marker and startup handoff must identify the actual Nix Node.
     node --input-type=module <<'JS'
