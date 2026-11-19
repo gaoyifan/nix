@@ -20,7 +20,7 @@ on:
           - cursor-cli
           - pi-coding-agent
       version:
-        description: "Optional release version for one package; orcad defaults to the latest stable GitHub release"
+        description: "Optional release version for one package"
         required: false
         type: string
 
@@ -51,8 +51,8 @@ jobs:
         uses: nick-fields/retry@v4
         env:
           GH_TOKEN: ${{ github.token }}
-          REQUESTED_PACKAGE: ${{ github.event.inputs.package || 'all' }}
-          REQUESTED_VERSION: ${{ github.event.inputs.version || '' }}
+          REQUESTED_PACKAGE: ${{ inputs.package || 'all' }}
+          REQUESTED_VERSION: ${{ inputs.version }}
         with:
           max_attempts: 5
           retry_wait_seconds: 1
@@ -61,48 +61,28 @@ jobs:
           command: python3 .github/scripts/bump-cli-packages.py --package "$REQUESTED_PACKAGE" --version "$REQUESTED_VERSION"
 
       - name: Format changed files
-        if: steps.bump.outputs.changed == 'true'
+        if: steps.bump.outputs.files != ''
         run: nix fmt --accept-flake-config -- ${{ steps.bump.outputs.files }}
 
-      - name: Validate packages
-        if: steps.bump.outputs.changed == 'true'
-        run: nix build --accept-flake-config .#agy .#copilot .#codex .#claude .#cursor-cli .#pi .#orcad
-
       - name: Commit and push
-        if: steps.bump.outputs.changed == 'true'
+        if: steps.bump.outputs.files != ''
         env:
+          CHANGED_FILES: ${{ steps.bump.outputs.files }}
           COMMIT_SUBJECT: ${{ steps.bump.outputs.commit_subject }}
           COMMIT_BODY: ${{ steps.bump.outputs.commit_body }}
         run: |
           set -euo pipefail
 
-          if git diff --quiet; then
-            echo "No changes after update."
-            exit 0
-          fi
-
-          git add ${{ steps.bump.outputs.files }}
+          read -r -a files <<< "$CHANGED_FILES"
+          git add -- "${files[@]}"
           git \
             -c user.name='github-actions[bot]' \
             -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
             commit -m "$COMMIT_SUBJECT" -m "$COMMIT_BODY"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+          git push origin "HEAD:refs/heads/$GITHUB_REF_NAME"
 
       - name: Trigger build and cache
-        if: steps.bump.outputs.changed == 'true' && github.ref == 'refs/heads/main'
+        if: steps.bump.outputs.files != '' && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-
-          curl --fail --silent --show-error \
-            -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${GH_TOKEN}" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/build.yml/dispatches" \
-            --data "{\"ref\":\"${GITHUB_REF_NAME}\",\"inputs\":{\"revision\":\"$(git rev-parse HEAD)\"}}"
-
-      - name: No update needed
-        if: steps.bump.outputs.changed == 'false'
-        run: echo "${{ steps.bump.outputs.summary }}"
+        run: gh workflow run build.yml --ref "$GITHUB_REF_NAME" -f "revision=$(git rev-parse HEAD)"

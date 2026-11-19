@@ -1,7 +1,10 @@
 import importlib.util
 import io
 import json
+import subprocess
+import tempfile
 import unittest
+from http.client import IncompleteRead
 from pathlib import Path
 from unittest import mock
 from urllib.error import HTTPError
@@ -18,9 +21,9 @@ class GitHubReleaseTests(unittest.TestCase):
         complete = {
             "tag_name": "rust-v0.163.0",
             "assets": [
-                {"name": "codex-package-x86_64-unknown-linux-musl.tar.gz"},
-                {"name": "codex-package-aarch64-unknown-linux-musl.tar.gz"},
-                {"name": "codex-package-aarch64-apple-darwin.tar.gz"},
+                {"name": "codex-package-x86_64-unknown-linux-musl.tar.gz", "state": "uploaded"},
+                {"name": "codex-package-aarch64-unknown-linux-musl.tar.gz", "state": "uploaded"},
+                {"name": "codex-package-aarch64-apple-darwin.tar.gz", "state": "uploaded"},
             ],
         }
         pages = [
@@ -55,6 +58,50 @@ class GitHubReleaseTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "could not find a release"):
                 bump.latest_github_release(bump.PACKAGES["codex"])
         self.assertEqual(fetch_text.call_count, 10)
+
+    def test_skips_unpublished_assets_and_does_not_downgrade(self):
+        config = bump.PACKAGES["orcad"]
+        assets = [{"name": name, "state": "uploaded"} for name in config["assets"].values()]
+        releases = [
+            {"tag_name": "v1.4.101", "prerelease": True, "assets": assets},
+            {"tag_name": "v1.4.100", "assets": [*assets[:-1], {**assets[-1], "state": "new"}]},
+            {"tag_name": "v1.4.99", "assets": assets},
+        ]
+        with mock.patch.object(bump, "fetch_text", return_value=json.dumps(releases)):
+            self.assertEqual(bump.latest_version("orcad", config, "1.4.98"), "1.4.99")
+            self.assertEqual(bump.latest_version("orcad", config, "1.4.100"), "1.4.100")
+
+
+class BatchUpdateTests(unittest.TestCase):
+    def test_fetch_and_build_failures_keep_their_pins(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            packages = {
+                name: {"path": root / f"{name}.nix", "assets": {}} for name in ("unreachable", "broken", "working")
+            }
+            original = 'version = "1.0.0";\n'
+            for config in packages.values():
+                config["path"].write_text(original)
+
+            output = root / "output"
+            with (
+                mock.patch.object(bump, "ROOT", root),
+                mock.patch.object(bump, "PACKAGES", packages),
+                mock.patch("sys.argv", ["bump-cli-packages.py"]),
+                mock.patch.dict("os.environ", GITHUB_OUTPUT=str(output)),
+                mock.patch.object(bump, "latest_version", side_effect=[IncompleteRead(b""), "2.0.0", "2.0.0"]),
+                mock.patch.object(
+                    bump.subprocess, "run", side_effect=[subprocess.CalledProcessError(1, "nix build"), None]
+                ) as build,
+                mock.patch("sys.stdout", new_callable=io.StringIO),
+            ):
+                bump.main()
+
+            self.assertEqual([call.args[0][-1] for call in build.call_args_list], [".#broken", ".#working"])
+            self.assertEqual(packages["unreachable"]["path"].read_text(), original)
+            self.assertEqual(packages["broken"]["path"].read_text(), original)
+            self.assertIn('version = "2.0.0";', packages["working"]["path"].read_text())
+            self.assertIn("files=working.nix", output.read_text().splitlines())
 
 
 if __name__ == "__main__":

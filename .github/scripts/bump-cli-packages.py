@@ -5,24 +5,30 @@ import os
 import pathlib
 import re
 import subprocess
-import sys
 import urllib.request
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
+STABLE_VERSION = r"[0-9]+\.[0-9]+\.[0-9]+"
 
-# Excluded from "all" (scheduled) bumps; can still be bumped explicitly via
-# workflow_dispatch. These packages are intentionally manual-only.
 AUTO_BUMP_SKIP = {"copilot-cli", "claude-code"}
 
 
 PACKAGES = {
     "orcad": {
         "path": ROOT / "pkgs/orcad.nix",
-        "nix_update": True,
+        "release_api": "https://api.github.com/repos/stablyai/orca/releases",
+        "tag_pattern": rf"^v{STABLE_VERSION}$",
+        "version_from_tag": lambda tag: tag.removeprefix("v"),
+        "assets": {
+            "x86_64-linux": "orca-server-linux-x64.tar.gz",
+            "aarch64-linux": "orca-server-linux-arm64.tar.gz",
+        },
+        "url": lambda version, asset: f"https://github.com/stablyai/orca/releases/download/v{version}/{asset}",
     },
     "antigravity-cli": {
         "path": ROOT / "pkgs/antigravity-cli.nix",
+        "build_attr": "agy",
         "manifest_base": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app",
         "manifests": {
             "x86_64-linux": "linux_amd64",
@@ -41,7 +47,7 @@ PACKAGES = {
     "copilot-cli": {
         "path": ROOT / "pkgs/copilot-cli.nix",
         "release_api": "https://api.github.com/repos/github/copilot-cli/releases",
-        "tag_pattern": r"^v[0-9]+\.[0-9]+\.[0-9]+$",
+        "tag_pattern": rf"^v{STABLE_VERSION}$",
         "version_from_tag": lambda tag: tag.removeprefix("v"),
         "assets": {
             "x86_64-linux": "copilot-linux-x64.tar.gz",
@@ -53,7 +59,7 @@ PACKAGES = {
     "codex": {
         "path": ROOT / "pkgs/codex.nix",
         "release_api": "https://api.github.com/repos/openai/codex/releases",
-        "tag_pattern": r"^rust-v[0-9]+\.[0-9]+\.[0-9]+$",
+        "tag_pattern": rf"^rust-v{STABLE_VERSION}$",
         "version_from_tag": lambda tag: tag.removeprefix("rust-v"),
         "assets": {
             "x86_64-linux": "codex-package-x86_64-unknown-linux-musl.tar.gz",
@@ -83,7 +89,7 @@ PACKAGES = {
     "pi-coding-agent": {
         "path": ROOT / "pkgs/pi-coding-agent.nix",
         "release_api": "https://api.github.com/repos/earendil-works/pi/releases",
-        "tag_pattern": r"^v[0-9]+\.[0-9]+\.[0-9]+$",
+        "tag_pattern": rf"^v{STABLE_VERSION}$",
         "version_from_tag": lambda tag: tag.removeprefix("v"),
         "assets": {
             "x86_64-linux": "pi-linux-x64.tar.gz",
@@ -105,29 +111,9 @@ def fetch_text(url, *, token=None, user_agent="bump-cli-packages"):
         return response.read().decode()
 
 
-def current_version(path):
-    match = re.search(r'^\s*version = "([^"]+)";$', path.read_text(), re.MULTILINE)
-    if not match:
-        raise RuntimeError(f"could not find version in {path}")
-    return match.group(1)
-
-
-def current_source_version(name):
-    output = subprocess.check_output(
-        [
-            "nix",
-            "eval",
-            "--raw",
-            f".#{name}.version",
-        ],
-        cwd=ROOT,
-        text=True,
-    )
-    return output.strip()
-
-
 def latest_github_release(config):
     tag_pattern = re.compile(config["tag_pattern"])
+    required_assets = set(config["assets"].values())
 
     # Keep the original 100-release search limit without requesting all at once:
     # Codex's release assets make that large request time out.
@@ -137,13 +123,11 @@ def latest_github_release(config):
         )
         for release in releases:
             tag = release.get("tag_name", "")
-            if not tag_pattern.match(tag):
+            if release.get("draft") or release.get("prerelease") or not tag_pattern.match(tag):
                 continue
-            version = config["version_from_tag"](tag)
-            required_assets = {asset.format(version=version) for asset in config["assets"].values()}
-            assets = {asset["name"] for asset in release.get("assets", [])}
+            assets = {asset["name"] for asset in release.get("assets", []) if asset["state"] == "uploaded"}
             if required_assets <= assets:
-                return version
+                return config["version_from_tag"](tag)
         if len(releases) < 10:
             break
 
@@ -182,18 +166,17 @@ def latest_antigravity(config):
     return releases.pop()
 
 
-def latest_version(name, config):
-    if name == "orcad":
-        release = json.loads(
-            fetch_text("https://api.github.com/repos/stablyai/orca/releases/latest", token=os.environ.get("GH_TOKEN"))
-        )
-        return release["tag_name"].removeprefix("v")
+def latest_version(name, config, current):
     if name == "claude-code":
         return fetch_text("https://downloads.claude.ai/claude-code-releases/latest").strip()
     if name == "antigravity-cli":
         return latest_antigravity(config)
     if "release_api" in config:
-        return latest_github_release(config)
+        latest = latest_github_release(config)
+        # A withdrawn release can expose an older version.
+        if re.fullmatch(STABLE_VERSION, current):
+            return max(current, latest, key=lambda version: tuple(map(int, version.split("."))))
+        return latest
     if name == "cursor-cli":
         return latest_cursor_cli()
     raise RuntimeError(f"unsupported package: {name}")
@@ -204,33 +187,21 @@ def prefetch_hash(url):
     return json.loads(output)["hash"]
 
 
-def update_package(name, config, version):
-    if config.get("nix_update"):
-        subprocess.run(
-            [
-                "nix",
-                "run",
-                "--inputs-from",
-                ".",
-                "nixpkgs#nix-update",
-                "--",
-                "--flake",
-                "--use-github-releases",
-                name,
-                "--version",
-                version,
-            ],
-            cwd=ROOT,
-            check=True,
-        )
+def update_package(name, requested_version):
+    config = PACKAGES[name]
+    path = config["path"]
+    original = path.read_text()
+    pin = re.search(r'^\s*version = "([^"]+)";$', original, re.MULTILINE)
+    if not pin:
+        raise RuntimeError(f"could not find version in {path}")
+    current = pin[1]
+    version = requested_version or latest_version(name, config, current)
+    print(format_summary(name, current, version), flush=True)
+    if version == current:
         return
 
-    path = config["path"]
-    text = path.read_text()
-    text, count = re.subn(r'version = "[^"]+";', f'version = "{version}";', text, count=1)
-    if count != 1:
-        raise RuntimeError(f"failed to update version in {path}")
-
+    start, end = pin.span(1)
+    text = original[:start] + version + original[end:]
     for system, asset in config["assets"].items():
         hash_value = prefetch_hash(config["url"](version, asset))
         pattern = (
@@ -242,7 +213,17 @@ def update_package(name, config, version):
         if count != 1:
             raise RuntimeError(f"failed to update {system} hash in {path}")
 
-    path.write_text(text)
+    try:
+        path.write_text(text)
+        subprocess.run(
+            ["nix", "build", "--accept-flake-config", "--no-link", f".#{config.get('build_attr', name)}"],
+            cwd=ROOT,
+            check=True,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        path.write_text(original)
+        raise
+    return name, current, version
 
 
 def set_output(name, value):
@@ -282,52 +263,36 @@ def main():
     parser.add_argument("--version", default="")
     args = parser.parse_args()
 
-    selected = [name for name in PACKAGES if name not in AUTO_BUMP_SKIP] if args.package == "all" else [args.package]
-    if args.version and len(selected) != 1:
+    batch = args.package == "all"
+    if args.version and batch:
         raise SystemExit("--version requires selecting one package")
+    selected = [name for name in PACKAGES if name not in AUTO_BUMP_SKIP] if batch else [args.package]
 
     changed = []
-    summaries = []
+    failed = 0
 
     for name in selected:
-        config = PACKAGES[name]
-        if config.get("nix_update"):
-            # Read the evaluated package, not the nested pnpm tool's version.
-            current = current_source_version(name)
-            latest = args.version or latest_version(name, config)
-            before = config["path"].read_text()
-            update_package(name, config, latest)
-            latest = current_source_version(name)
-            summaries.append(format_summary(name, current, latest))
-            if config["path"].read_text() != before:
-                changed.append((name, current, latest))
+        try:
+            change = update_package(name, args.version)
+        except Exception as error:
+            if not batch:
+                raise
+            print(f"::warning::{name} update skipped: {error}", flush=True)
+            failed += 1
             continue
-        current = current_version(config["path"])
-        latest = args.version or latest_version(name, config)
-        summaries.append(format_summary(name, current, latest))
+        if change:
+            changed.append(change)
 
-        if current == latest:
-            continue
+    if failed == len(selected):
+        raise RuntimeError("all package updates failed")
 
-        update_package(name, config, latest)
-        changed.append((name, current, latest))
-
-    set_output("changed", "true" if changed else "false")
     set_output(
         "files",
         " ".join(str(PACKAGES[name]["path"].relative_to(ROOT)) for name, _, _ in changed),
     )
-    set_output("summary", "; ".join(summaries))
     set_output("commit_subject", commit_subject(changed) if changed else "")
-    set_output("commit_body", commit_body(changed) if changed else "")
-
-    for summary in summaries:
-        print(summary)
+    set_output("commit_body", commit_body(changed))
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception as error:
-        print(f"error: {error}", file=sys.stderr)
-        raise
+    main()
