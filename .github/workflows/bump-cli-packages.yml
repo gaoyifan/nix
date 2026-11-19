@@ -16,11 +16,10 @@ on:
           - copilot-cli
           - codex
           - claude-code
-          - orcad
           - cursor-cli
           - pi-coding-agent
       version:
-        description: "Optional release version for one package; orcad defaults to the latest stable GitHub release"
+        description: "Optional release version for one package"
         required: false
         type: string
 
@@ -66,7 +65,7 @@ jobs:
 
       - name: Validate packages
         if: steps.bump.outputs.changed == 'true'
-        run: nix build --accept-flake-config .#agy .#copilot .#codex .#claude .#cursor-cli .#pi .#orcad
+        run: nix build --accept-flake-config .#agy .#copilot .#codex .#claude .#cursor-cli .#pi
 
       - name: Commit and push
         if: steps.bump.outputs.changed == 'true'

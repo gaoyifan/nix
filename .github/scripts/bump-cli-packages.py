@@ -17,10 +17,6 @@ AUTO_BUMP_SKIP = {"copilot-cli", "claude-code"}
 
 
 PACKAGES = {
-    "orcad": {
-        "path": ROOT / "pkgs/orcad.nix",
-        "nix_update": True,
-    },
     "antigravity-cli": {
         "path": ROOT / "pkgs/antigravity-cli.nix",
         "manifest_base": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app",
@@ -112,20 +108,6 @@ def current_version(path):
     return match.group(1)
 
 
-def current_source_version(name):
-    output = subprocess.check_output(
-        [
-            "nix",
-            "eval",
-            "--raw",
-            f".#{name}.version",
-        ],
-        cwd=ROOT,
-        text=True,
-    )
-    return output.strip()
-
-
 def latest_github_release(config):
     tag_pattern = re.compile(config["tag_pattern"])
 
@@ -183,11 +165,6 @@ def latest_antigravity(config):
 
 
 def latest_version(name, config):
-    if name == "orcad":
-        release = json.loads(
-            fetch_text("https://api.github.com/repos/stablyai/orca/releases/latest", token=os.environ.get("GH_TOKEN"))
-        )
-        return release["tag_name"].removeprefix("v")
     if name == "claude-code":
         return fetch_text("https://downloads.claude.ai/claude-code-releases/latest").strip()
     if name == "antigravity-cli":
@@ -204,27 +181,7 @@ def prefetch_hash(url):
     return json.loads(output)["hash"]
 
 
-def update_package(name, config, version):
-    if config.get("nix_update"):
-        subprocess.run(
-            [
-                "nix",
-                "run",
-                "--inputs-from",
-                ".",
-                "nixpkgs#nix-update",
-                "--",
-                "--flake",
-                "--use-github-releases",
-                name,
-                "--version",
-                version,
-            ],
-            cwd=ROOT,
-            check=True,
-        )
-        return
-
+def update_package(config, version):
     path = config["path"]
     text = path.read_text()
     text, count = re.subn(r'version = "[^"]+";', f'version = "{version}";', text, count=1)
@@ -291,17 +248,6 @@ def main():
 
     for name in selected:
         config = PACKAGES[name]
-        if config.get("nix_update"):
-            # Read the evaluated package, not the nested pnpm tool's version.
-            current = current_source_version(name)
-            latest = args.version or latest_version(name, config)
-            before = config["path"].read_text()
-            update_package(name, config, latest)
-            latest = current_source_version(name)
-            summaries.append(format_summary(name, current, latest))
-            if config["path"].read_text() != before:
-                changed.append((name, current, latest))
-            continue
         current = current_version(config["path"])
         latest = args.version or latest_version(name, config)
         summaries.append(format_summary(name, current, latest))
@@ -309,7 +255,7 @@ def main():
         if current == latest:
             continue
 
-        update_package(name, config, latest)
+        update_package(config, latest)
         changed.append((name, current, latest))
 
     set_output("changed", "true" if changed else "false")
