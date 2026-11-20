@@ -117,8 +117,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     outputs:
-      changed: ${{ steps.bump.outputs.changed }}
       base: ${{ steps.base.outputs.sha }}
+      pin: ${{ steps.validate.outputs.pin }}
 
     steps:
       - uses: actions/checkout@v7
@@ -134,21 +134,17 @@ jobs:
           REQUESTED_VERSION: ${{ inputs.version }}
         run: python3 .github/scripts/bump-cli-packages.py --package orcad --version "$REQUESTED_VERSION"
       - name: Build and smoke-test Orcad
+        id: validate
         if: steps.bump.outputs.changed == 'true'
         run: |
           package=$(nix build --accept-flake-config --no-link --print-out-paths .#orcad)
           ORCAD_PACKAGE="$package" timeout 60s python3 .github/scripts/test_bump_cli_packages.py OrcadRuntimeTests -v
-      - uses: actions/upload-artifact@v4
-        if: steps.bump.outputs.changed == 'true'
-        with:
-          name: orcad-pin
-          path: pkgs/orcad.nix
-          overwrite: true
+          echo "pin=$(base64 -w0 pkgs/orcad.nix)" >> "$GITHUB_OUTPUT"
 
   publish-orcad:
     name: Test Orcad (ARM64) and publish
     needs: bump-orcad
-    if: needs.bump-orcad.outputs.changed == 'true'
+    if: needs.bump-orcad.outputs.pin != ''
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
 
@@ -156,10 +152,10 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ needs.bump-orcad.outputs.base }}
-      - uses: actions/download-artifact@v4
-        with:
-          name: orcad-pin
-          path: pkgs
+      - name: Apply the tested Orcad pin
+        env:
+          ORCAD_PIN: ${{ needs.bump-orcad.outputs.pin }}
+        run: printf '%s' "$ORCAD_PIN" | base64 --decode > pkgs/orcad.nix
       - uses: nixbuild/nix-quick-install-action@v35
       - name: Build and smoke-test Orcad
         run: |
