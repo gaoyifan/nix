@@ -5,15 +5,15 @@
     {
       x86_64-linux = {
         asset = "pi-linux-x64.tar.gz";
-        hash = "sha256-gRxvLJ56ruJStUBCUuVW+3E6ognB9/kkImqnfU73DLU=";
+        hash = "sha256-73fb5DebO960JaHhuGL6PJFcJVAA3+SWXJju6WpXZdE=";
       };
       aarch64-linux = {
         asset = "pi-linux-arm64.tar.gz";
-        hash = "sha256-QoBc1WFZUvy7/JxWsE+P64Q5UTSVLhaabNyNdnaXVmY=";
+        hash = "sha256-VARUe5c5vlltUK5xQsUlNYmejn3Tenus6b5ZPgNVtGg=";
       };
       aarch64-darwin = {
         asset = "pi-darwin-arm64.tar.gz";
-        hash = "sha256-VrXhlNSFztVVZnuLoydhV6gnLp7N6eAB5CivgJhb3Zs=";
+        hash = "sha256-ZCkoe3rpjXJuxXeBXRT9aA58WH6J7MUVO0oUXcStujM=";
       };
     }
     .${
@@ -23,7 +23,7 @@
 in
   stdenvNoCC.mkDerivation rec {
     pname = "pi-coding-agent";
-    version = "1.5.2";
+    version = "1.6.0";
 
     src = fetchurl {
       url = "https://github.com/earendil-works/pi/releases/download/v${version}/${platform.asset}";
