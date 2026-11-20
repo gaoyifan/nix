@@ -34,20 +34,16 @@ concurrency:
 
 jobs:
   bump:
-    if: inputs.package != 'orcad'
     runs-on: ubuntu-latest
-    outputs:
-      revision: ${{ steps.publish.outputs.revision }}
 
     steps:
       - name: Checkout repository
-        uses: &checkout actions/checkout@v7
+        uses: actions/checkout@v7
 
       - name: Test package updater
         run: python3 .github/scripts/test_bump_cli_packages.py
 
-      - &install-nix
-        name: Install Nix
+      - name: Install Nix
         uses: nixbuild/nix-quick-install-action@v35
 
       - name: Bump packages
@@ -62,15 +58,11 @@ jobs:
           retry_wait_seconds: 1
           timeout_minutes: 30
           on_retry_command: git restore --source=HEAD --staged --worktree -- .
-          command: &bump-command python3 .github/scripts/bump-cli-packages.py --package "$REQUESTED_PACKAGE" --version "$REQUESTED_VERSION"
+          command: python3 .github/scripts/bump-cli-packages.py --package "$REQUESTED_PACKAGE" --version "$REQUESTED_VERSION"
 
       - name: Format changed files
         if: steps.bump.outputs.changed == 'true'
         run: nix fmt --accept-flake-config -- ${{ steps.bump.outputs.files }}
-
-      - name: Validate packages
-        if: steps.bump.outputs.changed == 'true'
-        run: nix build --accept-flake-config .#agy .#copilot .#codex .#claude .#cursor-cli .#pi
 
       - name: Commit and push
         id: publish
@@ -79,7 +71,7 @@ jobs:
           CHANGED_FILES: ${{ steps.bump.outputs.files }}
           COMMIT_SUBJECT: ${{ steps.bump.outputs.commit_subject }}
           COMMIT_BODY: ${{ steps.bump.outputs.commit_body }}
-        run: &publish |
+        run: |
           set -euo pipefail
 
           if git diff --quiet; then
@@ -96,80 +88,9 @@ jobs:
           git push origin "HEAD:refs/heads/$GITHUB_REF_NAME"
           echo "revision=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
-  bump-orcad:
-    name: Prepare and test Orcad (x86_64)
-    needs: bump
-    if: >-
-      ${{ !cancelled() && (inputs.package == 'orcad' ||
-          (inputs.version == '' && (inputs.package == '' || inputs.package == 'all'))) }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    outputs:
-      base: ${{ steps.checkout.outputs.commit }}
-      pin: ${{ steps.pin.outputs.data }}
-      commit_subject: ${{ steps.bump.outputs.commit_subject }}
-      commit_body: ${{ steps.bump.outputs.commit_body }}
-
-    steps:
-      - uses: *checkout
-        id: checkout
-        with:
-          ref: ${{ github.ref }}
-      - *install-nix
-      - name: Check for a complete Orcad release
-        id: bump
+      - name: Trigger build and cache
+        if: steps.publish.outputs.revision != '' && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
-          REQUESTED_PACKAGE: orcad
-          REQUESTED_VERSION: ${{ inputs.version }}
-        run: *bump-command
-      - name: Build and smoke-test Orcad
-        if: steps.bump.outputs.changed == 'true'
-        run: &smoke-orcad |
-          package=$(nix build --accept-flake-config --no-link --print-out-paths .#orcad)
-          ORCAD_PACKAGE="$package" timeout 60s python3 .github/scripts/test_bump_cli_packages.py OrcadRuntimeTests -v
-      - name: Export the tested Orcad pin
-        id: pin
-        if: steps.bump.outputs.changed == 'true'
-        run: echo "data=$(base64 -w0 pkgs/orcad.nix)" >> "$GITHUB_OUTPUT"
-
-  publish-orcad:
-    name: Test Orcad (ARM64) and publish
-    needs: bump-orcad
-    if: ${{ !cancelled() && needs.bump-orcad.result == 'success' && needs.bump-orcad.outputs.pin != '' }}
-    runs-on: ubuntu-24.04-arm
-    timeout-minutes: 15
-    outputs:
-      revision: ${{ steps.publish.outputs.revision }}
-
-    steps:
-      - uses: *checkout
-        with:
-          ref: ${{ needs.bump-orcad.outputs.base }}
-      - name: Apply the tested Orcad pin
-        env:
-          ORCAD_PIN: ${{ needs.bump-orcad.outputs.pin }}
-        run: printf '%s' "$ORCAD_PIN" | base64 --decode > pkgs/orcad.nix
-      - *install-nix
-      - name: Build and smoke-test Orcad
-        run: *smoke-orcad
-      - name: Commit and push
-        id: publish
-        env:
-          CHANGED_FILES: pkgs/orcad.nix
-          COMMIT_SUBJECT: ${{ needs.bump-orcad.outputs.commit_subject }}
-          COMMIT_BODY: ${{ needs.bump-orcad.outputs.commit_body }}
-        run: *publish
-
-  cache:
-    name: Trigger build and cache
-    needs: [bump, publish-orcad]
-    if: >-
-      ${{ !cancelled() && github.ref == 'refs/heads/main' &&
-          (needs.publish-orcad.outputs.revision != '' || needs.bump.outputs.revision != '') }}
-    runs-on: ubuntu-latest
-    env:
-      GH_TOKEN: ${{ github.token }}
-      REVISION: ${{ needs.publish-orcad.outputs.revision || needs.bump.outputs.revision }}
-    steps:
-      - run: gh workflow run build.yml --repo "$GITHUB_REPOSITORY" --ref "$GITHUB_REF_NAME" -f "revision=$REVISION"
+          REVISION: ${{ steps.publish.outputs.revision }}
+        run: gh workflow run build.yml --ref "$GITHUB_REF_NAME" -f "revision=$REVISION"

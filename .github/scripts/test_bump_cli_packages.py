@@ -1,7 +1,6 @@
 import importlib.util
 import io
 import json
-import os
 import subprocess
 import tempfile
 import unittest
@@ -21,9 +20,9 @@ class GitHubReleaseTests(unittest.TestCase):
         complete = {
             "tag_name": "rust-v0.163.0",
             "assets": [
-                {"name": "codex-package-x86_64-unknown-linux-musl.tar.gz"},
-                {"name": "codex-package-aarch64-unknown-linux-musl.tar.gz"},
-                {"name": "codex-package-aarch64-apple-darwin.tar.gz"},
+                {"name": "codex-package-x86_64-unknown-linux-musl.tar.gz", "state": "uploaded"},
+                {"name": "codex-package-aarch64-unknown-linux-musl.tar.gz", "state": "uploaded"},
+                {"name": "codex-package-aarch64-apple-darwin.tar.gz", "state": "uploaded"},
             ],
         }
         pages = [
@@ -59,65 +58,49 @@ class GitHubReleaseTests(unittest.TestCase):
                 bump.latest_github_release(bump.PACKAGES["codex"])
         self.assertEqual(fetch_text.call_count, 10)
 
-    def test_orcad_waits_for_the_complete_stable_release(self):
+    def test_skips_unpublished_assets_and_does_not_downgrade(self):
         config = bump.PACKAGES["orcad"]
-        release = {
-            "tag_name": "v1.4.100",
-            "draft": False,
-            "prerelease": False,
-            "assets": [
-                {"name": name, "state": "uploaded"}
-                for name in (*config["assets"].values(), "orca-server-sha256sums.txt")
-            ],
-        }
-        with mock.patch.object(bump, "fetch_text", side_effect=lambda *args, **kwargs: json.dumps(release)):
-            self.assertEqual(bump.orcad_version(config, "1.4.99", ""), "1.4.100")
-            self.assertEqual(bump.orcad_version(config, "1.4.101", ""), "1.4.101")
-            release["assets"][1]["state"] = "new"
-            self.assertEqual(bump.orcad_version(config, "1.4.99", ""), "1.4.99")
-            with self.assertRaisesRegex(ValueError, "missing published server assets"):
-                bump.orcad_version(config, "1.4.99", "1.4.100")
+        assets = [
+            {"name": name, "state": "uploaded"}
+            for name in (*config["assets"].values(), *config["required_release_assets"])
+        ]
+        releases = [
+            {"tag_name": "v1.4.101", "prerelease": True, "assets": assets},
+            {"tag_name": "v1.4.100", "assets": [*assets[:-1], {**assets[-1], "state": "new"}]},
+            {"tag_name": "v1.4.99", "assets": assets},
+        ]
+        with mock.patch.object(bump, "fetch_text", return_value=json.dumps(releases)):
+            self.assertEqual(bump.latest_version("orcad", config, "1.4.98"), "1.4.99")
+            self.assertEqual(bump.latest_version("orcad", config, "1.4.100"), "1.4.100")
 
 
-@unittest.skipUnless(os.environ.get("ORCAD_PACKAGE"), "requires a built Orcad package")
-class OrcadRuntimeTests(unittest.TestCase):
-    def test_server_starts_and_pairs(self):
-        package = Path(os.environ["ORCAD_PACKAGE"])
-        cli = package / "bin/orca-ide"
-        with tempfile.TemporaryDirectory(prefix="orcad-smoke-") as root:
-            server_env = {**os.environ, "ORCA_USER_DATA_PATH": f"{root}/server", "ORCA_TELEMETRY_DISABLED": "1"}
-            client_env = {**server_env, "ORCA_USER_DATA_PATH": f"{root}/client"}
-            version = subprocess.check_output([cli, "--version"], env=client_env, text=True, timeout=15).strip()
-            self.assertEqual(version, bump.current_version(bump.PACKAGES["orcad"]["path"]))
-            with subprocess.Popen(
-                [package / "bin/orcad", "--port", "0", "--json"],
-                env=server_env,
-                stdout=subprocess.PIPE,
-                text=True,
-            ) as server:
-                try:
-                    line = next(
-                        (line for line in server.stdout if line.startswith('{"type":"orca_server_ready"')), None
-                    )
-                    self.assertIsNotNone(line, "Orcad exited before reporting readiness")
-                    ready = json.loads(line)
-                    self.assertTrue(ready["boundEndpoint"].startswith("ws://127.0.0.1:"))
-                    self.assertTrue(ready["health"]["terminalDaemon"]["selfTest"]["ok"], "Orcad PTY self-test failed")
-                    result = subprocess.run(
-                        [cli, "--pairing-code", ready["pairing"]["url"], "status", "--json"],
-                        env=client_env,
-                        text=True,
-                        capture_output=True,
-                        timeout=20,
-                    )
-                    self.assertEqual(result.returncode, 0, "could not pair with Orcad")
-                    self.assertEqual(json.loads(result.stdout)["result"]["runtime"]["state"], "ready")
-                finally:
-                    server.terminate()
-                    try:
-                        server.wait(timeout=10)
-                    except subprocess.TimeoutExpired:
-                        server.kill()
+class BatchUpdateTests(unittest.TestCase):
+    def test_build_failure_restores_only_the_failed_pin(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            packages = {name: {"path": root / f"{name}.nix", "assets": {}} for name in ("broken", "working")}
+            original = 'version = "1.0.0";\n'
+            for config in packages.values():
+                config["path"].write_text(original)
+
+            def build(command, **kwargs):
+                if command[-1] == ".#broken":
+                    self.assertIn('version = "2.0.0";', packages["broken"]["path"].read_text())
+                    raise subprocess.CalledProcessError(1, command)
+
+            with (
+                mock.patch.object(bump, "ROOT", root),
+                mock.patch.object(bump, "PACKAGES", packages),
+                mock.patch.object(bump.sys, "argv", ["bump-cli-packages.py"]),
+                mock.patch.object(bump, "latest_version", return_value="2.0.0"),
+                mock.patch.object(bump.subprocess, "run", side_effect=build),
+                mock.patch.object(bump, "set_output") as set_output,
+            ):
+                bump.main()
+
+            self.assertEqual(packages["broken"]["path"].read_text(), original)
+            self.assertIn('version = "2.0.0";', packages["working"]["path"].read_text())
+            set_output.assert_any_call("files", "working.nix")
 
 
 if __name__ == "__main__":

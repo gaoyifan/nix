@@ -7,18 +7,22 @@ import re
 import subprocess
 import sys
 import urllib.request
+from urllib.error import URLError
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 STABLE_VERSION = r"[0-9]+\.[0-9]+\.[0-9]+"
 
-# Orcad has its own validation jobs in the workflow. Copilot and Claude are manual-only.
-AUTO_BUMP_SKIP = {"orcad", "copilot-cli", "claude-code"}
+AUTO_BUMP_SKIP = {"copilot-cli", "claude-code"}
 
 
 PACKAGES = {
     "orcad": {
         "path": ROOT / "pkgs/orcad.nix",
+        "release_api": "https://api.github.com/repos/stablyai/orca/releases",
+        "tag_pattern": rf"^v{STABLE_VERSION}$",
+        "version_from_tag": lambda tag: tag.removeprefix("v"),
+        "required_release_assets": {"orca-server-sha256sums.txt"},
         "assets": {
             "x86_64-linux": "orca-server-linux-x64.tar.gz",
             "aarch64-linux": "orca-server-linux-arm64.tar.gz",
@@ -27,6 +31,7 @@ PACKAGES = {
     },
     "antigravity-cli": {
         "path": ROOT / "pkgs/antigravity-cli.nix",
+        "build_attr": "agy",
         "manifest_base": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app",
         "manifests": {
             "x86_64-linux": "linux_amd64",
@@ -127,11 +132,12 @@ def latest_github_release(config):
         )
         for release in releases:
             tag = release.get("tag_name", "")
-            if not tag_pattern.match(tag):
+            if release.get("draft") or release.get("prerelease") or not tag_pattern.match(tag):
                 continue
             version = config["version_from_tag"](tag)
             required_assets = {asset.format(version=version) for asset in config["assets"].values()}
-            assets = {asset["name"] for asset in release.get("assets", [])}
+            required_assets.update(config.get("required_release_assets", ()))
+            assets = {asset["name"] for asset in release.get("assets", []) if asset["state"] == "uploaded"}
             if required_assets <= assets:
                 return version
         if len(releases) < 10:
@@ -172,45 +178,17 @@ def latest_antigravity(config):
     return releases.pop()
 
 
-def orcad_version(config, current, requested):
-    if requested and not re.fullmatch(STABLE_VERSION, requested):
-        raise ValueError("Orcad --version must be a stable version in the form X.Y.Z")
-    endpoint = f"tags/v{requested}" if requested else "latest"
-    release = json.loads(
-        fetch_text(f"https://api.github.com/repos/stablyai/orca/releases/{endpoint}", token=os.environ.get("GH_TOKEN"))
-    )
-    tag = release["tag_name"]
-    if not re.fullmatch(f"v{STABLE_VERSION}", tag) or release["draft"] or release["prerelease"]:
-        raise ValueError(f"expected a published stable Orca release, got {tag}")
-    version = tag[1:]
-    if requested and version != requested:
-        raise ValueError(f"requested Orca {requested}, got {tag}")
-    if version == current or (
-        not requested and tuple(map(int, version.split("."))) < tuple(map(int, current.split(".")))
-    ):
-        return current
-    uploaded = {asset["name"] for asset in release["assets"] if asset["state"] == "uploaded"}
-    missing = {*config["assets"].values(), "orca-server-sha256sums.txt"} - uploaded
-    if missing:
-        message = f"Orca {tag} is missing published server assets: {', '.join(sorted(missing))}"
-        if requested:
-            raise ValueError(message)
-        print(message)
-        return current
-    return version
-
-
-def target_version(name, config, current, requested):
-    if name == "orcad":
-        return orcad_version(config, current, requested)
-    if requested:
-        return requested
+def latest_version(name, config, current):
     if name == "claude-code":
         return fetch_text("https://downloads.claude.ai/claude-code-releases/latest").strip()
     if name == "antigravity-cli":
         return latest_antigravity(config)
     if "release_api" in config:
-        return latest_github_release(config)
+        latest = latest_github_release(config)
+        # A withdrawn release can expose an older version.
+        if re.fullmatch(STABLE_VERSION, current):
+            return max(current, latest, key=lambda version: tuple(map(int, version.split("."))))
+        return latest
     if name == "cursor-cli":
         return latest_cursor_cli()
     raise RuntimeError(f"unsupported package: {name}")
@@ -284,18 +262,36 @@ def main():
         raise SystemExit("--version requires selecting one package")
 
     changed = []
+    failed = 0
 
     for name in selected:
         config = PACKAGES[name]
-        current = current_version(config["path"])
-        latest = target_version(name, config, current, args.version)
-        print(format_summary(name, current, latest))
-
-        if current == latest:
+        path = config["path"]
+        original = path.read_text()
+        try:
+            current = current_version(path)
+            latest = args.version or latest_version(name, config, current)
+            print(format_summary(name, current, latest), flush=True)
+            if current == latest:
+                continue
+            update_package(config, latest)
+            subprocess.run(
+                ["nix", "build", "--accept-flake-config", "--no-link", f".#{config.get('build_attr', name)}"],
+                cwd=ROOT,
+                check=True,
+            )
+        except (RuntimeError, URLError, TimeoutError, ValueError, subprocess.CalledProcessError) as error:
+            if path.read_text() != original:
+                path.write_text(original)
+            if args.package != "all":
+                raise
+            print(f"::warning::{name} update skipped: {error}", flush=True)
+            failed += 1
             continue
-
-        update_package(config, latest)
         changed.append((name, current, latest))
+
+    if failed == len(selected):
+        raise RuntimeError("all package updates failed")
 
     set_output("changed", "true" if changed else "false")
     set_output(

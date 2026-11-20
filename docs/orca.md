@@ -83,8 +83,10 @@ The upstream bundle includes Node, the PTY addon, the native watcher, and the
 mobile web client. The Nix launcher uses `nix-ld` on NixOS so the files keep the
 byte-level identities Orca checks at startup.
 
-**Bump CLI Packages** publishes other CLI updates before checking Orcad. Orcad
-waits for both server tarballs and their checksum manifest on a stable release.
-The x86_64 and ARM64 jobs each check loopback startup, pairing, and Orca's PTY
-self-test before the ARM64 job pushes the pin. For a manual bump, choose `orcad`
-and optionally enter a stable version.
+**Bump CLI Packages** updates Orcad with the other CLI packages. Scheduled
+updates require a stable release with both server tarballs and their checksum
+manifest. Upstream smoke-tests both tarballs. The updater builds each changed
+package on x86_64 before committing, and **Build and Cache** builds the ARM64
+package after the push. A failed package stays at its current pin while the
+batch publishes packages that passed. For a manual bump, choose `orcad` and
+optionally enter a version.
