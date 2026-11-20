@@ -17,6 +17,14 @@ AUTO_BUMP_SKIP = {"copilot-cli", "claude-code"}
 
 
 PACKAGES = {
+    "orcad": {
+        "path": ROOT / "pkgs/orcad.nix",
+        "assets": {
+            "x86_64-linux": "orca-server-linux-x64.tar.gz",
+            "aarch64-linux": "orca-server-linux-arm64.tar.gz",
+        },
+        "url": lambda version, asset: f"https://github.com/stablyai/orca/releases/download/v{version}/{asset}",
+    },
     "antigravity-cli": {
         "path": ROOT / "pkgs/antigravity-cli.nix",
         "manifest_base": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app",
@@ -176,6 +184,34 @@ def latest_version(name, config):
     raise RuntimeError(f"unsupported package: {name}")
 
 
+def orcad_version(config, current, requested):
+    if requested and not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", requested):
+        raise ValueError("Orcad --version must be a stable version in the form X.Y.Z")
+    endpoint = f"tags/v{requested}" if requested else "latest"
+    release = json.loads(
+        fetch_text(f"https://api.github.com/repos/stablyai/orca/releases/{endpoint}", token=os.environ.get("GH_TOKEN"))
+    )
+    tag = release["tag_name"]
+    if not re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+", tag) or release["draft"] or release["prerelease"]:
+        raise ValueError(f"expected a published stable Orca release, got {tag}")
+    version = tag[1:]
+    if requested and version != requested:
+        raise ValueError(f"requested Orca {requested}, got {tag}")
+    if version == current or (
+        not requested and tuple(map(int, version.split("."))) < tuple(map(int, current.split(".")))
+    ):
+        return current
+    uploaded = {asset["name"] for asset in release["assets"] if asset["state"] == "uploaded"}
+    missing = {*config["assets"].values(), "orca-server-sha256sums.txt"} - uploaded
+    if missing:
+        message = f"Orca {tag} is missing published server assets: {', '.join(sorted(missing))}"
+        if requested:
+            raise ValueError(message)
+        print(message)
+        return current
+    return version
+
+
 def prefetch_hash(url):
     output = subprocess.check_output(["nix", "store", "prefetch-file", "--json", url], text=True)
     return json.loads(output)["hash"]
@@ -239,7 +275,12 @@ def main():
     parser.add_argument("--version", default="")
     args = parser.parse_args()
 
-    selected = [name for name in PACKAGES if name not in AUTO_BUMP_SKIP] if args.package == "all" else [args.package]
+    # The workflow validates Orcad separately so its builds cannot block this batch.
+    selected = (
+        [name for name in PACKAGES if name not in AUTO_BUMP_SKIP and name != "orcad"]
+        if args.package == "all"
+        else [args.package]
+    )
     if args.version and len(selected) != 1:
         raise SystemExit("--version requires selecting one package")
 
@@ -249,7 +290,11 @@ def main():
     for name in selected:
         config = PACKAGES[name]
         current = current_version(config["path"])
-        latest = args.version or latest_version(name, config)
+        latest = (
+            orcad_version(config, current, args.version)
+            if name == "orcad"
+            else args.version or latest_version(name, config)
+        )
         summaries.append(format_summary(name, current, latest))
 
         if current == latest:

@@ -16,6 +16,7 @@ on:
           - copilot-cli
           - codex
           - claude-code
+          - orcad
           - cursor-cli
           - pi-coding-agent
       version:
@@ -33,6 +34,7 @@ concurrency:
 
 jobs:
   bump:
+    if: inputs.package != 'orcad'
     runs-on: ubuntu-latest
 
     steps:
@@ -105,3 +107,72 @@ jobs:
       - name: No update needed
         if: steps.bump.outputs.changed == 'false'
         run: echo "${{ steps.bump.outputs.summary }}"
+
+  bump-orcad:
+    name: Prepare and test Orcad (x86_64)
+    needs: bump
+    if: ${{ !cancelled() && (inputs.package == '' || inputs.package == 'all' || inputs.package == 'orcad') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    outputs:
+      changed: ${{ steps.bump.outputs.changed }}
+      base: ${{ steps.base.outputs.sha }}
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref }}
+      - id: base
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - uses: nixbuild/nix-quick-install-action@v35
+      - name: Check for a complete Orcad release
+        id: bump
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUESTED_VERSION: ${{ inputs.version }}
+        run: python3 .github/scripts/bump-cli-packages.py --package orcad --version "$REQUESTED_VERSION"
+      - name: Build and smoke-test Orcad
+        if: steps.bump.outputs.changed == 'true'
+        run: |
+          package=$(nix build --accept-flake-config --no-link --print-out-paths .#orcad)
+          ORCAD_PACKAGE="$package" timeout 60s python3 .github/scripts/test_bump_cli_packages.py OrcadRuntimeTests -v
+      - uses: actions/upload-artifact@v4
+        if: steps.bump.outputs.changed == 'true'
+        with:
+          name: orcad-pin
+          path: pkgs/orcad.nix
+          overwrite: true
+
+  publish-orcad:
+    name: Test Orcad (ARM64) and publish
+    needs: bump-orcad
+    if: needs.bump-orcad.outputs.changed == 'true'
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.bump-orcad.outputs.base }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: orcad-pin
+          path: pkgs
+      - uses: nixbuild/nix-quick-install-action@v35
+      - name: Build and smoke-test Orcad
+        run: |
+          package=$(nix build --accept-flake-config --no-link --print-out-paths .#orcad)
+          ORCAD_PACKAGE="$package" timeout 60s python3 .github/scripts/test_bump_cli_packages.py OrcadRuntimeTests -v
+      - name: Commit and push
+        run: |
+          version=$(nix eval --accept-flake-config --raw .#orcad.version)
+          git add pkgs/orcad.nix
+          git -c user.name='github-actions[bot]' \
+            -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+            commit -m "chore(pkgs): bump orcad to $version"
+          git push origin "HEAD:refs/heads/$GITHUB_REF_NAME"
+      - name: Trigger build and cache
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run build.yml --ref "$GITHUB_REF_NAME" -f "revision=$(git rev-parse HEAD)"
