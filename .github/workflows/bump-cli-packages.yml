@@ -144,7 +144,7 @@ jobs:
   publish-orcad:
     name: Test Orcad (ARM64) and publish
     needs: bump-orcad
-    if: needs.bump-orcad.outputs.pin != ''
+    if: ${{ !cancelled() && needs.bump-orcad.result == 'success' && needs.bump-orcad.outputs.pin != '' }}
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
 
