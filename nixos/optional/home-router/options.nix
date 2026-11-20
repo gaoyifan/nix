@@ -94,6 +94,11 @@ in {
             default = false;
             description = "Whether this is a guest LAN excluded from internal services.";
           };
+          downloadLimitsMbps = lib.mkOption {
+            type = types.attrsOf types.ints.positive;
+            default = {};
+            description = "Public IPv4 download limit in Mbit/s for each listed client IPv4 address.";
+          };
           dhcpServer = {
             range = lib.mkOption {
               type = types.nullOr types.str;

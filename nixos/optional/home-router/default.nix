@@ -10,6 +10,7 @@ in {
     ../policy-routing.nix
     ./options.nix
     ./networkd.nix
+    ./download-limits.nix
     ./firewall.nix
     ./google-egress.nix
     ./services.nix
