@@ -8,16 +8,11 @@
 }: let
   filesDir = config.services.secrets.filesDir;
   tokenDirectory = filesDir + "/nixos/somo-minisforum/new-api-tokens";
-  newApiTokenDirectory = "/run/agenix/new-api-tokens";
-  newApiTokens =
+  newApiTokenFiles =
     if config.services.secrets.hasRealFiles
     then
-      lib.mapAttrs' (fileName: _: let
-        tokenName = lib.removeSuffix ".age" fileName;
-      in
-        lib.nameValuePair tokenName {
-          file = tokenDirectory + "/${fileName}";
-        })
+      lib.mapAttrs' (fileName: _:
+        lib.nameValuePair (lib.removeSuffix ".age" fileName) (tokenDirectory + "/${fileName}"))
       (lib.filterAttrs (name: _: lib.hasSuffix ".age" name) (builtins.readDir tokenDirectory))
     else {};
 in {
@@ -25,9 +20,9 @@ in {
     {
       telegram-api-hash.file = filesDir + "/nixos/somo-minisforum/telegram-api-hash.age";
     }
-    // lib.mapAttrs' (tokenName: secret:
-      lib.nameValuePair "new-api-tokens/${tokenName}" secret)
-    newApiTokens
+    // lib.mapAttrs' (tokenName: file:
+      lib.nameValuePair "new-api-tokens/${tokenName}" {inherit file;})
+    newApiTokenFiles
   );
 
   imports = [
@@ -52,8 +47,8 @@ in {
     enable = true;
     defaultLan = "somo";
     containers = import (filesDir + "/nixos/somo-minisforum/hermes-nspawn.nix");
-    inherit newApiTokenDirectory;
-    newApiTokenRestartTriggers = lib.mapAttrs (_: secret: secret.file) newApiTokens;
+    newApiTokenDirectory = "${config.age.secretsDir}/new-api-tokens";
+    newApiTokenRestartTriggers = newApiTokenFiles;
     dashboardDomain = "hermes.dengdengli.com";
     telegramBotApi = {
       enable = true;

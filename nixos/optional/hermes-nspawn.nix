@@ -20,8 +20,7 @@
   containerNameFor = userName: "hermes-nix-${userName}";
   newApiTokenFile = userName: "${cfg.newApiTokenDirectory}/hermes-${userName}";
   secretDirectory = containerName: "/run/${containerName}-secrets";
-  honcho = cfg.honcho;
-  honchoBaseUrl = "http://${listenAddress}:${toString honcho.apiPort}";
+  honchoBaseUrl = "http://${listenAddress}:${toString config.services.honcho.apiPort}";
   jsonFormat = pkgs.formats.json {};
   honchoConfigTemplate = userName: let
     containerName = containerNameFor userName;

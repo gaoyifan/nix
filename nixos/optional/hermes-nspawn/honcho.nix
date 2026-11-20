@@ -7,10 +7,7 @@
   cfg = config.services.hermes-nspawn;
   listenAddress = config.networking.homeRouter.serviceAddresses.ipv4;
 in {
-  imports = [
-    ../honcho.nix
-    (lib.mkAliasOptionModule ["services" "hermes-nspawn" "honcho" "apiPort"] ["services" "honcho" "apiPort"])
-  ];
+  imports = [../honcho.nix];
 
   config = lib.mkIf cfg.enable {
     services.honcho = {

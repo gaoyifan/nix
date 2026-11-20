@@ -5,21 +5,22 @@
   username,
   ...
 }: let
-  hasSecrets = config.services.secrets.hasRealFiles;
+  cfg = config.services.codex-api;
   stateDirectory = "/pool1/services/codex-api";
 in {
   imports = [../../../optional/codex-api.nix];
 
-  config = lib.mkIf hasSecrets {
-    services.codex-api.settings = {
-      server.listen = "127.0.0.1:3003";
-      state.path = "${stateDirectory}/state.sqlite3";
-      upstream.auth_file = "/run/credentials/codex-api.service/auth.json";
-      api_keys = [
+  config = lib.mkIf cfg.enable {
+    services.codex-api = {
+      settings = {
+        server.listen = "127.0.0.1:3003";
+        state.path = "${stateDirectory}/state.sqlite3";
+        upstream.auth_file = "/run/credentials/codex-api.service/auth.json";
+      };
+      ageApiKeys = [
         {
           id = "honcho";
-          secret_file = config.age.secrets.honcho-api-token.path;
-          weekly_limit_usd = "500.00";
+          secretName = "honcho-api-token";
         }
       ];
     };
@@ -31,7 +32,7 @@ in {
       restartTriggers = [config.age.secrets.honcho-api-token.file];
       serviceConfig = {
         LoadCredential = "auth.json:${config.users.users.${username}.home}/.codex-api/auth.json";
-        ExecStartPre = "+${pkgs.coreutils}/bin/install -d -m 0700 -o codex-api -g codex-api ${stateDirectory}";
+        ExecStartPre = "+${lib.getExe' pkgs.coreutils "install"} -d -m 0750 -o ${cfg.user} -g ${cfg.group} ${stateDirectory}";
       };
     };
   };

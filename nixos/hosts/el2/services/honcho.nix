@@ -7,8 +7,6 @@
 
   age.secrets.honcho-api-token = lib.mkIf config.services.secrets.hasRealFiles {
     file = config.services.secrets.filesDir + "/nixos/el2/honcho-api-token.age";
-    group = "codex-api";
-    mode = "0440";
   };
 
   services.honcho = {
@@ -17,7 +15,7 @@
     listenAddress = "100.64.2.254";
     apiPort = 8003;
     stateDirectory = "/pool1/services/honcho";
-    apiKeyFile = "/run/agenix/honcho-api-token";
+    apiKeyFile = config.age.secrets.honcho-api-token.path or "${config.age.secretsDir}/honcho-api-token";
     restartTriggers = lib.optional config.services.secrets.hasRealFiles config.age.secrets.honcho-api-token.file;
     environment = {
       VECTOR_STORE_TYPE = "pgvector";
