@@ -1,8 +1,8 @@
 # Orca on el2 and nixos-orbstack
 
 el2 runs the official Orca server bundle as `yifan`. Connect the MacBook's Orca
-desktop app to `wss://orcad.ts.gaof.net` through Tailscale Serve. Orcad uses its
-default loopback listener (`127.0.0.1:6768`); the `orcad` Tailscale Service
+desktop app to `wss://orcad.ts.gaof.net` through Tailscale Serve. Orcad listens
+on `127.0.0.1:6768`. The `orcad` Tailscale Service
 terminates TLS on port 443 using the existing ACME certificate and forwards
 WebSocket connections to it. No host Tailscale IP is pinned, and no Orca Cloud
 relay, Electron, or Xvfb is involved.
@@ -16,10 +16,6 @@ key is `secrets/files/nixos/el2/tailscale-api-key.age`; it can manage Service
 creation and host approval without a browser. Keep decrypted keys out of the Nix
 store and command output. The existing DNS syncer publishes the Service VIP in
 `ts.gaof.net`; resolvers can cache an earlier NXDOMAIN response for five minutes.
-
-The deployment was verified from the Mac's bundled Orca CLI through the hostname:
-TLS validation, paired runtime status, worktree creation, and a terminal command
-round trip all passed. The temporary terminal and worktree were removed afterward.
 
 ## Pair the MacBook
 
@@ -59,7 +55,7 @@ The ACME module owns its secret declaration and uses the host's chosen resolver.
   this deployment; use runtime pairing for the desktop client.
 - Server-side browser panes and speech are not configured.
 
-Inspect the service from this checkout:
+On the host, check the service with these commands.
 
 ```sh
 systemctl status orcad
@@ -67,8 +63,6 @@ sudo journalctl -u orcad -b --no-pager
 ```
 
 Use the desktop client to inspect active terminals before maintenance.
-The package exposes the bundled `orca-ide` CLI and an `orcad` launcher that runs
-`orca-ide serve` on loopback.
 Disconnecting the MacBook leaves agents running. Restarting the systemd service
 briefly disconnects clients; daemon-backed terminals and CLI agents survive when
 the daemon runs in a separate user scope with linger enabled and the incoming
@@ -79,14 +73,5 @@ Deploy changes with `just nixos` on the target host. Deployment leaves the runni
 (`restartIfChanged = false`); activate the installed version with
 `sudo systemctl restart orcad`.
 
-The upstream bundle includes Node, the PTY addon, the native watcher, and the
-mobile web client. The Nix launcher uses `nix-ld` on NixOS so the files keep the
-byte-level identities Orca checks at startup.
-
-**Bump CLI Packages** updates Orcad with the other CLI packages. Scheduled
-updates require a stable release with both server tarballs and their checksum
-manifest. Upstream smoke-tests both tarballs. The updater builds each changed
-package on x86_64 before committing, and **Build and Cache** builds the ARM64
-package after the push. A failed package stays at its current pin while the
-batch publishes packages that passed. For a manual bump, choose `orcad` and
-optionally enter a version.
+**Bump CLI Packages** tracks stable Orca releases with both Linux server tarballs.
+For a manual bump, choose `orcad` and optionally enter a version.

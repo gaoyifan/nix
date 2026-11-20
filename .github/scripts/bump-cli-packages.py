@@ -5,9 +5,7 @@ import os
 import pathlib
 import re
 import subprocess
-import sys
 import urllib.request
-from urllib.error import URLError
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -22,7 +20,6 @@ PACKAGES = {
         "release_api": "https://api.github.com/repos/stablyai/orca/releases",
         "tag_pattern": rf"^v{STABLE_VERSION}$",
         "version_from_tag": lambda tag: tag.removeprefix("v"),
-        "required_release_assets": {"orca-server-sha256sums.txt"},
         "assets": {
             "x86_64-linux": "orca-server-linux-x64.tar.gz",
             "aarch64-linux": "orca-server-linux-arm64.tar.gz",
@@ -114,15 +111,9 @@ def fetch_text(url, *, token=None, user_agent="bump-cli-packages"):
         return response.read().decode()
 
 
-def current_version(path):
-    match = re.search(r'^\s*version = "([^"]+)";$', path.read_text(), re.MULTILINE)
-    if not match:
-        raise RuntimeError(f"could not find version in {path}")
-    return match.group(1)
-
-
 def latest_github_release(config):
     tag_pattern = re.compile(config["tag_pattern"])
+    required_assets = set(config["assets"].values())
 
     # Keep the original 100-release search limit without requesting all at once:
     # Codex's release assets make that large request time out.
@@ -134,12 +125,9 @@ def latest_github_release(config):
             tag = release.get("tag_name", "")
             if release.get("draft") or release.get("prerelease") or not tag_pattern.match(tag):
                 continue
-            version = config["version_from_tag"](tag)
-            required_assets = {asset.format(version=version) for asset in config["assets"].values()}
-            required_assets.update(config.get("required_release_assets", ()))
             assets = {asset["name"] for asset in release.get("assets", []) if asset["state"] == "uploaded"}
             if required_assets <= assets:
-                return version
+                return config["version_from_tag"](tag)
         if len(releases) < 10:
             break
 
@@ -199,13 +187,21 @@ def prefetch_hash(url):
     return json.loads(output)["hash"]
 
 
-def update_package(config, version):
+def update_package(name, requested_version):
+    config = PACKAGES[name]
     path = config["path"]
-    text = path.read_text()
-    text, count = re.subn(r'version = "[^"]+";', f'version = "{version}";', text, count=1)
-    if count != 1:
-        raise RuntimeError(f"failed to update version in {path}")
+    original = path.read_text()
+    pin = re.search(r'^\s*version = "([^"]+)";$', original, re.MULTILINE)
+    if not pin:
+        raise RuntimeError(f"could not find version in {path}")
+    current = pin[1]
+    version = requested_version or latest_version(name, config, current)
+    print(format_summary(name, current, version), flush=True)
+    if version == current:
+        return
 
+    start, end = pin.span(1)
+    text = original[:start] + version + original[end:]
     for system, asset in config["assets"].items():
         hash_value = prefetch_hash(config["url"](version, asset))
         pattern = (
@@ -217,7 +213,17 @@ def update_package(config, version):
         if count != 1:
             raise RuntimeError(f"failed to update {system} hash in {path}")
 
-    path.write_text(text)
+    try:
+        path.write_text(text)
+        subprocess.run(
+            ["nix", "build", "--accept-flake-config", "--no-link", f".#{config.get('build_attr', name)}"],
+            cwd=ROOT,
+            check=True,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        path.write_text(original)
+        raise
+    return name, current, version
 
 
 def set_output(name, value):
@@ -257,54 +263,36 @@ def main():
     parser.add_argument("--version", default="")
     args = parser.parse_args()
 
-    selected = [name for name in PACKAGES if name not in AUTO_BUMP_SKIP] if args.package == "all" else [args.package]
-    if args.version and len(selected) != 1:
+    batch = args.package == "all"
+    if args.version and batch:
         raise SystemExit("--version requires selecting one package")
+    selected = [name for name in PACKAGES if name not in AUTO_BUMP_SKIP] if batch else [args.package]
 
     changed = []
     failed = 0
 
     for name in selected:
-        config = PACKAGES[name]
-        path = config["path"]
-        original = path.read_text()
         try:
-            current = current_version(path)
-            latest = args.version or latest_version(name, config, current)
-            print(format_summary(name, current, latest), flush=True)
-            if current == latest:
-                continue
-            update_package(config, latest)
-            subprocess.run(
-                ["nix", "build", "--accept-flake-config", "--no-link", f".#{config.get('build_attr', name)}"],
-                cwd=ROOT,
-                check=True,
-            )
-        except (RuntimeError, URLError, TimeoutError, ValueError, subprocess.CalledProcessError) as error:
-            if path.read_text() != original:
-                path.write_text(original)
-            if args.package != "all":
+            change = update_package(name, args.version)
+        except Exception as error:
+            if not batch:
                 raise
             print(f"::warning::{name} update skipped: {error}", flush=True)
             failed += 1
             continue
-        changed.append((name, current, latest))
+        if change:
+            changed.append(change)
 
     if failed == len(selected):
         raise RuntimeError("all package updates failed")
 
-    set_output("changed", "true" if changed else "false")
     set_output(
         "files",
         " ".join(str(PACKAGES[name]["path"].relative_to(ROOT)) for name, _, _ in changed),
     )
     set_output("commit_subject", commit_subject(changed) if changed else "")
-    set_output("commit_body", commit_body(changed) if changed else "")
+    set_output("commit_body", commit_body(changed))
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception as error:
-        print(f"error: {error}", file=sys.stderr)
-        raise
+    main()

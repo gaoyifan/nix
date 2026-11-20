@@ -61,23 +61,17 @@ jobs:
           command: python3 .github/scripts/bump-cli-packages.py --package "$REQUESTED_PACKAGE" --version "$REQUESTED_VERSION"
 
       - name: Format changed files
-        if: steps.bump.outputs.changed == 'true'
+        if: steps.bump.outputs.files != ''
         run: nix fmt --accept-flake-config -- ${{ steps.bump.outputs.files }}
 
       - name: Commit and push
-        id: publish
-        if: steps.bump.outputs.changed == 'true'
+        if: steps.bump.outputs.files != ''
         env:
           CHANGED_FILES: ${{ steps.bump.outputs.files }}
           COMMIT_SUBJECT: ${{ steps.bump.outputs.commit_subject }}
           COMMIT_BODY: ${{ steps.bump.outputs.commit_body }}
         run: |
           set -euo pipefail
-
-          if git diff --quiet; then
-            echo "No changes after update."
-            exit 0
-          fi
 
           read -r -a files <<< "$CHANGED_FILES"
           git add -- "${files[@]}"
@@ -86,11 +80,9 @@ jobs:
             -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
             commit -m "$COMMIT_SUBJECT" -m "$COMMIT_BODY"
           git push origin "HEAD:refs/heads/$GITHUB_REF_NAME"
-          echo "revision=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Trigger build and cache
-        if: steps.publish.outputs.revision != '' && github.ref == 'refs/heads/main'
+        if: steps.bump.outputs.files != '' && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
-          REVISION: ${{ steps.publish.outputs.revision }}
-        run: gh workflow run build.yml --ref "$GITHUB_REF_NAME" -f "revision=$REVISION"
+        run: gh workflow run build.yml --ref "$GITHUB_REF_NAME" -f "revision=$(git rev-parse HEAD)"

@@ -4,6 +4,7 @@ import json
 import subprocess
 import tempfile
 import unittest
+from http.client import IncompleteRead
 from pathlib import Path
 from unittest import mock
 from urllib.error import HTTPError
@@ -60,10 +61,7 @@ class GitHubReleaseTests(unittest.TestCase):
 
     def test_skips_unpublished_assets_and_does_not_downgrade(self):
         config = bump.PACKAGES["orcad"]
-        assets = [
-            {"name": name, "state": "uploaded"}
-            for name in (*config["assets"].values(), *config["required_release_assets"])
-        ]
+        assets = [{"name": name, "state": "uploaded"} for name in config["assets"].values()]
         releases = [
             {"tag_name": "v1.4.101", "prerelease": True, "assets": assets},
             {"tag_name": "v1.4.100", "assets": [*assets[:-1], {**assets[-1], "state": "new"}]},
@@ -75,34 +73,35 @@ class GitHubReleaseTests(unittest.TestCase):
 
 
 class BatchUpdateTests(unittest.TestCase):
-    def test_build_failure_restores_only_the_failed_pin(self):
+    def test_fetch_and_build_failures_keep_their_pins(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            packages = {name: {"path": root / f"{name}.nix", "assets": {}} for name in ("broken", "working")}
+            packages = {
+                name: {"path": root / f"{name}.nix", "assets": {}} for name in ("unreachable", "broken", "working")
+            }
             original = 'version = "1.0.0";\n'
             for config in packages.values():
                 config["path"].write_text(original)
 
-            def build(command, **kwargs):
-                if command[-1] == ".#broken":
-                    self.assertIn('version = "2.0.0";', packages["broken"]["path"].read_text())
-                    raise subprocess.CalledProcessError(1, command)
-
+            output = root / "output"
             with (
                 mock.patch.object(bump, "ROOT", root),
                 mock.patch.object(bump, "PACKAGES", packages),
-                mock.patch.object(bump.sys, "argv", ["bump-cli-packages.py"]),
-                mock.patch.object(bump, "latest_version", return_value="2.0.0"),
-                mock.patch.object(bump.subprocess, "run", side_effect=build),
-                mock.patch.object(bump, "set_output") as set_output,
-                mock.patch("sys.stdout", new_callable=io.StringIO) as log,
+                mock.patch("sys.argv", ["bump-cli-packages.py"]),
+                mock.patch.dict("os.environ", GITHUB_OUTPUT=str(output)),
+                mock.patch.object(bump, "latest_version", side_effect=[IncompleteRead(b""), "2.0.0", "2.0.0"]),
+                mock.patch.object(
+                    bump.subprocess, "run", side_effect=[subprocess.CalledProcessError(1, "nix build"), None]
+                ) as build,
+                mock.patch("sys.stdout", new_callable=io.StringIO),
             ):
                 bump.main()
 
+            self.assertEqual([call.args[0][-1] for call in build.call_args_list], [".#broken", ".#working"])
+            self.assertEqual(packages["unreachable"]["path"].read_text(), original)
             self.assertEqual(packages["broken"]["path"].read_text(), original)
             self.assertIn('version = "2.0.0";', packages["working"]["path"].read_text())
-            self.assertIn("broken update skipped", log.getvalue())
-            set_output.assert_any_call("files", "working.nix")
+            self.assertIn("files=working.nix", output.read_text().splitlines())
 
 
 if __name__ == "__main__":

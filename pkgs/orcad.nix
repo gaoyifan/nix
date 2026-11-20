@@ -31,13 +31,12 @@ in
 
     installPhase = ''
       runHook preInstall
-      mkdir -p "$out/lib/orca-server"
-      cp -r . "$out/lib/orca-server/"
-      makeWrapper "$out/lib/orca-server/bin/orca-ide" "$out/bin/orca-ide" \
-        --set NIX_LD ${stdenv.cc.bintools.dynamicLinker} \
-        --set NIX_LD_LIBRARY_PATH ${lib.makeLibraryPath [stdenv.cc.libc stdenv.cc.cc.lib]}
-      makeWrapper "$out/bin/orca-ide" "$out/bin/orcad" \
-        --add-flags 'serve --bind 127.0.0.1'
+      bundle="$out/lib/orca-server"
+      mkdir -p "$bundle"
+      cp -r . "$bundle/"
+      makeWrapper "$bundle"/runtimes/node-*/bin/node "$out/bin/orcad" \
+        --add-flags "$bundle/orcad/orcad.js" \
+        --set ORCA_VERSION ${finalAttrs.version}
       runHook postInstall
     '';
 

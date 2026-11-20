@@ -51,10 +51,9 @@ in {
         StateDirectoryMode = "0700";
         WorkingDirectory = "/var/lib/orca";
         ExecStart = "${pkgs.orcad}/bin/orcad --port 6768 --pairing-address https://${hostname} --json";
-        KillMode = "mixed";
         Restart = "on-failure";
         RestartSec = "5s";
-        RestartPreventExitStatus = [3 78];
+        RestartPreventExitStatus = [78];
         UMask = "0077";
       };
     };
