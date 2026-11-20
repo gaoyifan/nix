@@ -26,6 +26,7 @@ in {
       vlan = 651;
       addresses = ["100.65.1.254/24"];
       ipv6.enable = false;
+      downloadLimitsMbps."100.65.1.51" = 100; # PS5
       dhcpServer = {
         range = "100.65.1.100,100.65.1.199,24h";
         hosts = dhcpHosts;
