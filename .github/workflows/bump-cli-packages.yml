@@ -165,7 +165,7 @@ jobs:
     name: Trigger build and cache
     needs: [bump, publish-orcad]
     if: >-
-      ${{ !cancelled() && github.ref == 'refs/heads/main' &&
+      ${{ !cancelled() && github.ref == 'refs/heads/ci' &&
           (needs.publish-orcad.outputs.revision != '' || needs.bump.outputs.revision != '') }}
     runs-on: ubuntu-latest
     env:
