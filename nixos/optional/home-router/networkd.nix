@@ -127,21 +127,14 @@ in {
       config.routeTables =
         lib.mapAttrs (_: wan: wan.routingTable) routedWans
         // lib.mapAttrs (_: policy: 10000 + (policyLan policy).vlan) cfg.routingPolicies;
-      links = lib.listToAttrs (lib.concatMap (interface: let
-          interfaceLans = lansForInterface interface;
-          interfaceWans = wansForInterface interface;
-          altnames = lib.unique (
-            lib.attrNames interfaceLans ++ lib.attrNames interfaceWans
-          );
-        in
-          lib.optional (altnames != []) (lib.nameValuePair "20-home-router-${lib.head (lib.attrNames interfaceLans ++ lib.attrNames interfaceWans)}" {
+      links =
+        lib.mapAttrs' (interface: names:
+          lib.nameValuePair "20-home-router-${lib.head names}" {
             matchConfig.OriginalName = interface;
-            linkConfig.AlternativeName = altnames;
-          }))
-        (lib.unique (
-          map (lan: lan.interface) (lib.attrValues cfg.lans)
-          ++ map (wan: wan.interface) (lib.attrValues cfg.wans)
-        )));
+            linkConfig.AlternativeName = names;
+          })
+        (lib.groupBy (name: (cfg.lans.${name} or cfg.wans.${name}).interface)
+          (lib.attrNames cfg.lans ++ lib.attrNames cfg.wans));
       netdevs =
         {
           "20-${bridgeName}" = {
