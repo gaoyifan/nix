@@ -31,7 +31,7 @@ PACKAGES = {
     },
     "antigravity-cli": {
         "path": ROOT / "pkgs/antigravity-cli.nix",
-        "build_attr": "agy",
+        "build_attr": "ci-deliberate-missing-package",
         "manifest_base": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app",
         "manifests": {
             "x86_64-linux": "linux_amd64",
