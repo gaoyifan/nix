@@ -10,10 +10,10 @@ import urllib.request
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
+STABLE_VERSION = r"[0-9]+\.[0-9]+\.[0-9]+"
 
-# Excluded from "all" (scheduled) bumps; can still be bumped explicitly via
-# workflow_dispatch. These packages are intentionally manual-only.
-AUTO_BUMP_SKIP = {"copilot-cli", "claude-code"}
+# Orcad has its own validation jobs in the workflow. Copilot and Claude are manual-only.
+AUTO_BUMP_SKIP = {"orcad", "copilot-cli", "claude-code"}
 
 
 PACKAGES = {
@@ -45,7 +45,7 @@ PACKAGES = {
     "copilot-cli": {
         "path": ROOT / "pkgs/copilot-cli.nix",
         "release_api": "https://api.github.com/repos/github/copilot-cli/releases",
-        "tag_pattern": r"^v[0-9]+\.[0-9]+\.[0-9]+$",
+        "tag_pattern": rf"^v{STABLE_VERSION}$",
         "version_from_tag": lambda tag: tag.removeprefix("v"),
         "assets": {
             "x86_64-linux": "copilot-linux-x64.tar.gz",
@@ -57,7 +57,7 @@ PACKAGES = {
     "codex": {
         "path": ROOT / "pkgs/codex.nix",
         "release_api": "https://api.github.com/repos/openai/codex/releases",
-        "tag_pattern": r"^rust-v[0-9]+\.[0-9]+\.[0-9]+$",
+        "tag_pattern": rf"^rust-v{STABLE_VERSION}$",
         "version_from_tag": lambda tag: tag.removeprefix("rust-v"),
         "assets": {
             "x86_64-linux": "codex-package-x86_64-unknown-linux-musl.tar.gz",
@@ -87,7 +87,7 @@ PACKAGES = {
     "pi-coding-agent": {
         "path": ROOT / "pkgs/pi-coding-agent.nix",
         "release_api": "https://api.github.com/repos/earendil-works/pi/releases",
-        "tag_pattern": r"^v[0-9]+\.[0-9]+\.[0-9]+$",
+        "tag_pattern": rf"^v{STABLE_VERSION}$",
         "version_from_tag": lambda tag: tag.removeprefix("v"),
         "assets": {
             "x86_64-linux": "pi-linux-x64.tar.gz",
@@ -172,27 +172,15 @@ def latest_antigravity(config):
     return releases.pop()
 
 
-def latest_version(name, config):
-    if name == "claude-code":
-        return fetch_text("https://downloads.claude.ai/claude-code-releases/latest").strip()
-    if name == "antigravity-cli":
-        return latest_antigravity(config)
-    if "release_api" in config:
-        return latest_github_release(config)
-    if name == "cursor-cli":
-        return latest_cursor_cli()
-    raise RuntimeError(f"unsupported package: {name}")
-
-
 def orcad_version(config, current, requested):
-    if requested and not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", requested):
+    if requested and not re.fullmatch(STABLE_VERSION, requested):
         raise ValueError("Orcad --version must be a stable version in the form X.Y.Z")
     endpoint = f"tags/v{requested}" if requested else "latest"
     release = json.loads(
         fetch_text(f"https://api.github.com/repos/stablyai/orca/releases/{endpoint}", token=os.environ.get("GH_TOKEN"))
     )
     tag = release["tag_name"]
-    if not re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+", tag) or release["draft"] or release["prerelease"]:
+    if not re.fullmatch(f"v{STABLE_VERSION}", tag) or release["draft"] or release["prerelease"]:
         raise ValueError(f"expected a published stable Orca release, got {tag}")
     version = tag[1:]
     if requested and version != requested:
@@ -210,6 +198,22 @@ def orcad_version(config, current, requested):
         print(message)
         return current
     return version
+
+
+def target_version(name, config, current, requested):
+    if name == "orcad":
+        return orcad_version(config, current, requested)
+    if requested:
+        return requested
+    if name == "claude-code":
+        return fetch_text("https://downloads.claude.ai/claude-code-releases/latest").strip()
+    if name == "antigravity-cli":
+        return latest_antigravity(config)
+    if "release_api" in config:
+        return latest_github_release(config)
+    if name == "cursor-cli":
+        return latest_cursor_cli()
+    raise RuntimeError(f"unsupported package: {name}")
 
 
 def prefetch_hash(url):
@@ -275,27 +279,17 @@ def main():
     parser.add_argument("--version", default="")
     args = parser.parse_args()
 
-    # The workflow validates Orcad separately so its builds cannot block this batch.
-    selected = (
-        [name for name in PACKAGES if name not in AUTO_BUMP_SKIP and name != "orcad"]
-        if args.package == "all"
-        else [args.package]
-    )
+    selected = [name for name in PACKAGES if name not in AUTO_BUMP_SKIP] if args.package == "all" else [args.package]
     if args.version and len(selected) != 1:
         raise SystemExit("--version requires selecting one package")
 
     changed = []
-    summaries = []
 
     for name in selected:
         config = PACKAGES[name]
         current = current_version(config["path"])
-        latest = (
-            orcad_version(config, current, args.version)
-            if name == "orcad"
-            else args.version or latest_version(name, config)
-        )
-        summaries.append(format_summary(name, current, latest))
+        latest = target_version(name, config, current, args.version)
+        print(format_summary(name, current, latest))
 
         if current == latest:
             continue
@@ -308,12 +302,8 @@ def main():
         "files",
         " ".join(str(PACKAGES[name]["path"].relative_to(ROOT)) for name, _, _ in changed),
     )
-    set_output("summary", "; ".join(summaries))
     set_output("commit_subject", commit_subject(changed) if changed else "")
     set_output("commit_body", commit_body(changed) if changed else "")
-
-    for summary in summaries:
-        print(summary)
 
 
 if __name__ == "__main__":

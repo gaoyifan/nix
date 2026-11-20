@@ -39,12 +39,13 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: &checkout actions/checkout@v7
 
       - name: Test package updater
         run: python3 .github/scripts/test_bump_cli_packages.py
 
-      - name: Install Nix
+      - &install-nix
+        name: Install Nix
         uses: nixbuild/nix-quick-install-action@v35
 
       - name: Bump packages
@@ -52,14 +53,14 @@ jobs:
         uses: nick-fields/retry@v4
         env:
           GH_TOKEN: ${{ github.token }}
-          REQUESTED_PACKAGE: ${{ github.event.inputs.package || 'all' }}
-          REQUESTED_VERSION: ${{ github.event.inputs.version || '' }}
+          REQUESTED_PACKAGE: ${{ inputs.package || 'all' }}
+          REQUESTED_VERSION: ${{ inputs.version }}
         with:
           max_attempts: 5
           retry_wait_seconds: 1
           timeout_minutes: 30
           on_retry_command: git restore --source=HEAD --staged --worktree -- .
-          command: python3 .github/scripts/bump-cli-packages.py --package "$REQUESTED_PACKAGE" --version "$REQUESTED_VERSION"
+          command: &bump-command python3 .github/scripts/bump-cli-packages.py --package "$REQUESTED_PACKAGE" --version "$REQUESTED_VERSION"
 
       - name: Format changed files
         if: steps.bump.outputs.changed == 'true'
@@ -70,11 +71,13 @@ jobs:
         run: nix build --accept-flake-config .#agy .#copilot .#codex .#claude .#cursor-cli .#pi
 
       - name: Commit and push
+        id: publish
         if: steps.bump.outputs.changed == 'true'
         env:
+          CHANGED_FILES: ${{ steps.bump.outputs.files }}
           COMMIT_SUBJECT: ${{ steps.bump.outputs.commit_subject }}
           COMMIT_BODY: ${{ steps.bump.outputs.commit_body }}
-        run: |
+        run: &publish |
           set -euo pipefail
 
           if git diff --quiet; then
@@ -82,31 +85,22 @@ jobs:
             exit 0
           fi
 
-          git add ${{ steps.bump.outputs.files }}
+          read -r -a files <<< "$CHANGED_FILES"
+          git add -- "${files[@]}"
           git \
             -c user.name='github-actions[bot]' \
             -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
             commit -m "$COMMIT_SUBJECT" -m "$COMMIT_BODY"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+          git push origin "HEAD:refs/heads/$GITHUB_REF_NAME"
+          echo "revision=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
-      - name: Trigger build and cache
-        if: steps.bump.outputs.changed == 'true' && github.ref == 'refs/heads/main'
+      - &dispatch-build
+        name: Trigger build and cache
+        if: steps.publish.outputs.revision != '' && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-
-          curl --fail --silent --show-error \
-            -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${GH_TOKEN}" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/build.yml/dispatches" \
-            --data "{\"ref\":\"${GITHUB_REF_NAME}\",\"inputs\":{\"revision\":\"$(git rev-parse HEAD)\"}}"
-
-      - name: No update needed
-        if: steps.bump.outputs.changed == 'false'
-        run: echo "${{ steps.bump.outputs.summary }}"
+          REVISION: ${{ steps.publish.outputs.revision }}
+        run: gh workflow run build.yml --ref "$GITHUB_REF_NAME" -f "revision=$REVISION"
 
   bump-orcad:
     name: Prepare and test Orcad (x86_64)
@@ -117,29 +111,33 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     outputs:
-      base: ${{ steps.base.outputs.sha }}
-      pin: ${{ steps.validate.outputs.pin }}
+      base: ${{ steps.checkout.outputs.commit }}
+      pin: ${{ steps.pin.outputs.data }}
+      commit_subject: ${{ steps.bump.outputs.commit_subject }}
+      commit_body: ${{ steps.bump.outputs.commit_body }}
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: *checkout
+        id: checkout
         with:
           ref: ${{ github.ref }}
-      - id: base
-        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-      - uses: nixbuild/nix-quick-install-action@v35
+      - *install-nix
       - name: Check for a complete Orcad release
         id: bump
         env:
           GH_TOKEN: ${{ github.token }}
+          REQUESTED_PACKAGE: orcad
           REQUESTED_VERSION: ${{ inputs.version }}
-        run: python3 .github/scripts/bump-cli-packages.py --package orcad --version "$REQUESTED_VERSION"
+        run: *bump-command
       - name: Build and smoke-test Orcad
-        id: validate
         if: steps.bump.outputs.changed == 'true'
-        run: |
+        run: &smoke-orcad |
           package=$(nix build --accept-flake-config --no-link --print-out-paths .#orcad)
           ORCAD_PACKAGE="$package" timeout 60s python3 .github/scripts/test_bump_cli_packages.py OrcadRuntimeTests -v
-          echo "pin=$(base64 -w0 pkgs/orcad.nix)" >> "$GITHUB_OUTPUT"
+      - name: Export the tested Orcad pin
+        id: pin
+        if: steps.bump.outputs.changed == 'true'
+        run: echo "data=$(base64 -w0 pkgs/orcad.nix)" >> "$GITHUB_OUTPUT"
 
   publish-orcad:
     name: Test Orcad (ARM64) and publish
@@ -149,28 +147,21 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: *checkout
         with:
           ref: ${{ needs.bump-orcad.outputs.base }}
       - name: Apply the tested Orcad pin
         env:
           ORCAD_PIN: ${{ needs.bump-orcad.outputs.pin }}
         run: printf '%s' "$ORCAD_PIN" | base64 --decode > pkgs/orcad.nix
-      - uses: nixbuild/nix-quick-install-action@v35
+      - *install-nix
       - name: Build and smoke-test Orcad
-        run: |
-          package=$(nix build --accept-flake-config --no-link --print-out-paths .#orcad)
-          ORCAD_PACKAGE="$package" timeout 60s python3 .github/scripts/test_bump_cli_packages.py OrcadRuntimeTests -v
+        run: *smoke-orcad
       - name: Commit and push
-        run: |
-          version=$(nix eval --accept-flake-config --raw .#orcad.version)
-          git add pkgs/orcad.nix
-          git -c user.name='github-actions[bot]' \
-            -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
-            commit -m "chore(pkgs): bump orcad to $version"
-          git push origin "HEAD:refs/heads/$GITHUB_REF_NAME"
-      - name: Trigger build and cache
-        if: github.ref == 'refs/heads/main'
+        id: publish
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh workflow run build.yml --ref "$GITHUB_REF_NAME" -f "revision=$(git rev-parse HEAD)"
+          CHANGED_FILES: pkgs/orcad.nix
+          COMMIT_SUBJECT: ${{ needs.bump-orcad.outputs.commit_subject }}
+          COMMIT_BODY: ${{ needs.bump-orcad.outputs.commit_body }}
+        run: *publish
+      - *dispatch-build
