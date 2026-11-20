@@ -111,7 +111,9 @@ jobs:
   bump-orcad:
     name: Prepare and test Orcad (x86_64)
     needs: bump
-    if: ${{ !cancelled() && (inputs.package == '' || inputs.package == 'all' || inputs.package == 'orcad') }}
+    if: >-
+      ${{ !cancelled() && (inputs.package == 'orcad' ||
+          (inputs.version == '' && (inputs.package == '' || inputs.package == 'all'))) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     outputs:
