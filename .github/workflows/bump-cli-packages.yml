@@ -36,6 +36,8 @@ jobs:
   bump:
     if: inputs.package != 'orcad'
     runs-on: ubuntu-latest
+    outputs:
+      revision: ${{ steps.publish.outputs.revision }}
 
     steps:
       - name: Checkout repository
@@ -94,14 +96,6 @@ jobs:
           git push origin "HEAD:refs/heads/$GITHUB_REF_NAME"
           echo "revision=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
-      - &dispatch-build
-        name: Trigger build and cache
-        if: steps.publish.outputs.revision != '' && github.ref == 'refs/heads/main'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REVISION: ${{ steps.publish.outputs.revision }}
-        run: gh workflow run build.yml --ref "$GITHUB_REF_NAME" -f "revision=$REVISION"
-
   bump-orcad:
     name: Prepare and test Orcad (x86_64)
     needs: bump
@@ -145,6 +139,8 @@ jobs:
     if: ${{ !cancelled() && needs.bump-orcad.result == 'success' && needs.bump-orcad.outputs.pin != '' }}
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
+    outputs:
+      revision: ${{ steps.publish.outputs.revision }}
 
     steps:
       - uses: *checkout
@@ -164,4 +160,16 @@ jobs:
           COMMIT_SUBJECT: ${{ needs.bump-orcad.outputs.commit_subject }}
           COMMIT_BODY: ${{ needs.bump-orcad.outputs.commit_body }}
         run: *publish
-      - *dispatch-build
+
+  cache:
+    name: Trigger build and cache
+    needs: [bump, publish-orcad]
+    if: >-
+      ${{ !cancelled() && github.ref == 'refs/heads/main' &&
+          (needs.publish-orcad.outputs.revision != '' || needs.bump.outputs.revision != '') }}
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REVISION: ${{ needs.publish-orcad.outputs.revision || needs.bump.outputs.revision }}
+    steps:
+      - run: gh workflow run build.yml --repo "$GITHUB_REPOSITORY" --ref "$GITHUB_REF_NAME" -f "revision=$REVISION"
