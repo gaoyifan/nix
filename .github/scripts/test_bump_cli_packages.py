@@ -95,11 +95,13 @@ class BatchUpdateTests(unittest.TestCase):
                 mock.patch.object(bump, "latest_version", return_value="2.0.0"),
                 mock.patch.object(bump.subprocess, "run", side_effect=build),
                 mock.patch.object(bump, "set_output") as set_output,
+                mock.patch("sys.stdout", new_callable=io.StringIO) as log,
             ):
                 bump.main()
 
             self.assertEqual(packages["broken"]["path"].read_text(), original)
             self.assertIn('version = "2.0.0";', packages["working"]["path"].read_text())
+            self.assertIn("broken update skipped", log.getvalue())
             set_output.assert_any_call("files", "working.nix")
 
 
