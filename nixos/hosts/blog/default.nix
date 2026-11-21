@@ -102,8 +102,8 @@ in {
         ];
       };
       blog = {
-        # Official nginx:stable-alpine — nginx 1.30.6 with HTTP/3.
-        image = "docker.io/library/nginx@sha256:959ae6b898852db82e5b29b929388e59914f42be0a8f4d44c89a4c1f53b49208";
+        # Official nginx:1.30.7-alpine with HTTP/3.
+        image = "docker.io/library/nginx@sha256:4d1d4ce08432dc7dfe4af762cb224ce6b5273ae878f41e020ea2425d02ea91a4";
         dependsOn = ["blog-php"];
         ports = [
           "10080:80"
