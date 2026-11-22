@@ -7,6 +7,7 @@
 in {
   imports = [
     ../../optional/acme-certificates.nix
+    ../../optional/authoritative-ns
     ../../optional/qemu-guest.nix
     ../../optional/tailscale-gnet-vm-exit.nix
     ./disk-config.nix
