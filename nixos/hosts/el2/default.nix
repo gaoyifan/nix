@@ -1,6 +1,7 @@
 {
   lib,
   pkgs,
+  username,
   ...
 }: let
   encryptedDatasets = [
@@ -60,6 +61,8 @@ in {
     pkgs.mbuffer
     pkgs.python3
   ];
+
+  home-manager.users.${username}.home.packages = [pkgs.git-lfs];
 
   programs.zfsUnlock.datasets = encryptedDatasets;
 
