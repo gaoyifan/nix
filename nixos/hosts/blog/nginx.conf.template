@@ -21,10 +21,9 @@ http {
     access_log /var/log/nginx/access.log;
     error_log /var/log/nginx/error.log;
 
-    resolver ${NGINX_LOCAL_RESOLVERS} valid=10s;
     upstream wordpress {
         zone wordpress 64k;
-        server blog-php:9000 resolve;
+        server 127.0.0.1:9000;
     }
 
     server {

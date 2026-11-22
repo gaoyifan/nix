@@ -66,10 +66,12 @@ in {
     };
   };
 
+  systemd.services.podman-blog-mysql.after = ["podman-blog.service"];
+  systemd.services.podman-blog-php.after = ["podman-blog.service"];
+
   virtualisation = {
     podman = {
       enable = true;
-      defaultNetwork.settings.dns_enabled = true;
     };
     oci-containers.containers = {
       blog-mysql = {
@@ -86,25 +88,24 @@ in {
         environmentFiles = ["/var/lib/blog/mysql.env"];
         extraOptions = [
           "--memory=1g"
-          "--network-alias=blog-mysql"
+          "--network=container:blog"
         ];
       };
       blog-php = {
         # Official wordpress:php8.2-fpm — PHP 8.2.35.
         image = "docker.io/library/wordpress@sha256:f92d17271a6bdaffe116d59e3fc7209aeb60d96bc960cafc8a6e092db109973a";
-        dependsOn = ["blog-mysql"];
         workdir = "/var/www/public";
         volumes = ["/srv/docker/blog/www:/var/www/public"];
         environment.TZ = "Asia/Shanghai";
         extraOptions = [
           "--memory=1g"
-          "--network-alias=blog-php"
+          "--network=container:blog"
+          "--add-host=blog-mysql:127.0.0.1"
         ];
       };
       blog = {
         # Official nginx:1.30.7-alpine with HTTP/3.
         image = "docker.io/library/nginx@sha256:4d1d4ce08432dc7dfe4af762cb224ce6b5273ae878f41e020ea2425d02ea91a4";
-        dependsOn = ["blog-php"];
         ports = [
           "10080:80"
           "10443:443"
@@ -118,7 +119,6 @@ in {
         ];
         environment = {
           TZ = "Asia/Shanghai";
-          NGINX_ENTRYPOINT_LOCAL_RESOLVERS = "1";
           NGINX_ENVSUBST_OUTPUT_DIR = "/etc/nginx";
         };
         extraOptions = ["--memory=1g"];
