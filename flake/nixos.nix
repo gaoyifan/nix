@@ -50,6 +50,7 @@
   mkDeployNode = name: host: {
     hostname = "${name}.ts.gaof.net";
     sshUser = "root";
+    sshOpts = ["-p" "822"];
     profiles.system = {
       user = "root";
       path = deploy-rs.lib.${host.system}.activate.nixos configs.${name};

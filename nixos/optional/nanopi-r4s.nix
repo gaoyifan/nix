@@ -119,6 +119,11 @@
     memoryPercent = 100;
   };
 
+  programs.ssh.extraConfig = ''
+    Host 100.127.101.9
+      Port 822
+  '';
+
   nix = {
     settings = {
       max-jobs = 0;

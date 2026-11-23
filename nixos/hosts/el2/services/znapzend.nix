@@ -50,6 +50,11 @@ in {
     };
   };
 
+  programs.ssh.extraConfig = ''
+    Host nfs.ts.gaof.net
+      Port 822
+  '';
+
   services.resolved.dnsDelegates.znapzendNfs.Delegate = {
     DNS = [
       "223.5.5.5"

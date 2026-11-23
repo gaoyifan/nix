@@ -51,6 +51,11 @@ in {
     };
   };
 
+  programs.ssh.extraConfig = ''
+    Host 202.38.93.98
+      Port 822
+  '';
+
   programs.zfsUnlock.datasets = encryptedDatasets;
 
   systemd.services.znapzend = {

@@ -376,6 +376,7 @@ deploy-nanopi-from-bootstrap target address="198.51.100.254":
         --skip-checks \
         --hostname "{{ address }}" \
         --ssh-user root \
+        --ssh-opts "-p 822" \
         --fast-connection true \
         --boot \
         "$FLAKE_REF#{{ target }}" \
@@ -396,14 +397,15 @@ sync-and-rebuild target:
         exit 0
     fi
     host="$(nix eval --accept-flake-config "$FLAKE_REF#deploy.nodes.$target.hostname" --raw)"
-    ssh -A "$host" install -d -m 700 .cache/nixos-deploy
+    ssh -p 822 -A "$host" install -d -m 700 .cache/nixos-deploy
     # Secrets are ignored by Git but required on the deployment target.
     rsync -az --delete --delete-excluded \
         --include='/secrets/files/***' \
         --filter=':- .gitignore' \
+        -e 'ssh -p 822' \
         ./ "$host:.cache/nixos-deploy/"
     # A reused SSH master may forward a stale agent instead of the current one.
-    ssh -S none -A "$host" bash -s -- "$target" <<'REMOTE'
+    ssh -S none -p 822 -A "$host" bash -s -- "$target" <<'REMOTE'
     set -euo pipefail
     target="$1"
     repo="$HOME/.cache/nixos-deploy"
