@@ -15,7 +15,9 @@
   containerLan = container: homeRouter.lans.${containerLanName container};
   hostPkgs = pkgs;
   listenAddress = homeRouter.serviceAddresses.ipv4;
-  codexApiBaseUrl = "http://${listenAddress}:3002/v1";
+  codexApiHostname = "codex.chatgpt.com";
+  codexApiOpenaiBaseUrl = "http://${listenAddress}:3002/v1";
+  codexApiCodexBaseUrl = "http://${codexApiHostname}:3002/backend-api/codex";
   newApiBaseUrl = "http://${listenAddress}:3000/v1";
   containerNameFor = userName: "hermes-nix-${userName}";
   newApiTokenFile = userName: "${cfg.newApiTokenDirectory}/hermes-${userName}";
@@ -76,7 +78,7 @@ in {
 
   config = lib.mkIf cfg.enable {
     systemd.services = lib.mkMerge (
-      lib.mapAttrsToList (userName: _: let
+      lib.mapAttrsToList (userName: container: let
         containerName = containerNameFor userName;
         dashboardCredentialName = "hermes-${userName}";
         secretsService = "${containerName}-secrets.service";
@@ -104,7 +106,6 @@ in {
             set -euo pipefail
 
             newapi_token="$(tr -d '\r\n' < ${newApiTokenFile userName})"
-            exa_api_key="$(tr -d '\r\n' < /var/lib/hermes/exa_api_key)"
             lark_app_id="$(tr -d '\r\n' < /var/lib/hermes/lark_app_id)"
             lark_app_secret="$(tr -d '\r\n' < /var/lib/hermes/lark_app_secret)"
 
@@ -112,11 +113,10 @@ in {
               echo "${containerName}: New API token is empty" >&2
               exit 1
             fi
-            if [[ -z "$exa_api_key" || -z "$lark_app_id" || -z "$lark_app_secret" ]]; then
-              echo "${containerName}: Exa or Lark credentials are empty" >&2
+            if [[ -z "$lark_app_id" || -z "$lark_app_secret" ]]; then
+              echo "${containerName}: Lark credentials are empty" >&2
               exit 1
             fi
-
             install -d -o root -g root -m 0700 /var/lib/hermes/dashboard
             if [[ ! -s /var/lib/hermes/dashboard/${dashboardCredentialName}.pass ]]; then
               openssl rand -base64 24 > /var/lib/hermes/dashboard/${dashboardCredentialName}.pass
@@ -144,16 +144,14 @@ in {
             install -o root -g 1000 -m 0640 /dev/null "$env_tmp"
             printf '%s\n' \
               'NEWAPI_BASE_URL=${newApiBaseUrl}' \
-              'CODEX_API_BASE_URL=${codexApiBaseUrl}' \
+              'CODEX_API_BASE_URL=${codexApiOpenaiBaseUrl}' \
               "NEWAPI_API_KEY=$newapi_token" \
-              "EXA_API_KEY=$exa_api_key" \
               'HERMES_DASHBOARD_BASIC_AUTH_USERNAME=agent' \
               "HERMES_DASHBOARD_BASIC_AUTH_PASSWORD=$dashboard_password" \
               "HERMES_DASHBOARD_BASIC_AUTH_SECRET=$dashboard_secret" \
               "LARK_APP_ID=$lark_app_id" \
               "LARK_APP_SECRET=$lark_app_secret" \
               > "$env_tmp"
-
             install -o root -g 1000 -m 0640 /dev/null "$honcho_config_tmp"
             jq \
               --arg apiKey "$honcho_api_key" \
@@ -205,7 +203,8 @@ in {
           };
         };
         specialArgs = {
-          inherit codexApiBaseUrl containerName dashboardPublicUrl hostPkgs inputs newApiBaseUrl telegramBotApi telegramBotApiBaseUrl;
+          inherit codexApiCodexBaseUrl codexApiHostname containerName dashboardPublicUrl hostPkgs inputs newApiBaseUrl telegramBotApi telegramBotApiBaseUrl;
+          codexApiAddress = listenAddress;
           aptProxyAddress = listenAddress;
         };
         config =

@@ -1,6 +1,8 @@
 {
   aptProxyAddress,
-  codexApiBaseUrl,
+  codexApiAddress,
+  codexApiCodexBaseUrl,
+  codexApiHostname,
   config,
   containerName,
   dashboardPublicUrl,
@@ -15,7 +17,7 @@
 }: let
   inherit (import ../../common/ssh-keys.nix) sshKeys;
   basePackage = inputs.hermes-agent.packages.${pkgs.stdenv.hostPlatform.system}.minimal.override {
-    extraDependencyGroups = ["exa" "messaging"];
+    extraDependencyGroups = ["messaging"];
     version = lib.removePrefix "v" (builtins.fromJSON (builtins.readFile ../../../flake.lock)).nodes.hermes-agent.original.ref;
   };
   honchoSdk = (pkgs.honcho-ai.override {python3 = basePackage.python;}).overridePythonAttrs (_: {
@@ -70,6 +72,8 @@
     inherit aptProxyAddress lib managedSkills newApiBaseUrl pkgs;
   };
 in {
+  networking.hosts.${codexApiAddress} = [codexApiHostname];
+
   imports = [inputs.hermes-agent.nixosModules.default];
 
   nixpkgs.pkgs = hostPkgs;
@@ -248,11 +252,11 @@ in {
       model = {
         provider = "codex-api";
         default = "gpt-6.2-sol";
-        base_url = codexApiBaseUrl;
+        base_url = codexApiCodexBaseUrl;
         api_mode = "codex_responses";
       };
       providers.codex-api = {
-        api = codexApiBaseUrl;
+        api = codexApiCodexBaseUrl;
         key_env = "NEWAPI_API_KEY";
         transport = "codex_responses";
       };
@@ -274,7 +278,12 @@ in {
 
         Terminal commands run inside a Podman container isolated by gVisor's KVM platform. /workspace is persistent and shared with the Dashboard and Hermes Desktop. Save every file intended for the user to download under /workspace. /root is persistent for the terminal task but is not accessible to the Dashboard or Hermes Desktop. Other container filesystem changes may disappear when the container is replaced. The container does not run systemd, so manage processes directly rather than using systemctl.
       '';
-      web.backend = "exa";
+      web = {
+        search_backend = "openai-native";
+        keyless_fallback = false;
+        keyless_rescue = false;
+      };
+      plugins.disabled = ["web-exa"];
       telegram.extra.rich_messages = true;
       gateway.platforms.telegram.gateway_restart_notification = false;
       gateway.platforms.weixin.gateway_restart_notification = false;
