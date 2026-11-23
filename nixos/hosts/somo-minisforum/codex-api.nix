@@ -4,8 +4,6 @@
   ...
 }: let
   cfg = config.services.codex-api;
-  hermesUsers = builtins.attrNames config.services.hermes-nspawn.containers;
-  apiKeyIds = ["honcho" "immersive-translation" "library"] ++ map (user: "hermes-${user}") hermesUsers;
   weeklyLimitOverrides = import (config.services.secrets.filesDir + "/nixos/somo-minisforum/codex-api-weekly-limits.nix");
   certDir = "${config.services.acmeCertificates.directory}/yfgao";
   port = "3002";
@@ -32,6 +30,7 @@ in {
     };
 
     services.codex-api = {
+      weeklyLimitOverrides = weeklyLimitOverrides;
       settings = {
         server.listen = "0.0.0.0:${port}";
         upstream.auth_file = config.age.secrets.somo-minisforum-codex-api-auth.path;
@@ -40,13 +39,6 @@ in {
           "gpt-5.6-sol".max_reasoning_effort = "high";
         };
       };
-      ageApiKeys =
-        map (id: {
-          inherit id;
-          secretName = "new-api-tokens/${id}";
-          weeklyLimitUsd = lib.mkIf (builtins.hasAttr id weeklyLimitOverrides) weeklyLimitOverrides.${id};
-        })
-        apiKeyIds;
     };
   };
 }

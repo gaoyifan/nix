@@ -5,18 +5,14 @@
 }: {
   imports = [../../../optional/honcho.nix];
 
-  age.secrets.honcho-api-token = lib.mkIf config.services.secrets.hasRealFiles {
-    file = config.services.secrets.filesDir + "/nixos/el2/honcho-api-token.age";
-  };
-
   services.honcho = {
     enable = true;
     image = "ghcr.io/plastic-labs/honcho:v3.2.2@sha256:1373afb45113e861515b2c01d3db787391cc6e7f3e3e6721c45d863153b5e5b4";
     listenAddress = "100.64.2.254";
     apiPort = 8003;
     stateDirectory = "/pool1/services/honcho";
-    apiKeyFile = config.age.secrets.honcho-api-token.path or "${config.age.secretsDir}/honcho-api-token";
-    restartTriggers = lib.optional config.services.secrets.hasRealFiles config.age.secrets.honcho-api-token.file;
+    apiKeyFile = config.age.secrets."new-api-tokens/honcho".path or "${config.age.secretsDir}/new-api-tokens/honcho";
+    restartTriggers = lib.mkIf config.services.secrets.hasRealFiles [config.age.secrets."new-api-tokens/honcho".file];
     environment = {
       VECTOR_STORE_TYPE = "pgvector";
       LLM_OPENAI_BASE_URL = "http://127.0.0.1:3003/v1";

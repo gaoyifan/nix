@@ -7,23 +7,11 @@
   ...
 }: let
   filesDir = config.services.secrets.filesDir;
-  tokenDirectory = filesDir + "/nixos/somo-minisforum/new-api-tokens";
-  newApiTokenFiles =
-    if config.services.secrets.hasRealFiles
-    then
-      lib.mapAttrs' (fileName: _:
-        lib.nameValuePair (lib.removeSuffix ".age" fileName) (tokenDirectory + "/${fileName}"))
-      (lib.filterAttrs (name: _: lib.hasSuffix ".age" name) (builtins.readDir tokenDirectory))
-    else {};
+  newApiTokenFiles = config.services.codex-api.sharedTokenFiles;
 in {
-  age.secrets = lib.mkIf config.services.secrets.hasRealFiles (
-    {
-      telegram-api-hash.file = filesDir + "/nixos/somo-minisforum/telegram-api-hash.age";
-    }
-    // lib.mapAttrs' (tokenName: file:
-      lib.nameValuePair "new-api-tokens/${tokenName}" {inherit file;})
-    newApiTokenFiles
-  );
+  age.secrets.telegram-api-hash = lib.mkIf config.services.secrets.hasRealFiles {
+    file = filesDir + "/nixos/somo-minisforum/telegram-api-hash.age";
+  };
 
   imports = [
     ../../optional/bare-metal.nix

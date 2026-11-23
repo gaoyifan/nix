@@ -18,23 +18,19 @@ in {
 
     services.codex-api = {
       settings = {
-        server.listen = "127.0.0.1:3003";
+        server.listen = "0.0.0.0:3003";
         state.path = "${stateDirectory}/state.sqlite3";
         upstream.auth_file = config.age.secrets.el2-codex-api-auth.path;
       };
-      ageApiKeys = [
-        {
-          id = "honcho";
-          secretName = "honcho-api-token";
-        }
-      ];
     };
 
     systemd.services.codex-api = {
       wantedBy = lib.mkForce ["el2-services.target"];
       requires = ["zfs-unlock-mount.service"];
       after = ["zfs-unlock-mount.service"];
-      restartTriggers = [config.age.secrets.el2-codex-api-auth.file];
+      restartTriggers = lib.mkIf config.services.secrets.hasRealFiles (
+        [config.age.secrets.el2-codex-api-auth.file] ++ lib.attrValues cfg.sharedTokenFiles
+      );
       serviceConfig = {
         ExecStartPre = "+${lib.getExe' pkgs.coreutils "install"} -d -m 0750 -o ${cfg.user} -g ${cfg.group} ${stateDirectory}";
       };

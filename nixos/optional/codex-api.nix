@@ -7,29 +7,28 @@
 }: let
   cfg = config.services.codex-api;
   defaultStateDirectory = "/var/lib/codex-api";
+  tokenDirectory = config.services.secrets.filesDir + "/nixos/somo-minisforum/new-api-tokens";
+  tokenFiles =
+    if config.services.secrets.hasRealFiles
+    then
+      lib.mapAttrs' (name: _: lib.nameValuePair (lib.removeSuffix ".age" name) (tokenDirectory + "/${name}"))
+      (lib.filterAttrs (name: _: lib.hasSuffix ".age" name) (builtins.readDir tokenDirectory))
+    else {};
 in {
   imports = [inputs.codex-api.nixosModules.default];
 
-  options.services.codex-api.ageApiKeys = lib.mkOption {
-    default = [];
-    description = "API keys loaded from named agenix secrets.";
-    type = lib.types.listOf (lib.types.submodule {
-      options = {
-        id = lib.mkOption {
-          type = lib.types.str;
-          description = "ID used in request logs and usage accounting.";
-        };
-        secretName = lib.mkOption {
-          type = lib.types.str;
-          description = "Name of the agenix secret that holds the API key.";
-        };
-        weeklyLimitUsd = lib.mkOption {
-          type = lib.types.str;
-          default = "500.00";
-          description = "Weekly spend threshold in USD before switching to the fallback model.";
-        };
-      };
-    });
+  options.services.codex-api.sharedTokenFiles = lib.mkOption {
+    type = lib.types.attrsOf lib.types.path;
+    readOnly = true;
+    internal = true;
+    default = tokenFiles;
+    description = "Shared Codex API token files used by every relay instance.";
+  };
+
+  options.services.codex-api.weeklyLimitOverrides = lib.mkOption {
+    type = lib.types.attrsOf lib.types.str;
+    default = {};
+    description = "Per-user weekly spend limits in USD.";
   };
 
   config = lib.mkMerge [
@@ -47,19 +46,20 @@ in {
           path = lib.mkDefault "${defaultStateDirectory}/state.sqlite3";
           file_mode = "0640";
         };
-        api_keys =
-          map (key: {
-            inherit (key) id;
-            secret_file = config.age.secrets.${key.secretName}.path;
-            weekly_limit_usd = key.weeklyLimitUsd;
-          })
-          cfg.ageApiKeys;
+        api_keys = map (id: {
+          inherit id;
+          secret_file = config.age.secrets."new-api-tokens/${id}".path;
+          weekly_limit_usd = lib.attrByPath [id] "500.00" cfg.weeklyLimitOverrides;
+        }) (lib.attrNames cfg.sharedTokenFiles);
       };
 
-      age.secrets = lib.genAttrs (map (key: key.secretName) cfg.ageApiKeys) (_: {
-        group = cfg.group;
-        mode = "0440";
-      });
+      age.secrets = lib.mapAttrs' (id: file:
+        lib.nameValuePair "new-api-tokens/${id}" {
+          inherit file;
+          group = cfg.group;
+          mode = "0440";
+        })
+      cfg.sharedTokenFiles;
 
       users.users.${username}.extraGroups = [cfg.group];
       systemd.services.codex-api.serviceConfig =
