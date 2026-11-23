@@ -67,9 +67,6 @@ in {
     };
   };
 
-  systemd.services.podman-blog-mysql.after = ["podman-blog.service"];
-  systemd.services.podman-blog-php.after = ["podman-blog.service"];
-
   virtualisation = {
     podman = {
       enable = true;
@@ -78,6 +75,7 @@ in {
       blog-mysql = {
         # mariadb:10 — MariaDB 10.11.14
         image = "localhost/mariadb@sha256:18d9249799af40b63c12bfbb190fb10fcfa30026ef205d4b139ecba037a540de";
+        dependsOn = ["blog"];
         volumes = [
           "/srv/docker/blog/mysql/data:/var/lib/mysql"
           "/srv/docker/blog/mysql/conf.d:/etc/mysql/conf.d"
@@ -95,13 +93,16 @@ in {
       blog-php = {
         # Official wordpress:php8.2-fpm — PHP 8.2.35.
         image = "docker.io/library/wordpress@sha256:f92d17271a6bdaffe116d59e3fc7209aeb60d96bc960cafc8a6e092db109973a";
+        dependsOn = ["blog-mysql"];
         workdir = "/var/www/public";
         volumes = ["/srv/docker/blog/www:/var/www/public"];
-        environment.TZ = "Asia/Shanghai";
+        environment = {
+          TZ = "Asia/Shanghai";
+          WORDPRESS_DB_HOST = "127.0.0.1:3306";
+        };
         extraOptions = [
           "--memory=1g"
           "--network=container:blog"
-          "--add-host=blog-mysql:127.0.0.1"
         ];
       };
       blog = {
