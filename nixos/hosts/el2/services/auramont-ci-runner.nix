@@ -33,7 +33,7 @@ in {
       wantedBy = ["el2-services.target"];
       requires = ["zfs-unlock-mount.service"];
       inherit (runner) machine buildUsersUidBase;
-      root = "/pool1/services/auramont-runner${runner.suffix}/root";
+      root = "/pool1/runner/auramont-runner${runner.suffix}/root";
       tokenFile = "/var/lib/github-runner-auramont${runner.suffix}/token";
       guestModule = import ./auramont-runner/runner-system.nix {
         inherit (runner) machine address;

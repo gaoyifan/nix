@@ -3,7 +3,7 @@
   services.github-runner-nspawn.github-runner-el2 = {
     wantedBy = ["el2-services.target"];
     requires = ["zfs-unlock-mount.service"];
-    root = "/pool1/services/github-runner/root";
+    root = "/pool1/runner/github-runner/root";
     tokenFile = "/var/lib/github-runner-el2/token";
     buildUsersUidBase = 40000;
     guestModule = ./github-runner/runner-system.nix;

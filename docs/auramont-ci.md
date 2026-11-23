@@ -11,9 +11,9 @@ labels `self-hosted, Linux, X64, el2, auramont`.
 | `el2-auramont-4` | `auramont-ci4` | `100.64.2.85` |
 
 Host units are `github-runner-auramont.service` and
-`github-runner-auramont-{2,3,4}.service`. The original root remains
-`/pool1/services/auramont-runner/root`; new roots are
-`/pool1/services/auramont-runner-{2,3,4}/root`. The short machine names keep
+`github-runner-auramont-{2,3,4}.service`. The roots are
+`/pool1/runner/auramont-runner/root` and
+`/pool1/runner/auramont-runner-{2,3,4}/root`. The short machine names keep
 `vb-<machine>` within Linux's 15-character interface-name limit. Addresses are
 outside the LAN's DHCP pool (`100.64.2.100`–`100.64.2.200`).
 
