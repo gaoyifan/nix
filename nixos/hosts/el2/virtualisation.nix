@@ -368,6 +368,11 @@ in {
     extraExcludes = ["${macosStateDir}/BaseSystem.img"];
   };
 
+  age.secrets.hackintosh-vnc-password = lib.mkIf config.services.secrets.hasRealFiles {
+    file = config.services.secrets.filesDir + "/nixos/el2/hackintosh-vnc-password.age";
+    path = "/run/agenix/hackintosh-vnc-password";
+  };
+
   systemd.services.incus.environment.INCUS_EDK2_PATH = lib.mkForce incusEdk2;
 
   systemd.services.hackintosh-vnc = {
@@ -385,12 +390,19 @@ in {
       pkgs.xorg-server
     ];
     environment.DISPLAY = ":91";
+    preStart = ''
+      set -eu
+      password="$(${pkgs.coreutils}/bin/cat /run/agenix/hackintosh-vnc-password)"
+      test -n "$password"
+      ${pkgs.x11vnc}/bin/x11vnc -storepasswd "$password" ${lib.escapeShellArg "${macosStateDir}/vnc.pass"}
+      ${pkgs.coreutils}/bin/chmod 0600 ${lib.escapeShellArg "${macosStateDir}/vnc.pass"}
+    '';
+    restartTriggers = lib.optional config.services.secrets.hasRealFiles config.age.secrets.hackintosh-vnc-password.file;
     serviceConfig = {
       Restart = "always";
       RestartSec = "5s";
       RuntimeDirectory = "hackintosh-vnc";
       RuntimeDirectoryMode = "0700";
-      ExecStartPre = "${pkgs.coreutils}/bin/test -r ${macosStateDir}/vnc.pass";
     };
     script = ''
       set -euo pipefail

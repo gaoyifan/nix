@@ -160,10 +160,14 @@ VNC does not encrypt the session, so connect only through the private network or
 a trusted VPN. The intermediate X display and its authentication cookie are
 root-only on the host.
 
-The root-only password file is `/var/lib/incus-macos/vnc.pass`. To rotate it:
+The encrypted source of the VNC password is
+`secrets/files/nixos/el2/hackintosh-vnc-password.age`. The service decrypts it
+through agenix at startup and regenerates the root-only x11vnc file at
+`/var/lib/incus-macos/vnc.pass`. To rotate it:
 
 ```bash
-sudo x11vnc -storepasswd /var/lib/incus-macos/vnc.pass
+cd secrets/files
+agenix -e nixos/el2/hackintosh-vnc-password.age
 sudo systemctl restart hackintosh-vnc.service
 ```
 
