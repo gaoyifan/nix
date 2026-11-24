@@ -15,6 +15,7 @@
       RAKAZO_IMAGE=ghcr.io/elie222/rakazo/app
       RAKAZO_IMAGE_TAG=sha-${inputs.rakazo-src.rev}
       MCP_ALLOW_PRIVATE_ENDPOINT=true
+      PHONE_CALLS_ENABLED=true
       WEB_PROVIDER=keenable
       SIGNUPS_ENABLED=false
       RAKAZO_COMPUTER_MEMORY=8g
