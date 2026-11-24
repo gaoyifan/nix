@@ -58,5 +58,6 @@ rec {
   nanopi-r5c-uboot = import ./nanopi-r5c-uboot.nix {inherit pkgs;};
 }
 // pkgs.lib.optionalAttrs (pkgs.stdenv.hostPlatform.system == "x86_64-darwin") {
+  icloud-photos-export-app = import ./icloud-photos-export-app.nix {inherit pkgs;};
   osxphotos = import ./osxphotos.nix {inherit inputs pkgs;};
 }

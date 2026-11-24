@@ -4,7 +4,12 @@
   pkgs,
   username,
   ...
-}: {
+}: let
+  photosExporter = pkgs.icloud-photos-export-app;
+  photosExporterApp = "${config.home.homeDirectory}/${config.targets.darwin.copyApps.directory}/${photosExporter.bundleName}";
+  photosExporterLog = "${config.home.homeDirectory}/Library/Logs/icloud-photos-export.log";
+  photosPython = pkgs.python313;
+in {
   imports = [
     inputs.agenix.homeManagerModules.default
     inputs.findmy-history.homeManagerModules.source
@@ -27,6 +32,7 @@
       fzf
       just
       nh
+      photosExporter
       ripgrep
       tree
       wget
@@ -68,8 +74,27 @@
     executable = true;
     text = ''
       #!/bin/sh
-      exec ${pkgs.osxphotos}/bin/python ${./icloud-photos-export.py}
+      exec ${photosPython.interpreter} ${./icloud-photos-export.py} --trigger ${photosExporter.bundleIdentifier}
     '';
   };
   home.file.".local/bin/osxphotos".source = "${pkgs.osxphotos}/bin/osxphotos";
+
+  launchd.agents.icloud-photos-export = {
+    enable = true;
+    config = {
+      Label = photosExporter.bundleIdentifier;
+      ProgramArguments = [
+        "${photosExporterApp}/Contents/MacOS/${photosExporter.executableName}"
+        "${./icloud-photos-export.py}"
+        "--worker"
+      ];
+      EnvironmentVariables = {
+        PYTHONPATH = "${pkgs.osxphotos}/${photosPython.sitePackages}";
+      };
+      ProcessType = "Background";
+      LimitLoadToSessionType = "Aqua";
+      StandardOutPath = photosExporterLog;
+      StandardErrorPath = photosExporterLog;
+    };
+  };
 }

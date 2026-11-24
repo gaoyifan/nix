@@ -62,7 +62,7 @@
             nixpkgs.overlays = [
               (final: prev: {
                 copilot-cli = null;
-                inherit (overlay final prev) osxphotos nix-output-monitor;
+                inherit (overlay final prev) icloud-photos-export-app osxphotos nix-output-monitor;
               })
             ];
           }

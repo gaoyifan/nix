@@ -272,12 +272,15 @@ zero despite missing files or export errors. It never downloads previews as
 substitutes for originals. The APFS volume identity and ZFS mount are checked
 before writing.
 
-The SSH command launches the worker in Terminal's authorized GUI session and
-waits for its actual exit status, relaying the log. Terminal has been granted
-access to all Photos through the normal macOS permission dialog. Keep `yifan`
-logged in; Terminal's authorization does not extend to a Python process run
-directly over SSH. The worker explicitly opens the Photos library before
-issuing export requests. The generated Terminal window closes after completion.
+The SSH command triggers the on-demand
+`com.gaoyifan.icloud-photos-export` Aqua LaunchAgent and waits for the current
+`.backup-status.json`. The worker runs from
+`~/Applications/Home Manager Apps/ICloudPhotosExporter.app` and opens the Photos
+library before issuing export requests. On first use, grant **Allow Access to All Photos** to
+**iCloud Photos Exporter**. macOS may also prompt to allow the exporter to
+control Photos when fetching missing Live Photo originals. Keep `yifan` logged
+in so the Aqua LaunchAgent remains available. Worker logs go to
+`~/Library/Logs/icloud-photos-export.log`.
 
 Two narrowly scoped workarounds are pinned to OSXPhotos 0.77.1:
 
