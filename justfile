@@ -108,8 +108,8 @@ trust-flake-config:
     set -euo pipefail
     source <({{ self_just }} _emit_nix_env)
     mkdir -p ~/.local/share/nix
-    nix eval --raw --file flake.nix \
-        --apply '_: let settings = import ./nix-cache.nix; in builtins.toJSON {
+    nix eval --raw --file flake.nix nixConfig \
+        --apply 'settings: builtins.toJSON {
             extra-substituters = builtins.listToAttrs (map (name: { inherit name; value = true; }) settings.extra-substituters);
             extra-trusted-public-keys = builtins.listToAttrs (map (name: { inherit name; value = true; }) settings.extra-trusted-public-keys);
         }' > ~/.local/share/nix/trusted-settings.json

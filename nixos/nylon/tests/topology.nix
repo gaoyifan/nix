@@ -178,7 +178,6 @@ in
   assert fleet.central.value.graph == [(concatStringsSep ", " expectedHosts)];
   assert builtins.fromJSON fleet.dns.text == fleet.dns.value;
   assert builtins.replaceStrings ["privateKey"] [""] fleet.manifest.text == fleet.manifest.text;
-  assert !hasAttr "exit" fleet.topology.peers.blog.underlays.public;
   assert !hasAttr "key" misc1SzNode.value;
   assert builtins.substring (builtins.stringLength misc1SzNode.text - 1) 1 misc1SzNode.text == "\n";
   assert map (bind: bind.source) misc1SzNode.value.binds == ["58.84.55.69" "14.215.130.15"];

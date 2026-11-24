@@ -1,10 +1,5 @@
 {
-  extra-substituters = [
-    "https://nix-cache.yfgao.net?priority=50"
-  ];
-  extra-trusted-public-keys = [
-    "nix-cache.yfgao.net-1:mSv/FykKK4oFZbX9JgD38D/me1+xJeAKsQ+STHiHVp4="
-  ];
+  inherit ((import ./flake.nix).nixConfig) extra-substituters extra-trusted-public-keys;
 
   # Lower values are preferred, so the official cache is the last fallback.
   official-substituter = "https://cache.nixos.org?priority=100";

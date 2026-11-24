@@ -125,25 +125,7 @@
     numericId = getOr raw "numericId" null;
     underlays = getOr raw "underlays" {};
     underlayNames = attrNames underlays;
-    normalizedUnderlays =
-      mapAttrs (_: underlay: let
-        endpoint = getOr underlay "endpoint" {};
-        warp = getOr underlay "cloudflareWarp" null;
-      in {
-        interface = getOr underlay "interface" null;
-        inherit endpoint;
-        bind = getOr underlay "bind" (endpoint != {});
-        bindSource = getOr underlay "bindSource" false;
-        lanDiscovery = getOr underlay "lanDiscovery" false;
-        cloudflareWarp =
-          if warp == null
-          then null
-          else {
-            ipv6Address = getOr warp "ipv6Address" null;
-            reserved = getOr warp "reserved" null;
-          };
-      })
-      underlays;
+    warpUnderlays = filter (underlay: underlay ? cloudflareWarp) (attrValues underlays);
     endpointsFrom = underlayName: let
       endpoint = getOr underlays.${underlayName} "endpoint" {};
     in
@@ -204,7 +186,15 @@
   in {
     id = name;
     inherit numericId binds exits selector transitCost lanDiscovery;
-    underlays = normalizedUnderlays;
+    cloudflareWarp =
+      if warpUnderlays == []
+      then null
+      else let
+        underlay = builtins.head warpUnderlays;
+      in {
+        inherit (underlay) interface;
+        inherit (underlay.cloudflareWarp) ipv6Address reserved;
+      };
     publicKey = getOr raw "publicKey" null;
     addresses = {
       ipv4 = address4;
@@ -403,17 +393,6 @@
       else ""
     );
 
-  cloudflareWarpsFor = peer:
-    concatMap (underlayName: let
-      underlay = peer.underlays.${underlayName};
-      warp = getOr underlay "cloudflareWarp" null;
-    in
-      optional (warp != null) {
-        interface = underlay.interface;
-        inherit (warp) ipv6Address reserved;
-      })
-    (attrNames peer.underlays);
-
   selectorProjection = peer: catalog:
     if !peer.selector.enable
     then {
@@ -518,7 +497,6 @@
     perHost =
       mapAttrs (_: peer: let
         nodeValue = publicNodeValue peer;
-        cloudflareWarps = cloudflareWarpsFor peer;
         projection =
           if hasAttr peer.id selectorProjections
           then selectorProjections.${peer.id}
@@ -535,10 +513,7 @@
             inherit (exit) families gateway4 interface ipv4Address ipv6Address label useDefaultRoute;
           })
           peer.exits;
-        cloudflareWarp =
-          if cloudflareWarps == []
-          then null
-          else builtins.head cloudflareWarps;
+        inherit (peer) cloudflareWarp;
         selector = {
           inherit (projection) enable ownedTables routes rules wlt;
         };
