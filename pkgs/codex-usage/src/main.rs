@@ -16,8 +16,9 @@ use rayon::prelude::*;
 use serde_json::Value;
 use walkdir::WalkDir;
 
-const PRICE_DATE: &str = "2026-09-23";
+const PRICE_DATE: &str = "2026-11-24";
 const FAST_MULTIPLIER: f64 = 2.5;
+const GPT_6_2_ULTRAFAST_PROMO_END: NaiveDate = NaiveDate::from_ymd_opt(2027, 3, 1).unwrap();
 const INJECTED_PROMPT_PREFIXES: [&str; 3] = [
     "# AGENTS.md instructions",
     "<environment_context>",
@@ -290,8 +291,16 @@ fn event_user_prompt(payload: &Value) -> Option<String> {
         .map(|_| "[image]".to_owned())
 }
 
-fn request_cost(model: Option<&str>, tier: Option<&str>, usage: Usage) -> Option<f64> {
-    let (input_price, cached_price, output_price, fast_multiplier) = match model? {
+fn request_cost(
+    model: Option<&str>,
+    tier: Option<&str>,
+    usage: Usage,
+    timestamp: DateTime<Utc>,
+) -> Option<f64> {
+    let model = model?;
+    let (input_price, cached_price, output_price, fast_multiplier) = match model {
+        "gpt-6.2-astra" => (8.0, 0.4, 40.0, 2.0),
+        "gpt-6.2-sol" => (2.0, 0.1, 10.0, 2.0),
         "gpt-6.1-sol" => (2.0, 0.1, 10.0, 2.0),
         "gpt-6-astra" => (10.0, 1.0, 50.0, FAST_MULTIPLIER),
         "gpt-6-sol" => (2.0, 0.2, 10.0, 2.0),
@@ -305,10 +314,19 @@ fn request_cost(model: Option<&str>, tier: Option<&str>, usage: Usage) -> Option
         - usage.cached_input_tokens as i64
         - usage.cache_write_input_tokens as i64;
 
-    let multiplier = if matches!(tier, Some("priority" | "fast")) {
-        fast_multiplier
-    } else {
-        1.0
+    let multiplier = match (model, tier) {
+        (_, Some("priority" | "fast")) => fast_multiplier,
+        ("gpt-6.2-astra" | "gpt-6.2-sol", Some("ultrafast")) => {
+            let pacific_date = timestamp
+                .with_timezone(&chrono_tz::America::Los_Angeles)
+                .date_naive();
+            if pacific_date < GPT_6_2_ULTRAFAST_PROMO_END {
+                3.0
+            } else {
+                6.0
+            }
+        }
+        _ => 1.0,
     };
     Some(
         multiplier
@@ -459,7 +477,7 @@ fn analyze_file(path: &Path, start: DateTime<Utc>, end: DateTime<Utc>, timezone:
             continue;
         }
 
-        let cost = match request_cost(model.as_deref(), tier.as_deref(), usage) {
+        let cost = match request_cost(model.as_deref(), tier.as_deref(), usage, timestamp) {
             Some(cost) => cost,
             None => {
                 *result
@@ -1014,6 +1032,8 @@ mod tests {
 
     #[test]
     fn calculates_model_and_tier_prices() {
+        let timestamp = Utc.with_ymd_and_hms(2026, 11, 24, 0, 0, 0).unwrap();
+        let request_cost = |model, tier, usage| super::request_cost(model, tier, usage, timestamp);
         let standard = Usage {
             input_tokens: 100,
             cached_input_tokens: 20,
