@@ -268,7 +268,7 @@ in {
       approvals.mode = "off";
       compression.threshold = 0.9;
       auxiliary.title_generation.model = "gpt-6-luna";
-      memory.provider = "honcho";
+      memory.provider = lib.optionalString (lib.elem containerName ["hermes-nix-aran" "hermes-nix-wangenci"]) "honcho";
       security.allow_lazy_installs = false;
       dashboard.public_url = dashboardPublicUrl;
       agent.system_prompt = ''
