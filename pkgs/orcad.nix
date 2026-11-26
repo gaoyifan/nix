@@ -7,18 +7,18 @@
   assets = {
     x86_64-linux = {
       arch = "x64";
-      hash = "sha256-svNMWoDlsA8rJggzwfmGnkDl5JnLLpaT5YWmwCnBx8o=";
+      hash = "sha256-zAvkIbbcmV50yFXbIdf2xCjtdZQZ1qSUyK0IdzgS6ik=";
     };
     aarch64-linux = {
       arch = "arm64";
-      hash = "sha256-Xh89nuNwlXQVbf14kc1fRDJie5CFBcU82s0uHdifqu8=";
+      hash = "sha256-C/7AVaKAOBrnP8rFeK1dM+Rv+4mFbpQTNasRhpLxn0g=";
     };
   };
   asset = assets.${stdenv.hostPlatform.system};
 in
   stdenv.mkDerivation (finalAttrs: {
     pname = "orcad";
-    version = "1.4.274";
+    version = "1.4.277";
     src = fetchurl {
       url = "https://github.com/stablyai/orca/releases/download/v${finalAttrs.version}/orca-server-linux-${asset.arch}.tar.gz";
       inherit (asset) hash;
