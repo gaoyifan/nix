@@ -275,9 +275,11 @@ before writing.
 The SSH command triggers the on-demand
 `com.gaoyifan.icloud-photos-export` Aqua LaunchAgent and waits for the current
 `.backup-status.json`. The worker runs from
-`~/Applications/Home Manager Apps/ICloudPhotosExporter.app` and opens the Photos
-library before issuing export requests. On first use, grant **Allow Access to All Photos** to
-**iCloud Photos Exporter**. macOS may also prompt to allow the exporter to
+its signed app under `~/Library/Application Support/iCloud Photos Exporter` and
+opens the Photos library before issuing export requests. Home Manager signs and
+verifies each build in its own directory with the exporter’s certificate in the
+login keychain. When enrolling that identity, grant **Allow Access to All Photos**
+to **iCloud Photos Exporter**. macOS may also prompt to allow the exporter to
 control Photos when fetching missing Live Photo originals. Keep `yifan` logged
 in so the Aqua LaunchAgent remains available. Worker logs go to
 `~/Library/Logs/icloud-photos-export.log`.

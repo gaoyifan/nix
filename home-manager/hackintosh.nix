@@ -1,12 +1,16 @@
 {
   config,
   inputs,
+  lib,
   pkgs,
   username,
   ...
 }: let
   photosExporter = pkgs.icloud-photos-export-app;
-  photosExporterApp = "${config.home.homeDirectory}/${config.targets.darwin.copyApps.directory}/${photosExporter.bundleName}";
+  photosExporterSigner = "749207789A0B166A4113137E8EF61800BA2736E1";
+  photosExporterBuild = "${builtins.baseNameOf (toString photosExporter)}-${photosExporterSigner}";
+  photosExporterApp = "${config.home.homeDirectory}/Library/Application Support/iCloud Photos Exporter/${photosExporterBuild}/${photosExporter.bundleName}";
+  photosExporterRequirement = ''=identifier "${photosExporter.bundleIdentifier}" and certificate leaf = H"${photosExporterSigner}"'';
   photosExporterLog = "${config.home.homeDirectory}/Library/Logs/icloud-photos-export.log";
   photosPython = pkgs.python313;
 in {
@@ -32,7 +36,6 @@ in {
       fzf
       just
       nh
-      photosExporter
       ripgrep
       tree
       wget
@@ -78,6 +81,32 @@ in {
     '';
   };
   home.file.".local/bin/osxphotos".source = "${pkgs.osxphotos}/bin/osxphotos";
+
+  home.activation.installPhotosExporter = lib.hm.dag.entryBetween ["setupLaunchAgents"] ["writeBoundary"] ''
+    installPhotosExporter() (
+      set -euo pipefail
+      app=${lib.escapeShellArg photosExporterApp}
+      verify() {
+        /usr/bin/codesign --verify --strict -R ${lib.escapeShellArg photosExporterRequirement} "$1"
+      }
+      if verify "$app" 2>/dev/null; then
+        exit 0
+      fi
+
+      mkdir -p "$(dirname "$app")"
+      staging=$(mktemp -d "$(dirname "$app")/.icloud-photos-export.XXXXXXXX")
+      trap 'rm -r "$staging"' EXIT
+      next="$staging/${photosExporter.bundleName}"
+      /usr/bin/ditto ${lib.escapeShellArg "${photosExporter}/Applications/${photosExporter.bundleName}"} "$next"
+      chmod -R u+w "$next"
+      /usr/bin/codesign --force --sign ${photosExporterSigner} "$next"
+      verify "$next"
+
+      rm -rf "$app"
+      mv "$next" "$app"
+    )
+    run installPhotosExporter
+  '';
 
   launchd.agents.icloud-photos-export = {
     enable = true;
